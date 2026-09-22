@@ -24,4 +24,24 @@ return [
         'vorarbeiter'   => 'Vorarbeiter',
         'mitarbeiter'   => 'Mitarbeiter',
     ],
+    'customers' => [
+        'title'          => 'Kunden',
+        'create'         => 'Neuer Kunde',
+        'edit'           => 'Kunde bearbeiten',
+        'deleted'        => 'Kunde gelöscht.',
+        'restored'       => 'Kunde wiederhergestellt.',
+        'status_updated' => 'Kundenstatus aktualisiert.',
+    ],
+    'locations' => [
+        'title'   => 'Standorte',
+        'create'  => 'Neuer Standort',
+        'edit'    => 'Standort bearbeiten',
+        'deleted' => 'Standort gelöscht.',
+    ],
+    'employees' => [
+        'title'   => 'Mitarbeiter',
+        'create'  => 'Neuer Mitarbeiter',
+        'edit'    => 'Mitarbeiter bearbeiten',
+        'deleted' => 'Mitarbeiter gelöscht.',
+    ],
 ];

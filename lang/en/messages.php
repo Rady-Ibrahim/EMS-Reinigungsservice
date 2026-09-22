@@ -1,0 +1,47 @@
+<?php
+
+return [
+    'welcome'           => 'Welcome to EMS Reinigungsservice.',
+    'dashboard'         => 'Dashboard',
+    'profile'           => 'My Profile',
+    'logout'            => 'Logout',
+    'login'             => 'Login',
+    'email'             => 'Email Address',
+    'password'          => 'Password',
+    'remember_me'       => 'Remember me',
+    'forgot_password'   => 'Forgot password?',
+    'save'              => 'Save',
+    'cancel'            => 'Cancel',
+    'delete'            => 'Delete',
+    'edit'              => 'Edit',
+    'create'            => 'Create',
+    'success'           => 'Saved successfully.',
+    'error'             => 'An error occurred.',
+    'not_found'         => 'Not found.',
+    'forbidden'         => 'Access denied.',
+    'roles' => [
+        'administrator' => 'Administrator',
+        'vorarbeiter'   => 'Supervisor',
+        'mitarbeiter'   => 'Employee',
+    ],
+    'customers' => [
+        'title'        => 'Customers',
+        'create'       => 'New Customer',
+        'edit'         => 'Edit Customer',
+        'deleted'      => 'Customer deleted.',
+        'restored'     => 'Customer restored.',
+        'status_updated' => 'Customer status updated.',
+    ],
+    'locations' => [
+        'title'   => 'Locations',
+        'create'  => 'New Location',
+        'edit'    => 'Edit Location',
+        'deleted' => 'Location deleted.',
+    ],
+    'employees' => [
+        'title'   => 'Employees',
+        'create'  => 'New Employee',
+        'edit'    => 'Edit Employee',
+        'deleted' => 'Employee deleted.',
+    ],
+];

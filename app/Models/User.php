@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use App\Enums\RoleEnum;
+use App\Traits\HasAuditLog;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,7 +16,10 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
+    use HasFactory, Notifiable, HasApiTokens, SoftDeletes, HasAuditLog;
+
+    // Never log password changes into the audit trail
+    protected array $auditExclude = ['password', 'remember_token', 'last_login_at'];
 
     protected $fillable = [
         'name',
@@ -42,9 +48,24 @@ class User extends Authenticatable
         ];
     }
 
-    // -------------------------------------------------------------------------
-    // Role helpers
-    // -------------------------------------------------------------------------
+    // ── Relationships ──────────────────────────────────────────────────────
+
+    public function employeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
+    public function twoFactorAuth(): HasOne
+    {
+        return $this->hasOne(TwoFactorAuth::class);
+    }
+
+    public function timeAdjustmentRequests(): HasMany
+    {
+        return $this->hasMany(TimeAdjustmentRequest::class, 'employee_id');
+    }
+
+    // ── Role helpers ──────────────────────────────────────────────────────
 
     public function isAdministrator(): bool
     {

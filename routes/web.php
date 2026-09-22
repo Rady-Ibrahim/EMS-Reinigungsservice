@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\Auth\LoginController;
+use App\Http\Controllers\Web\Admin\CustomerController;
+use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
+use App\Http\Controllers\Web\Admin\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -10,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// ── Guest routes (unauthenticated) ──────────────────────────────────────
+// ── Guest routes ─────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/', fn() => redirect()->route('admin.login'));
     Route::get('/admin/login', [LoginController::class, 'showLoginForm'])->name('admin.login');
@@ -20,8 +23,21 @@ Route::middleware('guest')->group(function () {
 // Alias so Laravel's built-in auth middleware redirect works
 Route::get('/login', fn() => redirect()->route('admin.login'))->name('login');
 
-// ── Authenticated Admin routes ───────────────────────────────────────────
+// ── Authenticated Admin routes ────────────────────────────────────────────
 Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.')->group(function () {
+
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ── Customers ────────────────────────────────────────────────────────
+    Route::resource('customers', CustomerController::class);
+    Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])
+         ->name('customers.toggle-status');
+
+    // ── Customer Locations (nested) ───────────────────────────────────────
+    Route::resource('customers.locations', CustomerLocationController::class)
+         ->shallow(); // generates non-nested routes for show/edit/update/destroy
+
+    // ── Employees ─────────────────────────────────────────────────────────
+    Route::resource('employees', EmployeeController::class);
 });
