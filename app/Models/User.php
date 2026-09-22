@@ -2,48 +2,68 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\RoleEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role',
+        'locale',
+        'is_active',
+        'last_login_at',
+        'email_verified_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'last_login_at'     => 'datetime',
+            'password'          => 'hashed',
+            'role'              => RoleEnum::class,
+            'is_active'         => 'boolean',
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Role helpers
+    // -------------------------------------------------------------------------
+
+    public function isAdministrator(): bool
+    {
+        return $this->role === RoleEnum::Administrator;
+    }
+
+    public function isVorarbeiter(): bool
+    {
+        return $this->role === RoleEnum::Vorarbeiter;
+    }
+
+    public function isMitarbeiter(): bool
+    {
+        return $this->role === RoleEnum::Mitarbeiter;
+    }
+
+    /** True for Vorarbeiter OR Mitarbeiter — they use the mobile API. */
+    public function isApiUser(): bool
+    {
+        return $this->role->isApiRole();
     }
 }
