@@ -269,7 +269,7 @@ class TimeTrackingTest extends TestCase
         $this->assertDatabaseHas('audit_logs', [
             'auditable_type' => FixObjectExecution::class,
             'auditable_id'   => $exec->id,
-            'event'          => 'updated',
+            'event'          => 'hours_adjusted',
         ]);
     }
 

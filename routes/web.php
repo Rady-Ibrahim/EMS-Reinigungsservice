@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
+use App\Http\Controllers\Web\Admin\MonthlyReportController;
 use App\Http\Controllers\Web\Admin\NotificationController;
 use App\Http\Controllers\Web\Admin\ReassignmentController;
 use App\Http\Controllers\Web\Admin\ReopenController;
@@ -90,6 +91,21 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('time-tracking', [TimeAdjustmentController::class, 'trackingOverview'])
          ->name('time-tracking.overview');
 
+    // ── Monthly Reports (Payroll) ──────────────────────────────────────────
+    Route::prefix('monthly-reports')->name('monthly-reports.')->group(function () {
+        Route::get('/', [MonthlyReportController::class, 'index'])->name('index');
+        Route::get('discrepancies', [MonthlyReportController::class, 'discrepancies'])
+             ->name('discrepancies');
+        Route::get('{monthlyReport}', [MonthlyReportController::class, 'show'])->name('show');
+        Route::post('{monthlyReport}/approve', [MonthlyReportController::class, 'approve'])->name('approve');
+        Route::get('{monthlyReport}/export-pdf', [MonthlyReportController::class, 'exportPdf'])
+             ->name('export-pdf');
+    });
+
+    // ── Payroll Excel export (single route, outside resource nesting) ──────
+    Route::get('monthly-reports-export', [MonthlyReportController::class, 'exportExcel'])
+         ->name('monthly-reports.export-excel');
+
     // ── Teamup Integration ─────────────────────────────────────────────────
     Route::prefix('teamup')->name('teamup.')->group(function () {
         Route::get('/', [TeamupController::class, 'edit'])->name('edit');
@@ -102,6 +118,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
         Route::get('/', [NotificationController::class, 'index'])->name('index');
         Route::get('{notification}', [NotificationController::class, 'show'])->name('show');
         Route::post('{notification}/read', [NotificationController::class, 'markRead'])->name('read');
+        Route::post('{userNotification}/mark-user-read', [NotificationController::class, 'markUserRead'])->name('user-read');
         Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
     });
 

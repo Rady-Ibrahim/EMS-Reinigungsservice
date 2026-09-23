@@ -71,6 +71,30 @@
         }
         .pagination .active span { background: #1e40af; color: #fff; border-color: #1e40af; }
         .color-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 6px; border: 1px solid rgba(0,0,0,.1); }
+        .dropdown { position: relative; }
+        .dropdown-menu {
+            position: absolute; right: 0; top: calc(100% + .4rem); z-index: 50;
+            background: #fff; color: #1e293b; border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 340px;
+            display: none; overflow: hidden; border: 1px solid #e2e8f0;
+        }
+        .dropdown.open .dropdown-menu { display: block; }
+        .dropdown-item {
+            display: block; padding: .65rem .9rem; text-decoration: none;
+            color: #1e293b; border-bottom: 1px solid #f1f5f9;
+        }
+        .dropdown-item:hover { background: #f8fafc; }
+        .dropdown-item .dd-title { font-size: .85rem; font-weight: 600; }
+        .dropdown-item.unread { background: #eff6ff; }
+        .dropdown-item.unread:hover { background: #dbeafe; }
+        .dropdown-item .dd-meta { font-size: .72rem; color: #6b7280; margin-top: .15rem; }
+        .dropdown-footer { padding: .55rem .9rem; text-align: center; }
+        .dropdown-footer a { font-size: .8rem; color: #1d4ed8; text-decoration: none; }
+        .dd-read-form { display: inline; }
+        .dd-read-btn {
+            float: right; background: transparent; border: none; cursor: pointer;
+            font-size: .75rem; color: #6b7280; text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -82,14 +106,71 @@
             <a href="{{ route('admin.fix-objects.index') }}" class="nav-link {{ request()->routeIs('admin.fix-objects*') ? 'active' : '' }}">Fixobjekte</a>
             <a href="{{ route('admin.extra-auftraege.index') }}" class="nav-link {{ request()->routeIs('admin.extra-auftraege*') ? 'active' : '' }}">Extra-Aufträge</a>
             <a href="{{ route('admin.calendar.index') }}" class="nav-link {{ request()->routeIs('admin.calendar*') ? 'active' : '' }}">Kalender</a>
-            <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
-                Meldungen
-                @php
-                    $unread = \App\Models\AdminNotification::unread()->count()
-                            + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
-                @endphp
-                @if($unread > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $unread }}</span>@endif
-            </a>
+            @php
+                $adminNotifications = \App\Models\AdminNotification::latest()->limit(8)->get()
+                    ->map(fn($n) => (object) [
+                        'id'        => $n->id,
+                        'kind'      => 'admin',
+                        'title'     => $n->title,
+                        'message'   => $n->message,
+                        'created_at'=> $n->created_at,
+                        'unread'    => ! $n->is_read,
+                        'url'       => route('admin.notifications.show', $n),
+                    ]);
+                $userNotifications = \App\Models\UserNotification::forUser((int) Auth::id())->latest()->limit(8)->get()
+                    ->map(fn($n) => (object) [
+                        'id'        => $n->id,
+                        'kind'      => 'user',
+                        'title'     => $n->title,
+                        'message'   => $n->message ?? '',
+                        'created_at'=> $n->created_at,
+                        'unread'    => ! $n->isRead(),
+                    ]);
+                $notifications = $adminNotifications
+                    ->concat($userNotifications)
+                    ->sortByDesc('created_at')
+                    ->take(8)
+                    ->values();
+            @endphp
+            <div class="dropdown" id="notification-dropdown">
+                <a href="#" class="nav-link js-notif-toggle {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                    Meldungen
+                    @php
+                        $unread = \App\Models\AdminNotification::unread()->count()
+                                + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
+                    @endphp
+                    @if($unread > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $unread }}</span>@endif
+                </a>
+                <div class="dropdown-menu">
+                    @forelse($notifications as $n)
+                        <div class="dropdown-item {{ $n->unread ? 'unread' : '' }}">
+                            @csrf
+                            <form method="POST"
+                                  action="{{ $n->kind === 'admin'
+                                      ? route('admin.notifications.read', $n->id)
+                                      : route('admin.notifications.user-read', $n->id) }}"
+                                  class="dd-read-form"
+                                  {{ $n->unread ? '' : 'hidden' }}>
+                                <button type="submit" class="dd-read-btn">Als gelesen</button>
+                            </form>
+                            @if($n->kind === 'admin')
+                                <a href="{{ $n->url }}" style="text-decoration:none;color:inherit;">
+                                    <span class="dd-title">{{ $n->title }}</span>
+                                </a>
+                            @else
+                                <span class="dd-title">{{ $n->title }}</span>
+                            @endif
+                            <div class="dd-meta">{{ \Illuminate\Support\Str::limit($n->message ?? '', 90) }}</div>
+                            <div class="dd-meta">{{ $n->created_at->diffForHumans() }}</div>
+                        </div>
+                    @empty
+                        <div class="dropdown-item"><span class="dd-meta">Keine Meldungen.</span></div>
+                    @endforelse
+                    <div class="dropdown-footer">
+                        <a href="{{ route('admin.notifications.index') }}">Alle anzeigen</a>
+                    </div>
+                </div>
+            </div>
             <a href="{{ route('admin.audit-log.index') }}" class="nav-link {{ request()->routeIs('admin.audit-log*') ? 'active' : '' }}">Audit</a>
             <a href="{{ route('admin.two-factor.setup') }}" class="nav-link {{ request()->routeIs('admin.two-factor*') ? 'active' : '' }}">2FA</a>
             <a href="{{ route('admin.teamup.edit') }}" class="nav-link {{ request()->routeIs('admin.teamup*') ? 'active' : '' }}">Teamup</a>
@@ -98,6 +179,7 @@
                 @php $pending = \App\Models\TimeAdjustmentRequest::pending()->count(); @endphp
                 @if($pending > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $pending }}</span>@endif
             </a>
+            <a href="{{ route('admin.monthly-reports.index') }}" class="nav-link {{ request()->routeIs('admin.monthly-reports*') ? 'active' : '' }}">Monatsberichte</a>
             <span style="color:rgba(255,255,255,.5);font-size:.8rem">{{ Auth::user()?->name ?? '' }}</span>
             <form action="{{ route('admin.logout') }}" method="POST" class="logout-form">
                 @csrf
@@ -116,5 +198,19 @@
 
         @yield('content')
     </div>
+    <script>
+        (function () {
+            var dropdown = document.getElementById('notification-dropdown');
+            if (! dropdown) { return; }
+            var toggle = dropdown.querySelector('.js-notif-toggle');
+            toggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                dropdown.classList.toggle('open');
+            });
+            document.addEventListener('click', function (e) {
+                if (! dropdown.contains(e.target)) { dropdown.classList.remove('open'); }
+            });
+        })();
+    </script>
 </body>
 </html>

@@ -95,6 +95,11 @@ class User extends Authenticatable
         return $this->hasMany(UserNotification::class);
     }
 
+    public function monthlyReports(): HasMany
+    {
+        return $this->hasMany(MonthlyReport::class, 'user_id');
+    }
+
     // ── Role helpers ──────────────────────────────────────────────────────
 
     public function isAdministrator(): bool

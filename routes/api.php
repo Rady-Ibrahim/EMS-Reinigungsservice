@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragControl
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
 use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\MonthlyReportController as ApiMonthlyReportController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReassignmentController as ApiReassignmentController;
@@ -100,5 +101,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::post('/device-tokens', [NotificationController::class, 'storeDeviceToken'])->name('device-tokens.store');
         Route::delete('/device-tokens/{deviceToken}', [NotificationController::class, 'destroyDeviceToken'])->name('device-tokens.destroy');
+
+        // ── Monthly reports (own) ────────────────────────────────────────────
+        Route::get('/monthly-reports', [ApiMonthlyReportController::class, 'show'])->name('monthly-reports.show');
+        Route::get('/monthly-reports/line-items', [ApiMonthlyReportController::class, 'lineItems'])->name('monthly-reports.line-items');
     });
 });

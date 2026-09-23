@@ -228,6 +228,32 @@ class ExtraAuftragService
             ]);
         }
 
+        // ── GPS guard: work was started with GPS → closing must also be GPS-verified ──
+        if (! empty($leaderExecution->gps_work_start_lat) && empty($data['gps_work_end_lat'])) {
+            throw ValidationException::withMessages([
+                'gps_work_end_lat' => 'GPS-Position beim Arbeitsende ist Pflicht, da der Einsatz mit GPS gestartet wurde.',
+            ]);
+        }
+
+        if (! empty($leaderExecution->gps_work_start_lng) && empty($data['gps_work_end_lng'])) {
+            throw ValidationException::withMessages([
+                'gps_work_end_lng' => 'GPS-Position beim Arbeitsende ist Pflicht, da der Einsatz mit GPS gestartet wurde.',
+            ]);
+        }
+
+        // ── Time-anomaly guard: frozen work duration must not exceed 2× the estimate ──
+        $leaderWorkEnd = $data['work_end'] ?? now();
+        $leaderMinutes = $leaderExecution->work_start
+            ? (int) $leaderExecution->work_start->diffInMinutes($leaderWorkEnd)
+            : 0;
+        $estimateMinutes = (int) round(((float) $order->estimated_hours) * 60);
+
+        if ($estimateMinutes > 0 && $leaderMinutes > $estimateMinutes * 2) {
+            throw ValidationException::withMessages([
+                'work_end' => 'Die gemeldete Arbeitszeit übersteigt das Doppelte der geplanten Stunden deutlich. Bitte Zeitkorrektur beantragen.',
+            ]);
+        }
+
         return DB::transaction(function () use ($order, $userId, $leaderExecution, $data) {
             $now = now();
 

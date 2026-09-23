@@ -13,6 +13,7 @@ enum AuditEventEnum: string
     case ForceOverride   = 'force_override';
     case SecurityChanged = 'security_changed';
     case HoursAdjusted   = 'hours_adjusted';
+    case ReportApproved  = 'report_approved';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum AuditEventEnum: string
             self::ForceOverride   => 'Doppelbuchung forciert',
             self::SecurityChanged => 'Sicherheit',
             self::HoursAdjusted   => 'Stunden korrigiert',
+            self::ReportApproved  => 'Bericht freigegeben',
         };
     }
 

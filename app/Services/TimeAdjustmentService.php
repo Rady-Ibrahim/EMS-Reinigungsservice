@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AdjustmentStatusEnum;
+use App\Enums\AuditEventEnum;
 use App\Models\ExtraAuftragExecution;
 use App\Models\FixObjectExecution;
 use App\Models\TimeAdjustmentRequest;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 class TimeAdjustmentService
 {
     public function __construct(
-        private readonly TravelTimeCalculatorService $travelCalculator
+        private readonly TravelTimeCalculatorService $travelCalculator,
+        private readonly AuditLogger                  $audit
     ) {
     }
 
@@ -60,13 +62,15 @@ class TimeAdjustmentService
     public function approve(TimeAdjustmentRequest $request, User $admin, ?string $adminNote = null): TimeAdjustmentRequest
     {
         return DB::transaction(function () use ($request, $admin, $adminNote) {
+            // Stamp the reviewer first so the audit trail records the correct actor.
+            $request->update(['reviewed_by' => $admin->id]);
+
             // Apply the adjustment to the relevant execution
             $this->applyAdjustment($request);
 
             // Update request status with audit trail
             $request->update([
                 'status'      => AdjustmentStatusEnum::Approved,
-                'reviewed_by' => $admin->id,
                 'reviewed_at' => now(),
                 'admin_note'  => $adminNote,
             ]);
@@ -141,26 +145,20 @@ class TimeAdjustmentService
             'actual_end'   => $request->requested_end,
         ]);
 
-        // Audit via HasAuditLog trait is NOT on FixObjectExecution
-        // so we record manually via AuditLog
-        \App\Models\AuditLog::create([
-            'user_id'        => $request->reviewed_by,
-            'auditable_type' => FixObjectExecution::class,
-            'auditable_id'   => $execution->id,
-            'event'          => 'updated',
-            'old_values'     => [
+        $this->audit->record(
+            $execution,
+            AuditEventEnum::HoursAdjusted,
+            oldValues: [
                 'actual_start' => $request->original_start?->toIso8601String(),
                 'actual_end'   => $request->original_end?->toIso8601String(),
             ],
-            'new_values'     => [
+            newValues: [
                 'actual_start' => $request->requested_start->toIso8601String(),
                 'actual_end'   => $request->requested_end->toIso8601String(),
             ],
-            'url'        => request()->fullUrl(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
+            reason: 'Zeitkorrektur genehmigt (Fixobjekt)',
+            actorId: $request->reviewed_by,
+        );
     }
 
     private function applyToExtraExecution(TimeAdjustmentRequest $request): void
@@ -198,23 +196,19 @@ class TimeAdjustmentService
             'paid_minutes' => $paidMinutes,
         ]);
 
-        \App\Models\AuditLog::create([
-            'user_id'        => $request->reviewed_by,
-            'auditable_type' => ExtraAuftragExecution::class,
-            'auditable_id'   => $execution->id,
-            'event'          => 'updated',
-            'old_values'     => $oldValues,
-            'new_values'     => [
+        $this->audit->record(
+            $execution,
+            AuditEventEnum::HoursAdjusted,
+            oldValues: $oldValues,
+            newValues: [
                 'work_start'   => $newStart->toIso8601String(),
                 'work_end'     => $newEnd->toIso8601String(),
                 'work_minutes' => $workMinutes,
                 'paid_minutes' => $paidMinutes,
             ],
-            'url'        => request()->fullUrl(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
+            reason: 'Zeitkorrektur genehmigt (Extra-Auftrag)',
+            actorId: $request->reviewed_by,
+        );
     }
 
     /**

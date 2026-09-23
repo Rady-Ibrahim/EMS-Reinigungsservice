@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Enums\AdminNotificationTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotification;
+use App\Models\UserNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,6 +34,13 @@ class NotificationController extends Controller
     public function markRead(AdminNotification $notification): RedirectResponse
     {
         $notification->update(['is_read' => true]);
+
+        return back();
+    }
+
+    public function markUserRead(UserNotification $userNotification): RedirectResponse
+    {
+        $userNotification->markAsRead();
 
         return back();
     }
