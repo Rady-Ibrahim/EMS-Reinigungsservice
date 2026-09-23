@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AppointmentController as ApiAppointmentController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\CalendarController as ApiCalendarController;
 use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragController;
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReassignmentController as ApiReassignmentController;
+use App\Http\Controllers\Api\V1\ShiftController as ApiShiftController;
 use App\Http\Controllers\Api\V1\TimeTrackingController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,5 +73,23 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/time-summary', [TimeTrackingController::class, 'monthlySummary'])->name('time.summary');
         Route::get('/time-adjustments', [TimeTrackingController::class, 'indexAdjustments'])->name('time-adjustments.index');
         Route::post('/time-adjustments', [TimeTrackingController::class, 'submitAdjustment'])->name('time-adjustments.submit');
+
+        // ── Interactive Calendar (unified) ─────────────────────────────────
+        Route::get('/calendar', [ApiCalendarController::class, 'index'])->name('calendar.index');
+
+        // ── Personal appointments (own) ────────────────────────────────────
+        Route::get('/appointments', [ApiAppointmentController::class, 'index'])->name('appointments.index');
+        Route::post('/appointments', [ApiAppointmentController::class, 'store'])->name('appointments.store');
+        Route::patch('/appointments/{appointment}', [ApiAppointmentController::class, 'update'])->name('appointments.update');
+        Route::delete('/appointments/{appointment}', [ApiAppointmentController::class, 'destroy'])->name('appointments.destroy');
+
+        // ── Shifts ─────────────────────────────────────────────────────────
+        Route::get('/shifts', [ApiShiftController::class, 'index'])->name('shifts.index');
+        Route::post('/shifts', [ApiShiftController::class, 'store'])->name('shifts.store');
+        Route::delete('/shifts/{shift}', [ApiShiftController::class, 'destroy'])->name('shifts.destroy');
+
+        // ── Dynamic Reassignment (Vorarbeiter) ─────────────────────────────
+        Route::post('/schedules/{schedule}/reassign', [ApiReassignmentController::class, 'reassignSchedule'])->name('schedules.reassign');
+        Route::post('/extra-assignees/{assignee}/reassign', [ApiReassignmentController::class, 'reassignExtraAssignee'])->name('extra-assignees.reassign');
     });
 });

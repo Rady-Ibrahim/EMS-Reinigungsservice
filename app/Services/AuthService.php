@@ -65,9 +65,11 @@ class AuthService
             \App\Enums\RoleEnum::Vorarbeiter => [
                 'jobs:view', 'jobs:close', 'jobs:upload',
                 'checklist:update', 'time:track', 'profile:view',
+                'calendar:view', 'appointments:manage', 'reassign:manage',
             ],
             \App\Enums\RoleEnum::Mitarbeiter => [
                 'jobs:view', 'time:track', 'profile:view',
+                'calendar:view', 'appointments:manage',
             ],
             default => [],
         };

@@ -81,6 +81,13 @@
             <a href="{{ route('admin.employees.index') }}" class="nav-link {{ request()->routeIs('admin.employees*') ? 'active' : '' }}">{{ __('messages.employees.title') }}</a>
             <a href="{{ route('admin.fix-objects.index') }}" class="nav-link {{ request()->routeIs('admin.fix-objects*') ? 'active' : '' }}">Fixobjekte</a>
             <a href="{{ route('admin.extra-auftraege.index') }}" class="nav-link {{ request()->routeIs('admin.extra-auftraege*') ? 'active' : '' }}">Extra-Aufträge</a>
+            <a href="{{ route('admin.calendar.index') }}" class="nav-link {{ request()->routeIs('admin.calendar*') ? 'active' : '' }}">Kalender</a>
+            <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                Meldungen
+                @php $unread = \App\Models\AdminNotification::unread()->count(); @endphp
+                @if($unread > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $unread }}</span>@endif
+            </a>
+            <a href="{{ route('admin.teamup.edit') }}" class="nav-link {{ request()->routeIs('admin.teamup*') ? 'active' : '' }}">Teamup</a>
             <a href="{{ route('admin.time-adjustments.index') }}" class="nav-link {{ request()->routeIs('admin.time-adjustments*') ? 'active' : '' }}">
                 Zeitkorrekturen
                 @php $pending = \App\Models\TimeAdjustmentRequest::pending()->count(); @endphp

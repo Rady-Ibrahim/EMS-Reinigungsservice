@@ -65,6 +65,26 @@ class User extends Authenticatable
         return $this->hasMany(TimeAdjustmentRequest::class, 'employee_id');
     }
 
+    public function employeeShifts(): HasMany
+    {
+        return $this->hasMany(EmployeeShift::class);
+    }
+
+    public function personalAppointments(): HasMany
+    {
+        return $this->hasMany(PersonalAppointment::class);
+    }
+
+    public function internalEventAssignees(): HasMany
+    {
+        return $this->hasMany(InternalEventAssignee::class);
+    }
+
+    public function scheduleAssignments(): HasMany
+    {
+        return $this->hasMany(FixObjectScheduleAssignment::class);
+    }
+
     // ── Role helpers ──────────────────────────────────────────────────────
 
     public function isAdministrator(): bool

@@ -16,7 +16,8 @@ class FixObjectService
 {
     public function __construct(
         private readonly ScheduleGeneratorService $scheduleGenerator,
-        private readonly ContractHoursCalculator  $calculator
+        private readonly ContractHoursCalculator  $calculator,
+        private readonly ConflictCheckerService   $conflicts
     ) {
     }
 
@@ -68,8 +69,35 @@ class FixObjectService
 
     // ── Assignments ────────────────────────────────────────────────────────
 
-    public function assignEmployee(FixObject $fixObject, int $userId, string $assignedFrom, ?string $assignedUntil = null): FixObjectAssignment
-    {
+    public function assignEmployee(
+        FixObject $fixObject,
+        int $userId,
+        string $assignedFrom,
+        ?string $assignedUntil = null,
+        bool $force = false
+    ): FixObjectAssignment {
+        // Same employee re-assertion (e.g. extending an existing assignment)
+        // is not a double-booking — skip the conflict sweep.
+        $alreadyAssigned = FixObjectAssignment::where('fix_object_id', $fixObject->id)
+            ->where('user_id', $userId)
+            ->exists();
+
+        if (! $alreadyAssigned) {
+            $candidates = $this->conflicts->fixCandidates($fixObject, $assignedFrom, $assignedUntil, [$userId]);
+
+            if ($candidates->isNotEmpty()) {
+                $ignore = $fixObject->schedules()
+                    ->pluck('id')
+                    ->map(fn($id) => 'fix_schedule:'.$id)
+                    ->all();
+
+                $this->conflicts->assertClean(
+                    $this->conflicts->findConflicts($candidates, $ignore),
+                    $force
+                );
+            }
+        }
+
         return FixObjectAssignment::create([
             'fix_object_id' => $fixObject->id,
             'user_id'       => $userId,
@@ -91,12 +119,16 @@ class FixObjectService
      */
     public function startExecution(FixObjectSchedule $schedule, int $userId, array $data): FixObjectExecution
     {
-        // Verify employee is assigned to this fix object
+        // Verify employee is assigned to this fix object —
+        // either via the contract assignment or a per-day schedule override
         $fixObject = $schedule->fixObject;
-        $isAssigned = $fixObject->assignments()
+        $isAssigned = $schedule->scheduleAssignments()
             ->where('user_id', $userId)
-            ->active()
-            ->exists();
+            ->exists()
+            || $fixObject->assignments()
+                ->where('user_id', $userId)
+                ->active()
+                ->exists();
 
         if (! $isAssigned) {
             throw new \RuntimeException('Employee is not assigned to this Fixobjekt.');

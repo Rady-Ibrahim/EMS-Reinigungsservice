@@ -9,6 +9,7 @@ use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragAssignee;
 use App\Models\ExtraAuftragExecution;
 use App\Models\TravelTrack;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,8 @@ use Illuminate\Validation\ValidationException;
 class ExtraAuftragService
 {
     public function __construct(
-        private readonly TravelTimeCalculatorService $travelCalculator
+        private readonly TravelTimeCalculatorService $travelCalculator,
+        private readonly ConflictCheckerService $conflicts
     ) {
     }
 
@@ -41,9 +43,12 @@ class ExtraAuftragService
      * @param  array  $data           — validated order fields
      * @param  array  $assignees      — [['user_id' => X, 'role_in_order' => 'leader'|'member'], ...]
      */
-    public function create(array $data, array $assignees): ExtraAuftrag
+    public function create(array $data, array $assignees, bool $force = false): ExtraAuftrag
     {
         $this->validateLeaderPresent($assignees);
+
+        $employeeIds = $this->uniqueAssignees($assignees);
+        $this->assertNoEmployeeConflicts($data, $employeeIds, [], $force);
 
         return DB::transaction(function () use ($data, $assignees) {
             $order = ExtraAuftrag::create($data);
@@ -53,8 +58,14 @@ class ExtraAuftragService
         });
     }
 
-    public function update(ExtraAuftrag $order, array $data, ?array $assignees = null): ExtraAuftrag
+    public function update(ExtraAuftrag $order, array $data, ?array $assignees = null, bool $force = false): ExtraAuftrag
     {
+        $employeeIds = $assignees !== null
+            ? $this->uniqueAssignees($assignees)
+            : $order->assignees()->pluck('user_id')->all();
+
+        $this->assertNoEmployeeConflicts($data, $employeeIds, ['extra_auftrag:'.$order->id], $force);
+
         return DB::transaction(function () use ($order, $data, $assignees) {
             if ($assignees !== null) {
                 $this->validateLeaderPresent($assignees);
@@ -289,6 +300,57 @@ class ExtraAuftragService
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
+
+    private function uniqueAssignees(array $assignees): array
+    {
+        return array_values(array_unique(array_map(
+            fn($a) => (int) $a['user_id'],
+            $assignees,
+        )));
+    }
+
+    /**
+     * Build one booking window per employee and enforce the booking rule.
+     *
+     * @param  array<int>  $employeeIds
+     * @param  array<string>  $ignoreEventIds
+     */
+    private function assertNoEmployeeConflicts(array $data, array $employeeIds, array $ignoreEventIds = [], bool $force = false): void
+    {
+        $date = Carbon::parse($data['scheduled_date'] ?? now()->toDateString());
+
+        if (! empty($data['scheduled_time_start'])) {
+            $start = Carbon::parse($date->toDateString().' '.$data['scheduled_time_start']);
+            $hours = (float) ($data['estimated_hours'] ?? 1);
+            $end   = $start->copy()->addHours(max($hours, 0.25));
+            $allDay = false;
+        } else {
+            $start = $date->copy()->startOfDay();
+            $end   = $date->copy()->endOfDay();
+            $allDay = true;
+        }
+
+        $candidates = collect();
+
+        foreach ($employeeIds as $userId) {
+            $candidates->push(new \App\ValueObjects\CalendarEvent(
+                id: 'extra_auftrag:candidate',
+                type: \App\Enums\CalendarEventTypeEnum::ExtraAuftrag,
+                layer: 'jobs',
+                title: $data['title'] ?? 'Extra-Auftrag',
+                startAt: $start,
+                endAt: $end,
+                allDay: $allDay,
+                color: '#3b82f6',
+                employeeIds: [$userId],
+            ));
+        }
+
+        $this->conflicts->assertClean(
+            $this->conflicts->findConflicts($candidates, $ignoreEventIds),
+            $force
+        );
+    }
 
     private function validateLeaderPresent(array $assignees): void
     {
