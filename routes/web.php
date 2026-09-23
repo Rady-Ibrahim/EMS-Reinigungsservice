@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
+use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,4 +51,10 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->name('fix-objects.assignments.destroy');
     Route::post('fix-objects/{fixObject}/generate-schedules', [FixObjectController::class, 'generateSchedules'])
          ->name('fix-objects.generate-schedules');
+
+    // ── Extra-Aufträge ────────────────────────────────────────────────────
+    Route::resource('extra-auftraege', ExtraAuftragController::class)
+         ->except(['destroy']);
+    Route::post('extra-auftraege/{extraAuftrag}/cancel', [ExtraAuftragController::class, 'cancel'])
+         ->name('extra-auftraege.cancel');
 });
