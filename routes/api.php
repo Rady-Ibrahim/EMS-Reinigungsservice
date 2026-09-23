@@ -3,8 +3,10 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragController;
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
+use App\Http\Controllers\Api\V1\GpsTrackingController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\TimeTrackingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,5 +59,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Execution-level actions (leader only)
         Route::post('/extra-executions/{execution}/before-photos', [ApiExtraAuftragController::class, 'uploadBeforePhotos'])->name('extra-executions.before-photos');
         Route::patch('/extra-executions/{execution}/checklist', [ApiExtraAuftragController::class, 'updateChecklist'])->name('extra-executions.checklist');
+
+        // ── GPS Tracking ──────────────────────────────────────────────────
+        Route::get('/travel-tracks/{travelTrack}/gps', [GpsTrackingController::class, 'index'])->name('gps.index');
+        Route::post('/travel-tracks/{travelTrack}/gps', [GpsTrackingController::class, 'store'])->name('gps.store');
+        Route::post('/travel-tracks/{travelTrack}/gps/batch', [GpsTrackingController::class, 'storeBatch'])->name('gps.batch');
+
+        // ── Time Tracking ─────────────────────────────────────────────────
+        Route::get('/time-summary', [TimeTrackingController::class, 'monthlySummary'])->name('time.summary');
+        Route::get('/time-adjustments', [TimeTrackingController::class, 'indexAdjustments'])->name('time-adjustments.index');
+        Route::post('/time-adjustments', [TimeTrackingController::class, 'submitAdjustment'])->name('time-adjustments.submit');
     });
 });

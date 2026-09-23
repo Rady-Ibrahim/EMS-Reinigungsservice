@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TravelTrack extends Model
 {
@@ -47,6 +48,11 @@ class TravelTrack extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function gpsPoints(): HasMany
+    {
+        return $this->hasMany(GpsPoint::class)->orderBy('recorded_at');
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

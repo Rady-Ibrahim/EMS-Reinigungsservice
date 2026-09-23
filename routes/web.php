@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
+use App\Http\Controllers\Web\Admin\TimeAdjustmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,4 +58,18 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->except(['destroy']);
     Route::post('extra-auftraege/{extraAuftrag}/cancel', [ExtraAuftragController::class, 'cancel'])
          ->name('extra-auftraege.cancel');
+
+    // ── Time Adjustments ──────────────────────────────────────────────────
+    Route::get('time-adjustments', [TimeAdjustmentController::class, 'index'])
+         ->name('time-adjustments.index');
+    Route::get('time-adjustments/{timeAdjustment}', [TimeAdjustmentController::class, 'show'])
+         ->name('time-adjustments.show');
+    Route::post('time-adjustments/{timeAdjustment}/approve', [TimeAdjustmentController::class, 'approve'])
+         ->name('time-adjustments.approve');
+    Route::post('time-adjustments/{timeAdjustment}/reject', [TimeAdjustmentController::class, 'reject'])
+         ->name('time-adjustments.reject');
+
+    // ── Time Tracking Overview ─────────────────────────────────────────────
+    Route::get('time-tracking', [TimeAdjustmentController::class, 'trackingOverview'])
+         ->name('time-tracking.overview');
 });

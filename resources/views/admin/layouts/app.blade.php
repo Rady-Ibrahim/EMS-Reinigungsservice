@@ -41,6 +41,8 @@
         .badge-green  { background: #dcfce7; color: #15803d; }
         .badge-red    { background: #fee2e2; color: #b91c1c; }
         .badge-gray   { background: #f1f5f9; color: #475569; }
+        .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+        .badge-yellow { background: #fef9c3; color: #a16207; }
         .btn { display: inline-block; padding: .45rem .9rem; border-radius: 7px; font-size: .85rem; font-weight: 500; cursor: pointer; text-decoration: none; border: none; }
         .btn-primary { background: #1e40af; color: #fff; }
         .btn-primary:hover { background: #1d4ed8; }
@@ -77,6 +79,13 @@
         <div class="navbar-nav">
             <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">{{ __('messages.customers.title') }}</a>
             <a href="{{ route('admin.employees.index') }}" class="nav-link {{ request()->routeIs('admin.employees*') ? 'active' : '' }}">{{ __('messages.employees.title') }}</a>
+            <a href="{{ route('admin.fix-objects.index') }}" class="nav-link {{ request()->routeIs('admin.fix-objects*') ? 'active' : '' }}">Fixobjekte</a>
+            <a href="{{ route('admin.extra-auftraege.index') }}" class="nav-link {{ request()->routeIs('admin.extra-auftraege*') ? 'active' : '' }}">Extra-Aufträge</a>
+            <a href="{{ route('admin.time-adjustments.index') }}" class="nav-link {{ request()->routeIs('admin.time-adjustments*') ? 'active' : '' }}">
+                Zeitkorrekturen
+                @php $pending = \App\Models\TimeAdjustmentRequest::pending()->count(); @endphp
+                @if($pending > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $pending }}</span>@endif
+            </a>
             <span style="color:rgba(255,255,255,.5);font-size:.8rem">{{ Auth::user()->name }}</span>
             <form action="{{ route('admin.logout') }}" method="POST" class="logout-form">
                 @csrf
