@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
+use App\Http\Controllers\Web\Admin\FixObjectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,4 +41,13 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 
     // ── Employees ─────────────────────────────────────────────────────────
     Route::resource('employees', EmployeeController::class);
+
+    // ── Fix Objects ────────────────────────────────────────────────────────
+    Route::resource('fix-objects', FixObjectController::class);
+    Route::post('fix-objects/{fixObject}/assignments', [FixObjectController::class, 'storeAssignment'])
+         ->name('fix-objects.assignments.store');
+    Route::delete('fix-objects/{fixObject}/assignments/{assignment}', [FixObjectController::class, 'destroyAssignment'])
+         ->name('fix-objects.assignments.destroy');
+    Route::post('fix-objects/{fixObject}/generate-schedules', [FixObjectController::class, 'generateSchedules'])
+         ->name('fix-objects.generate-schedules');
 });
