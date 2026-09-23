@@ -13,3 +13,9 @@ Schedule::command('ems:generate-schedules')->monthlyOn(1, '01:00');
 
 // Teamup sync — flush pending pushes and pull remote changes every 5 minutes
 Schedule::command('ems:teamup-sync')->everyFiveMinutes();
+
+// Smart admin alerts — hourly: missing photos + overdue orders
+Schedule::command('ems:admin-alerts', ['--photos' => true, '--unclosed' => true])->hourly();
+
+// Smart admin alerts — daily 02:00: monthly-hours coverage
+Schedule::command('ems:admin-alerts', ['--monthly-hours' => true])->dailyAt('02:00');

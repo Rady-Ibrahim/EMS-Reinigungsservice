@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Admin\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,8 +13,10 @@ use Illuminate\View\View;
 
 class LoginController extends Controller
 {
-    public function __construct(private readonly AuthService $authService)
-    {
+    public function __construct(
+        private readonly AuthService $authService,
+        private readonly TwoFactorAuthService $twoFactor
+    ) {
     }
 
     /**
@@ -52,6 +55,17 @@ class LoginController extends Controller
             return back()->withErrors([
                 'email' => __('auth.unauthorized'),
             ])->onlyInput('email');
+        }
+
+        // 2FA gate — hold the login until the TOTP code is verified.
+        if ($this->twoFactor->isEnabledFor($user)) {
+            $request->session()->put([
+                '2fa.user_id'   => $user->id,
+                '2fa.remember'  => $request->boolean('remember'),
+                '2fa.intended'  => redirect()->intended(route('admin.dashboard'))->getTargetUrl(),
+            ]);
+
+            return redirect()->route('admin.2fa.challenge');
         }
 
         Auth::login($user, $request->boolean('remember'));

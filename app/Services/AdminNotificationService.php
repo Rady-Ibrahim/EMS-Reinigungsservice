@@ -12,13 +12,15 @@ class AdminNotificationService
         AdminNotificationTypeEnum $type,
         string $title,
         ?string $message = null,
-        array $payload = []
+        array $payload = [],
+        ?string $dedupeKey = null
     ): AdminNotification {
         return AdminNotification::create([
-            'type'    => $type,
-            'title'   => $title,
-            'message' => $message,
-            'payload' => empty($payload) ? null : $payload,
+            'type'       => $type,
+            'title'      => $title,
+            'message'    => $message,
+            'payload'    => empty($payload) ? null : $payload,
+            'dedupe_key' => $dedupeKey,
         ]);
     }
 

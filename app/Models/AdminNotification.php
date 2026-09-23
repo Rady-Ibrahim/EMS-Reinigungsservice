@@ -22,6 +22,7 @@ class AdminNotification extends Model
         'title',
         'message',
         'payload',
+        'dedupe_key',
         'is_read',
     ];
 

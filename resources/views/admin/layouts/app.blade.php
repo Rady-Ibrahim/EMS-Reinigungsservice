@@ -84,16 +84,21 @@
             <a href="{{ route('admin.calendar.index') }}" class="nav-link {{ request()->routeIs('admin.calendar*') ? 'active' : '' }}">Kalender</a>
             <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
                 Meldungen
-                @php $unread = \App\Models\AdminNotification::unread()->count(); @endphp
+                @php
+                    $unread = \App\Models\AdminNotification::unread()->count()
+                            + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
+                @endphp
                 @if($unread > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $unread }}</span>@endif
             </a>
+            <a href="{{ route('admin.audit-log.index') }}" class="nav-link {{ request()->routeIs('admin.audit-log*') ? 'active' : '' }}">Audit</a>
+            <a href="{{ route('admin.two-factor.setup') }}" class="nav-link {{ request()->routeIs('admin.two-factor*') ? 'active' : '' }}">2FA</a>
             <a href="{{ route('admin.teamup.edit') }}" class="nav-link {{ request()->routeIs('admin.teamup*') ? 'active' : '' }}">Teamup</a>
             <a href="{{ route('admin.time-adjustments.index') }}" class="nav-link {{ request()->routeIs('admin.time-adjustments*') ? 'active' : '' }}">
                 Zeitkorrekturen
                 @php $pending = \App\Models\TimeAdjustmentRequest::pending()->count(); @endphp
                 @if($pending > 0)<span class="badge badge-red" style="font-size:.7rem">{{ $pending }}</span>@endif
             </a>
-            <span style="color:rgba(255,255,255,.5);font-size:.8rem">{{ Auth::user()->name }}</span>
+            <span style="color:rgba(255,255,255,.5);font-size:.8rem">{{ Auth::user()?->name ?? '' }}</span>
             <form action="{{ route('admin.logout') }}" method="POST" class="logout-form">
                 @csrf
                 <button type="submit" class="btn-logout">{{ __('messages.logout') }}</button>

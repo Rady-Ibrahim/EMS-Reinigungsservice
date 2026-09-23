@@ -12,8 +12,39 @@
         @if(!$extraAuftrag->status->isTerminal())
         <a href="{{ route('admin.extra-auftraege.edit', $extraAuftrag) }}" class="btn btn-secondary">Bearbeiten</a>
         @endif
+        @if($extraAuftrag->status->value === 'completed')
+        <form method="GET" action="javascript:void(0)" id="reopen-extra-form" style="display:inline;">
+            @csrf
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('reopen-modal').style.display='block'">Wieder öffnen</button>
+        </form>
+        @endif
     </div>
 </div>
+
+@if($extraAuftrag->status->value === 'completed')
+{{-- Reopen confirmation modal --}}
+<div id="reopen-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;">
+    <div style="background:#fff;border-radius:10px;padding:1.5rem;max-width:440px;width:90%;margin:auto;margin-top:10vh;">
+        <h2 class="card-title" style="margin-bottom:.75rem">Auftrag wieder öffnen</h2>
+        <p style="font-size:.875rem;color:#475569;margin-bottom:1rem;">
+            Der Auftrag wird auf <strong>Zugewiesen</strong> zurückgesetzt und alle Ausführungen
+            können erneut abgeschlossen werden. Bitte gib eine Begründung an (Pflicht, wird im Audit-Protokoll erfasst).
+        </p>
+        <form method="POST" action="{{ route('admin.extra-auftraege.reopen', $extraAuftrag) }}">
+            @csrf
+            <div class="form-group">
+                <label for="reopen_reason">Begründung</label>
+                <textarea id="reopen_reason" name="reopen_reason" rows="3" required></textarea>
+                @error('reopen_reason')<div class="field-error">{{ $message }}</div>@enderror
+            </div>
+            <div class="actions">
+                <button type="submit" class="btn btn-danger">Bestätigen</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('reopen-modal').style.display='none'">Abbrechen</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
     {{-- Order Details --}}

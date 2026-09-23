@@ -85,6 +85,16 @@ class User extends Authenticatable
         return $this->hasMany(FixObjectScheduleAssignment::class);
     }
 
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
     // ── Role helpers ──────────────────────────────────────────────────────
 
     public function isAdministrator(): bool

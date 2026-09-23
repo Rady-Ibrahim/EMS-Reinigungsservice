@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Placeholder model for 2FA.
- * Full TOTP logic (QR generation, code verification, recovery) arrives in Phase 7.
+ * TOTP two-factor authentication for Administrator accounts.
+ * Secret and recovery codes are stored encrypted; full TOTP logic lives in
+ * App\Services\TwoFactorAuthService.
  */
 class TwoFactorAuth extends Model
 {
@@ -18,6 +19,7 @@ class TwoFactorAuth extends Model
         'secret',
         'recovery_codes',
         'confirmed_at',
+        'last_used_at',
     ];
 
     protected function casts(): array
@@ -26,6 +28,7 @@ class TwoFactorAuth extends Model
             'secret'         => 'encrypted',
             'recovery_codes' => 'encrypted:array',
             'confirmed_at'   => 'datetime',
+            'last_used_at'   => 'datetime',
         ];
     }
 
@@ -40,6 +43,6 @@ class TwoFactorAuth extends Model
 
     public function isEnabled(): bool
     {
-        return $this->confirmed_at !== null;
+        return $this->confirmed_at !== null && filled($this->secret);
     }
 }

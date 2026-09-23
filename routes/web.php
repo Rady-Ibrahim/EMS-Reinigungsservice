@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\Auth\LoginController;
+use App\Http\Controllers\Web\Admin\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Web\Admin\AppointmentController;
+use App\Http\Controllers\Web\Admin\AuditLogController;
 use App\Http\Controllers\Web\Admin\CalendarController;
 use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
@@ -12,9 +14,11 @@ use App\Http\Controllers\Web\Admin\FixObjectController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
 use App\Http\Controllers\Web\Admin\NotificationController;
 use App\Http\Controllers\Web\Admin\ReassignmentController;
+use App\Http\Controllers\Web\Admin\ReopenController;
 use App\Http\Controllers\Web\Admin\ShiftController;
 use App\Http\Controllers\Web\Admin\TeamupController;
 use App\Http\Controllers\Web\Admin\TimeAdjustmentController;
+use App\Http\Controllers\Web\Admin\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,6 +32,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/', fn() => redirect()->route('admin.login'));
     Route::get('/admin/login', [LoginController::class, 'showLoginForm'])->name('admin.login');
     Route::post('/admin/login', [LoginController::class, 'login'])->name('admin.login.post');
+
+    // Second login step — TOTP challenge (2FA)
+    Route::get('/admin/2fa/challenge', [TwoFactorChallengeController::class, 'showChallenge'])->name('admin.2fa.challenge');
+    Route::post('/admin/2fa/challenge', [TwoFactorChallengeController::class, 'verify'])->name('admin.2fa.challenge.post');
 });
 
 // Alias so Laravel's built-in auth middleware redirect works
@@ -65,6 +73,8 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->except(['destroy']);
     Route::post('extra-auftraege/{extraAuftrag}/cancel', [ExtraAuftragController::class, 'cancel'])
          ->name('extra-auftraege.cancel');
+    Route::post('extra-auftraege/{extraAuftrag}/reopen', [ReopenController::class, 'reopenExtra'])
+         ->name('extra-auftraege.reopen');
 
     // ── Time Adjustments ──────────────────────────────────────────────────
     Route::get('time-adjustments', [TimeAdjustmentController::class, 'index'])
@@ -93,6 +103,20 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
         Route::get('{notification}', [NotificationController::class, 'show'])->name('show');
         Route::post('{notification}/read', [NotificationController::class, 'markRead'])->name('read');
         Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+    });
+
+    // ── Audit Log (Governance) ─────────────────────────────────────────────
+    Route::prefix('audit-log')->name('audit-log.')->group(function () {
+        Route::get('/', [AuditLogController::class, 'index'])->name('index');
+        Route::get('{auditLog}', [AuditLogController::class, 'show'])->name('show');
+    });
+
+    // ── Two-Factor Authentication (setup) ──────────────────────────────────
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('/', [TwoFactorController::class, 'setup'])->name('setup');
+        Route::post('/confirm', [TwoFactorController::class, 'confirm'])->name('confirm');
+        Route::post('/disable', [TwoFactorController::class, 'disable'])->name('disable');
+        Route::get('/recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->name('recovery-codes');
     });
 
     // ── Interactive Calendar ───────────────────────────────────────────────
@@ -136,6 +160,8 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->name('calendar.schedules.reassign');
     Route::post('schedules/{schedule}/reassign', [ReassignmentController::class, 'storeSchedule'])
          ->name('calendar.schedules.reassign.store');
+    Route::post('schedules/{schedule}/reopen', [ReopenController::class, 'reopenSchedule'])
+         ->name('calendar.schedules.reopen');
     Route::get('extra-auftraege/assignees/{assignee}/reassign', [ReassignmentController::class, 'createExtraAssignee'])
          ->name('extra-auftraege.assignees.reassign');
     Route::post('extra-auftraege/assignees/{assignee}/reassign', [ReassignmentController::class, 'storeExtraAssignee'])

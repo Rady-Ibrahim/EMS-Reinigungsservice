@@ -23,7 +23,8 @@ class ReassignmentService
 {
     public function __construct(
         private readonly ConflictCheckerService $conflicts,
-        private readonly TeamupSyncService $teamup
+        private readonly TeamupSyncService $teamup,
+        private readonly NotificationEngineService $notifications
     ) {
     }
 
@@ -69,7 +70,16 @@ class ReassignmentService
                 'notes'         => $reason,
             ]);
 
-            return $assignment->load(['fixObject:id,title', 'user:id,name']);
+            $assignment->load(['fixObject:id,title', 'user:id,name']);
+
+            $this->notifyNewUser(
+                $newUserId,
+                'Neues Objekt zugewiesen',
+                'Du wurdest ab '.$from.' dem Objekt "'.$fixObject->title.'" zugeteilt.',
+                ['type' => 'fix', 'fix_object_id' => $fixObject->id]
+            );
+
+            return $assignment;
         });
     }
 
@@ -132,6 +142,13 @@ class ReassignmentService
         // Overrides change the booked employee for that day → queue Teamup push
         $this->teamup->markPending($schedule);
 
+        $this->notifyNewUser(
+            $newUserId,
+            'Termin übernommen',
+            'Dir wurde der Termin am '.$schedule->scheduled_date->format('d.m.Y').' im Objekt "'.$fixObject->title.'" zugeteilt.',
+            ['type' => 'fix', 'schedule_id' => $schedule->id]
+        );
+
         return $assignment->load(['user:id,name']);
     }
 
@@ -141,6 +158,7 @@ class ReassignmentService
         bool $force = false
     ): ExtraAuftragAssignee {
         $order = $assignee->extraAuftrag;
+        $previousUserId = (int) $assignee->user_id;
 
         if (! $order) {
             throw new \RuntimeException('Auftrag nicht gefunden.');
@@ -162,7 +180,40 @@ class ReassignmentService
         $assignee->update(['user_id' => $newUserId]);
         $this->teamup->markPending($order);
 
+        // Old employee is removed from this order
+        if ($oldUser = \App\Models\User::find($previousUserId)) {
+            $this->notifications->sendToUser(
+                $oldUser,
+                \App\Enums\NotificationTypeEnum::JobCancelled,
+                'Von Auftrag abgemeldet',
+                'Du wurdest von „'.$order->title.'“ abgemeldet.',
+                ['type' => 'extra', 'auftrag_id' => $order->id]
+            );
+        }
+
+        $this->notifyNewUser(
+            $newUserId,
+            'Zu Auftrag zugewiesen',
+            'Du wurdest dem Auftrag „'.$order->title.'“ zugewiesen.',
+            ['type' => 'extra', 'auftrag_id' => $order->id]
+        );
+
         return $assignee->fresh(['user:id,name', 'extraAuftrag:id,title']);
+    }
+
+    private function notifyNewUser(int $userId, string $title, string $message, array $payload): void
+    {
+        $user = \App\Models\User::find($userId);
+
+        if ($user && $user->is_active) {
+            $this->notifications->sendToUser(
+                $user,
+                \App\Enums\NotificationTypeEnum::Reassigned,
+                $title,
+                $message,
+                $payload
+            );
+        }
     }
 
     private function extraCandidate(\App\Models\ExtraAuftrag $order, int $newUserId): \App\ValueObjects\CalendarEvent

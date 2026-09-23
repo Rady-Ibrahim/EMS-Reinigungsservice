@@ -7,6 +7,7 @@ enum AdminNotificationTypeEnum: string
     case Conflict = 'conflict';
     case Teamup   = 'teamup';
     case System   = 'system';
+    case Alert    = 'alert';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum AdminNotificationTypeEnum: string
             self::Conflict => 'Terminkonflikt',
             self::Teamup   => 'Teamup-Sync',
             self::System   => 'System',
+            self::Alert    => 'Alarm',
         };
     }
 
@@ -23,6 +25,7 @@ enum AdminNotificationTypeEnum: string
             self::Conflict => 'badge-red',
             self::Teamup   => 'badge-yellow',
             self::System   => 'badge-gray',
+            self::Alert    => 'badge-red',
         };
     }
 

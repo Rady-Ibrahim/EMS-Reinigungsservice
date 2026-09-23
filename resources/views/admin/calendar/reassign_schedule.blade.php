@@ -46,5 +46,25 @@
                 <a href="{{ route('admin.calendar.index') }}" class="btn btn-secondary">Abbrechen</a>
             </div>
         </form>
+
+        @if($schedule->isCompleted())
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:1.5rem 0;">
+        <div>
+            <h2 class="card-title" style="margin-bottom:.5rem">Termin wieder öffnen</h2>
+            <p style="font-size:.85rem;color:#475569;margin-bottom:.75rem;">
+                Setzt den Termin zurück auf <strong>In Bearbeitung</strong>. Die letzte Ausführung wird
+                auf die Nachher-Fotos-Stufe zurückgesetzt (Begründung wird im Audit-Protokoll erfasst).
+            </p>
+            <form method="POST" action="{{ route('admin.calendar.schedules.reopen', $schedule) }}">
+                @csrf
+                <div class="form-group">
+                    <label for="reopen_reason">Begründung *</label>
+                    <textarea id="reopen_reason" name="reopen_reason" rows="2" required>{{ old('reopen_reason') }}</textarea>
+                    @error('reopen_reason')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <button type="submit" class="btn btn-danger">Termin wieder öffnen</button>
+            </form>
+        </div>
+        @endif
     </div>
 @endsection

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragControl
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
 use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReassignmentController as ApiReassignmentController;
 use App\Http\Controllers\Api\V1\ShiftController as ApiShiftController;
@@ -91,5 +92,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Dynamic Reassignment (Vorarbeiter) ─────────────────────────────
         Route::post('/schedules/{schedule}/reassign', [ApiReassignmentController::class, 'reassignSchedule'])->name('schedules.reassign');
         Route::post('/extra-assignees/{assignee}/reassign', [ApiReassignmentController::class, 'reassignExtraAssignee'])->name('extra-assignees.reassign');
+
+        // ── Notifications & push devices ─────────────────────────────────────
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+        Route::post('/device-tokens', [NotificationController::class, 'storeDeviceToken'])->name('device-tokens.store');
+        Route::delete('/device-tokens/{deviceToken}', [NotificationController::class, 'destroyDeviceToken'])->name('device-tokens.destroy');
     });
 });
