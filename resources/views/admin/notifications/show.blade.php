@@ -13,7 +13,7 @@
             @if(! $notification->is_read)
                 <form action="{{ route('admin.notifications.read', $notification) }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn btn-secondary btn-sm">Als gelesen markieren</button>
+                    <button type="submit" class="btn btn-secondary btn-sm">{{ __('notification.mark_as_read') }}</button>
                 </form>
             @endif
         </div>
@@ -23,11 +23,11 @@
         @if($notification->payload)
             <hr style="margin:1.25rem 0;border:none;border-top:1px solid #e2e8f0;">
             <details>
-                <summary style="cursor:pointer;font-size:.85rem;font-weight:600;">Details (JSON)</summary>
+                <summary style="cursor:pointer;font-size:.85rem;font-weight:600;">{{ __('notification.details_json') }}</summary>
                 <pre style="background:#f8fafc;padding:1rem;border-radius:8px;overflow-x:auto;margin-top:.5rem;font-size:.8rem;">{{ json_encode($notification->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
             </details>
         @endif
     </div>
 
-    <a href="{{ route('admin.notifications.index') }}" class="btn btn-secondary">← Zurück</a>
+    <a href="{{ route('admin.notifications.index') }}" class="btn btn-secondary">{{ __('notification.back') }}</a>
 @endsection

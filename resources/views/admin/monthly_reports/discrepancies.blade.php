@@ -1,11 +1,11 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Abweichungsanalyse')
+@section('title', __('monthly_index.discrepancies'))
 @section('content')
     <div class="card-header">
-        <h1>Abweichungsanalyse</h1>
+        <h1>{{ __('monthly_index.discrepancies') }}</h1>
         <div class="meta">
-            Ist-Stunden vs. bezahlte/geplante Stunden ·
+            {{ __('monthly_index.discrepancy_meta') }} ·
             {{ \Carbon\CarbonImmutable::create($year, $month, 1)->locale('de')->translatedFormat('F Y') }}
         </div>
     </div>
@@ -14,9 +14,9 @@
         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
             <input type="number" name="month" min="1" max="12" value="{{ $month }}" style="width:90px;">
             <input type="number" name="year" min="2020" max="2099" value="{{ $year }}" style="width:110px;">
-            <button type="submit" class="btn btn-secondary btn-sm">Filtern</button>
+            <button type="submit" class="btn btn-secondary btn-sm">{{ __('monthly_index.filter') }}</button>
             <a href="{{ route('admin.monthly-reports.index', ['year' => $year, 'month' => $month]) }}"
-               class="btn btn-secondary btn-sm">Zurück</a>
+               class="btn btn-secondary btn-sm">{{ __('monthly_index.back') }}</a>
         </div>
     </form>
 
@@ -24,12 +24,12 @@
         <table>
             <thead>
                 <tr>
-                    <th>Mitarbeiter</th>
-                    <th class="num">Geplant (Std)</th>
-                    <th class="num">Bezahlt (Std)</th>
-                    <th class="num">Ist (Std)</th>
-                    <th class="num">Bilanz (bezahlte − geplante)</th>
-                    <th>Abweichung</th>
+                    <th>{{ __('monthly_index.employee') }}</th>
+                    <th class="num">{{ __('monthly_index.planned') }}</th>
+                    <th class="num">{{ __('monthly_index.paid') }}</th>
+                    <th class="num">{{ __('monthly_index.actual') }}</th>
+                    <th class="num">{{ __('monthly_index.balance') }}</th>
+                    <th>{{ __('monthly_index.discrepancy') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,16 +42,16 @@
                         <td class="num">{{ number_format((float) $row['balance'], 2, ',', '.') }}</td>
                         <td>
                             @if($row['balance'] > 0)
-                                <span class="badge badge-red">Überbezahlung</span>
+                                <span class="badge badge-red">{{ __('monthly_index.overpaid') }}</span>
                             @elseif($row['balance'] < 0)
-                                <span class="badge badge-yellow">Unterbezahlung</span>
+                                <span class="badge badge-yellow">{{ __('monthly_index.underpaid') }}</span>
                             @else
-                                <span class="badge badge-green">Passend</span>
+                                <span class="badge badge-green">{{ __('monthly_index.matched') }}</span>
                             @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">Keine Daten für diesen Zeitraum.</td></tr>
+                    <tr><td colspan="6">{{ __('monthly_index.empty_discrepancies') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

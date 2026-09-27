@@ -14,11 +14,11 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>Name</th>
-                <th>Kontakt</th>
-                <th>Standorte</th>
-                <th>Status</th>
-                <th>Aktionen</th>
+                <th>{{ __('customer.table_name') }}</th>
+                <th>{{ __('customer.contact') }}</th>
+                <th>{{ __('customer.locations') }}</th>
+                <th>{{ __('customer.status') }}</th>
+                <th>{{ __('customer.actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -32,30 +32,30 @@
                 <td>{{ $customer->locations_count }}</td>
                 <td>
                     @if($customer->isActive())
-                        <span class="badge badge-green">Aktiv</span>
+                        <span class="badge badge-green">{{ __('customer.active') }}</span>
                     @else
-                        <span class="badge badge-red">Inaktiv</span>
+                        <span class="badge badge-red">{{ __('customer.inactive') }}</span>
                     @endif
                 </td>
                 <td>
                     <div class="actions">
-                        <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-secondary btn-sm">Bearbeiten</a>
+                        <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-secondary btn-sm">{{ __('customer.edit') }}</a>
                         <form action="{{ route('admin.customers.toggle-status', $customer) }}" method="POST" style="display:inline">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-secondary btn-sm">
-                                {{ $customer->isActive() ? 'Deaktivieren' : 'Aktivieren' }}
+                                {{ $customer->isActive() ? __('customer.deactivate') : __('customer.activate') }}
                             </button>
                         </form>
                         <form action="{{ route('admin.customers.destroy', $customer) }}" method="POST"
-                              onsubmit="return confirm('Wirklich löschen?')" style="display:inline">
+                              onsubmit="return confirm('{{ __('customer.confirm_delete') }}')" style="display:inline">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                            <button type="submit" class="btn btn-danger btn-sm">{{ __('customer.delete') }}</button>
                         </form>
                     </div>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:2rem">Keine Kunden gefunden.</td></tr>
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('customer.no_customers') }}</td></tr>
             @endforelse
         </tbody>
     </table>

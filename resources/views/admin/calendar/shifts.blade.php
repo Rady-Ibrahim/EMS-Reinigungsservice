@@ -1,23 +1,23 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Schichten')
+@section('title', __('cal_page.shifts'))
 @section('content')
     <div class="card-header">
-        <h1>Schichten</h1>
-        <a href="{{ route('admin.calendar.shifts.create') }}" class="btn btn-primary">+ Neue Schicht</a>
+        <h1>{{ __('cal_page.shifts') }}</h1>
+        <a href="{{ route('admin.calendar.shifts.create') }}" class="btn btn-primary">+ {{ __('cal_page.new_shift') }}</a>
     </div>
 
     <div class="card">
         <table>
             <thead>
                 <tr>
-                    <th>Mitarbeiter</th>
-                    <th>Titel</th>
-                    <th>Beginn</th>
-                    <th>Ende</th>
-                    <th>Ganztägig</th>
-                    <th>Status</th>
-                    <th>Aktionen</th>
+                    <th>{{ __('cal_page.employee') }}</th>
+                    <th>{{ __('cal_page.title') }}</th>
+                    <th>{{ __('cal_page.start') }}</th>
+                    <th>{{ __('cal_page.end') }}</th>
+                    <th>{{ __('cal_page.all_day') }}</th>
+                    <th>{{ __('cal_page.status') }}</th>
+                    <th>{{ __('cal_page.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -30,7 +30,7 @@
                         </td>
                         <td>{{ $shift->start_at->format('d.m.Y H:i') }}</td>
                         <td>{{ $shift->end_at->format('d.m.Y H:i') }}</td>
-                        <td>{{ $shift->all_day ? 'Ja' : 'Nein' }}</td>
+                        <td>{{ $shift->all_day ? __('cal_page.yes') : __('cal_page.no') }}</td>
                         <td>
                             @if($shift->status->value === 'cancelled')
                                 <span class="badge badge-red">{{ $shift->status->label() }}</span>
@@ -40,23 +40,23 @@
                         </td>
                         <td>
                             <div class="actions">
-                                <a href="{{ route('admin.calendar.shifts.edit', $shift) }}" class="btn btn-secondary btn-sm">Edit</a>
+                                <a href="{{ route('admin.calendar.shifts.edit', $shift) }}" class="btn btn-secondary btn-sm">{{ __('cal_page.edit') }}</a>
                                 @if($shift->status->value !== 'cancelled')
-                                    <form action="{{ route('admin.calendar.shifts.cancel', $shift) }}" method="POST" onsubmit="return confirm('Schicht stornieren?');">
+                                    <form action="{{ route('admin.calendar.shifts.cancel', $shift) }}" method="POST" onsubmit="return confirm('{{ __('cal_page.confirm_cancel_shift') }}');">
                                         @csrf
-                                        <button type="submit" class="btn btn-secondary btn-sm">Stornieren</button>
+                                        <button type="submit" class="btn btn-secondary btn-sm">{{ __('cal_page.cancel_shift') }}</button>
                                     </form>
                                 @endif
-                                <form action="{{ route('admin.calendar.shifts.destroy', $shift) }}" method="POST" onsubmit="return confirm('Wirklich löschen?');">
+                                <form action="{{ route('admin.calendar.shifts.destroy', $shift) }}" method="POST" onsubmit="return confirm('{{ __('cal_page.confirm_delete') }}');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">{{ __('cal_page.delete') }}</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7">Keine Schichten vorhanden.</td></tr>
+                    <tr><td colspan="7">{{ __('cal_page.empty_shifts') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

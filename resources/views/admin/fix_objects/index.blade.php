@@ -1,24 +1,24 @@
 @extends('admin.layouts.app')
-@section('title', 'Fixobjekte')
+@section('title', __('fix_object.index_title'))
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h1 class="card-title">Fixobjekte</h1>
-        <a href="{{ route('admin.fix-objects.create') }}" class="btn btn-primary">+ Neues Fixobjekt</a>
+        <h1 class="card-title">{{ __('fix_object.index_title') }}</h1>
+        <a href="{{ route('admin.fix-objects.create') }}" class="btn btn-primary">{{ __('fix_object.new_fix_object') }}</a>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>Farbe</th>
-                <th>Titel</th>
-                <th>Kunde / Standort</th>
-                <th>Frequenz</th>
-                <th>Vertragsstd.</th>
-                <th>Mitarbeiter</th>
-                <th>Status</th>
-                <th>Aktionen</th>
+                <th>{{ __('fix_object.color') }}</th>
+                <th>{{ __('fix_object.title_col') }}</th>
+                <th>{{ __('fix_object.customer_location') }}</th>
+                <th>{{ __('fix_object.frequency') }}</th>
+                <th>{{ __('fix_object.contract_hours_short') }}</th>
+                <th>{{ __('fix_object.employees') }}</th>
+                <th>{{ __('fix_object.status') }}</th>
+                <th>{{ __('fix_object.actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -39,24 +39,24 @@
                 <td>{{ $fo->assignments_count }}</td>
                 <td>
                     @if($fo->is_active)
-                        <span class="badge badge-green">Aktiv</span>
+                        <span class="badge badge-green">{{ __('fix_object.active') }}</span>
                     @else
-                        <span class="badge badge-red">Inaktiv</span>
+                        <span class="badge badge-red">{{ __('fix_object.inactive') }}</span>
                     @endif
                 </td>
                 <td>
                     <div class="actions">
-                        <a href="{{ route('admin.fix-objects.edit', $fo) }}" class="btn btn-secondary btn-sm">Bearbeiten</a>
+                        <a href="{{ route('admin.fix-objects.edit', $fo) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.edit_action') }}</a>
                         <form action="{{ route('admin.fix-objects.destroy', $fo) }}" method="POST"
-                              onsubmit="return confirm('Wirklich löschen?')" style="display:inline">
+                              onsubmit="return confirm('{{ __('fix_object.confirm_delete') }}')" style="display:inline">
                             @csrf @method('DELETE')
-                            <button class="btn btn-danger btn-sm">Löschen</button>
+                            <button class="btn btn-danger btn-sm">{{ __('fix_object.delete') }}</button>
                         </form>
                     </div>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem">Keine Fixobjekte gefunden.</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('fix_object.no_fix_objects') }}</td></tr>
             @endforelse
         </tbody>
     </table>

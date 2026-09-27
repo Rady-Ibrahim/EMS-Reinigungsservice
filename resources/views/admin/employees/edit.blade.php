@@ -1,8 +1,8 @@
 @extends('admin.layouts.app')
-@section('title', __('messages.employees.edit'))
+@section('title', __('employee.edit_title'))
 
 @section('content')
-<h1>{{ __('messages.employees.edit') }}: {{ $employee->name }}</h1>
+<h1>{{ __('employee.edit_title') }}: {{ $employee->name }}</h1>
 
 <div class="card">
     <form action="{{ route('admin.employees.update', $employee) }}" method="POST">
@@ -10,31 +10,31 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Name *</label>
+                <label>{{ __('employee.name_required') }}</label>
                 <input type="text" name="name" value="{{ old('name', $employee->name) }}" required>
             </div>
             <div class="form-group">
-                <label>E-Mail *</label>
+                <label>{{ __('employee.email_required') }}</label>
                 <input type="email" name="email" value="{{ old('email', $employee->email) }}" required>
                 @error('email')<p class="field-error">{{ $message }}</p>@enderror
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Neues Passwort (leer lassen = unverändert)</label>
+                <label>{{ __('employee.new_password') }}</label>
                 <input type="password" name="password">
             </div>
             <div class="form-group">
-                <label>Rolle *</label>
+                <label>{{ __('employee.role_required') }}</label>
                 <select name="role" required>
-                    <option value="vorarbeiter" {{ old('role', $employee->role->value) === 'vorarbeiter' ? 'selected' : '' }}>Vorarbeiter</option>
-                    <option value="mitarbeiter" {{ old('role', $employee->role->value) === 'mitarbeiter' ? 'selected' : '' }}>Mitarbeiter</option>
+                    <option value="vorarbeiter" {{ old('role', $employee->role->value) === 'vorarbeiter' ? 'selected' : '' }}>{{ __('employee.role_vorarbeiter') }}</option>
+                    <option value="mitarbeiter" {{ old('role', $employee->role->value) === 'mitarbeiter' ? 'selected' : '' }}>{{ __('employee.role_mitarbeiter') }}</option>
                 </select>
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Sprache</label>
+                <label>{{ __('employee.locale') }}</label>
                 <select name="locale">
                     <option value="de" {{ old('locale', $employee->locale) === 'de' ? 'selected' : '' }}>Deutsch</option>
                     <option value="ar" {{ old('locale', $employee->locale) === 'ar' ? 'selected' : '' }}>العربية</option>
@@ -42,10 +42,10 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Status</label>
+                <label>{{ __('employee.status') }}</label>
                 <select name="is_active">
-                    <option value="1" {{ old('is_active', $employee->is_active) ? 'selected' : '' }}>Aktiv</option>
-                    <option value="0" {{ ! old('is_active', $employee->is_active) ? 'selected' : '' }}>Inaktiv</option>
+                    <option value="1" {{ old('is_active', $employee->is_active) ? 'selected' : '' }}>{{ __('employee.status_active') }}</option>
+                    <option value="0" {{ ! old('is_active', $employee->is_active) ? 'selected' : '' }}>{{ __('employee.status_inactive') }}</option>
                 </select>
             </div>
         </div>
@@ -54,33 +54,33 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Kalenderfarbe</label>
+                <label>{{ __('employee.calendar_color') }}</label>
                 <input type="text" name="calendar_color" value="{{ old('calendar_color', $employee->employeeProfile?->calendar_color) }}">
             </div>
             <div class="form-group">
-                <label>Mitarbeiternummer</label>
+                <label>{{ __('employee.employee_number') }}</label>
                 <input type="text" name="employee_number" value="{{ old('employee_number', $employee->employeeProfile?->employee_number) }}">
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Stundenlohn (intern)</label>
+                <label>{{ __('employee.hourly_rate_internal') }}</label>
                 <input type="number" name="hourly_rate" step="0.01"
                     value="{{ old('hourly_rate', $employee->employeeProfile?->getHourlyRateAsFloat()) }}">
             </div>
             <div class="form-group">
-                <label>IBAN</label>
+                <label>{{ __('employee.iban') }}</label>
                 <input type="text" name="iban" value="{{ old('iban', $employee->employeeProfile?->iban) }}">
             </div>
         </div>
         <div class="form-group">
-            <label>Notizen</label>
+            <label>{{ __('employee.notes') }}</label>
             <textarea name="notes" rows="3">{{ old('notes', $employee->employeeProfile?->notes) }}</textarea>
         </div>
 
         <div style="display:flex;gap:.75rem;margin-top:.5rem">
-            <button type="submit" class="btn btn-primary">Speichern</button>
-            <a href="{{ route('admin.employees.show', $employee) }}" class="btn btn-secondary">Abbrechen</a>
+            <button type="submit" class="btn btn-primary">{{ __('employee.save') }}</button>
+            <a href="{{ route('admin.employees.show', $employee) }}" class="btn btn-secondary">{{ __('employee.cancel') }}</a>
         </div>
     </form>
 </div>

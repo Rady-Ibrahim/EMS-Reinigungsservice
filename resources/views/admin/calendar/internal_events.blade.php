@@ -1,22 +1,22 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Interne Termine')
+@section('title', __('cal_page.internal_events'))
 @section('content')
     <div class="card-header">
-        <h1>Interne Termine</h1>
-        <a href="{{ route('admin.calendar.internal-events.create') }}" class="btn btn-primary">+ Neuer Termin</a>
+        <h1>{{ __('cal_page.internal_events') }}</h1>
+        <a href="{{ route('admin.calendar.internal-events.create') }}" class="btn btn-primary">+ {{ __('cal_page.new_appointment') }}</a>
     </div>
 
     <div class="card">
         <table>
             <thead>
                 <tr>
-                    <th>Titel</th>
-                    <th>Art</th>
-                    <th>Beginn</th>
-                    <th>Ende</th>
-                    <th>Teilnehmer</th>
-                    <th>Aktionen</th>
+                    <th>{{ __('cal_page.title') }}</th>
+                    <th>{{ __('cal_page.type') }}</th>
+                    <th>{{ __('cal_page.start') }}</th>
+                    <th>{{ __('cal_page.end') }}</th>
+                    <th>{{ __('cal_page.participants') }}</th>
+                    <th>{{ __('cal_page.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,17 +34,17 @@
                         </td>
                         <td>
                             <div class="actions">
-                                <a href="{{ route('admin.calendar.internal-events.edit', $event) }}" class="btn btn-secondary btn-sm">Edit</a>
-                                <form action="{{ route('admin.calendar.internal-events.destroy', $event) }}" method="POST" onsubmit="return confirm('Termin löschen?');">
+                                <a href="{{ route('admin.calendar.internal-events.edit', $event) }}" class="btn btn-secondary btn-sm">{{ __('cal_page.edit') }}</a>
+                                <form action="{{ route('admin.calendar.internal-events.destroy', $event) }}" method="POST" onsubmit="return confirm('{{ __('cal_page.confirm_delete_appointment') }}');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">{{ __('cal_page.delete') }}</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">Keine internen Termine vorhanden.</td></tr>
+                    <tr><td colspan="6">{{ __('cal_page.empty_internal_events') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

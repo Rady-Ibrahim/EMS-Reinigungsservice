@@ -1,25 +1,25 @@
 @extends('admin.layouts.app')
-@section('title', 'Extra-Aufträge')
+@section('title', __('extra_order.page_title_index'))
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h1 class="card-title">Extra-Aufträge</h1>
-        <a href="{{ route('admin.extra-auftraege.create') }}" class="btn btn-primary">+ Neuer Auftrag</a>
+        <h1 class="card-title">{{ __('extra_order.page_title_index') }}</h1>
+        <a href="{{ route('admin.extra-auftraege.create') }}" class="btn btn-primary">{{ __('extra_order.btn_new_order') }}</a>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>Titel</th>
-                <th>Kunde / Standort</th>
-                <th>Typ</th>
-                <th>Datum</th>
-                <th>Vorarbeiter</th>
-                <th>Team</th>
-                <th>Anfahrt bezahlt</th>
-                <th>Status</th>
-                <th>Aktionen</th>
+                <th>{{ __('extra_order.th_title') }}</th>
+                <th>{{ __('extra_order.th_customer_location') }}</th>
+                <th>{{ __('extra_order.label_type') }}</th>
+                <th>{{ __('extra_order.th_date') }}</th>
+                <th>{{ __('extra_order.leader') }}</th>
+                <th>{{ __('extra_order.th_team') }}</th>
+                <th>{{ __('extra_order.th_travel_paid') }}</th>
+                <th>{{ __('extra_order.th_status') }}</th>
+                <th>{{ __('extra_order.th_actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -36,9 +36,9 @@
                 <td>{{ $order->assignees_count }}</td>
                 <td>
                     @if($order->is_travel_time_paid)
-                        <span class="badge badge-green">Ja</span>
+                        <span class="badge badge-green">{{ __('extra_order.yes') }}</span>
                     @else
-                        <span class="badge badge-gray">Nein</span>
+                        <span class="badge badge-gray">{{ __('extra_order.no') }}</span>
                     @endif
                 </td>
                 <td>
@@ -48,20 +48,20 @@
                 </td>
                 <td>
                     <div class="actions">
-                        <a href="{{ route('admin.extra-auftraege.edit', $order) }}" class="btn btn-secondary btn-sm">Bearbeiten</a>
+                        <a href="{{ route('admin.extra-auftraege.edit', $order) }}" class="btn btn-secondary btn-sm">{{ __('extra_order.btn_edit') }}</a>
                         @if(!$order->status->isTerminal())
                         <form action="{{ route('admin.extra-auftraege.cancel', $order) }}" method="POST"
-                              onsubmit="return confirm('Auftrag stornieren?')" style="display:inline">
+                              onsubmit="return confirm('{{ __('extra_order.confirm_cancel') }}')" style="display:inline">
                             @csrf
                             <input type="hidden" name="reason" value="Admin storniert">
-                            <button class="btn btn-danger btn-sm">Stornieren</button>
+                            <button class="btn btn-danger btn-sm">{{ __('extra_order.btn_cancel_order') }}</button>
                         </form>
                         @endif
                     </div>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:2rem">Keine Aufträge gefunden.</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('extra_order.empty_orders') }}</td></tr>
             @endforelse
         </tbody>
     </table>

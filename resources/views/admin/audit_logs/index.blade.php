@@ -1,25 +1,25 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Audit-Protokoll')
+@section('title', __('audit_log.title'))
 @section('content')
     <div class="card-header">
-        <h1>Audit-Protokoll</h1>
+        <h1>{{ __('audit_log.title') }}</h1>
     </div>
 
     <form method="GET" action="{{ route('admin.audit-log.index') }}" style="margin-bottom:.75rem;">
         <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
             <select name="event" style="width:auto;">
-                <option value="">Alle Ereignisse</option>
+                <option value="">{{ __('audit_log.all_events') }}</option>
                 @foreach($events as $event)
                     <option value="{{ $event->value }}" {{ request('event') === $event->value ? 'selected' : '' }}>{{ $event->label() }}</option>
                 @endforeach
             </select>
-            <input type="number" name="actor" placeholder="Akteur-ID" value="{{ request('actor') }}" style="width:110px;">
-            <input type="text" name="target_type" placeholder="Zielklasse" value="{{ request('target_type') }}" style="width:180px;">
+            <input type="number" name="actor" placeholder="{{ __('audit_log.actor_id') }}" value="{{ request('actor') }}" style="width:110px;">
+            <input type="text" name="target_type" placeholder="{{ __('audit_log.target_class') }}" value="{{ request('target_type') }}" style="width:180px;">
             <input type="date" name="from" value="{{ request('from') }}" style="width:auto;">
             <input type="date" name="to" value="{{ request('to') }}" style="width:auto;">
-            <button type="submit" class="btn btn-secondary btn-sm">Filtern</button>
-            <a href="{{ route('admin.audit-log.index') }}" class="btn btn-secondary btn-sm">Zurücksetzen</a>
+            <button type="submit" class="btn btn-secondary btn-sm">{{ __('audit_log.filter') }}</button>
+            <a href="{{ route('admin.audit-log.index') }}" class="btn btn-secondary btn-sm">{{ __('audit_log.reset') }}</a>
         </div>
     </form>
 
@@ -27,11 +27,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>Ereignis</th>
-                    <th>Akteur</th>
-                    <th>Ziel</th>
-                    <th>Begründung</th>
-                    <th>Datum</th>
+                    <th>{{ __('audit_log.event') }}</th>
+                    <th>{{ __('audit_log.actor') }}</th>
+                    <th>{{ __('audit_log.target') }}</th>
+                    <th>{{ __('audit_log.reason') }}</th>
+                    <th>{{ __('audit_log.date') }}</th>
                     <th>IP</th>
                 </tr>
             </thead>
@@ -54,7 +54,7 @@
                         <td>{{ $log->ip_address ?? '—' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">Keine Einträge gefunden.</td></tr>
+                    <tr><td colspan="6">{{ __('audit_log.no_entries') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

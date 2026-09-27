@@ -1,12 +1,12 @@
 @extends('admin.layouts.app')
-@section('title', 'Zeitkorrekturen')
+@section('title', __('time_page.index_title'))
 
 @section('content')
 {{-- Pending Requests --}}
 <div class="card" style="margin-bottom:1.5rem">
     <div class="card-header">
         <h1 class="card-title">
-            Ausstehende Anträge
+            {{ __('time_page.pending_requests') }}
             @if($pending->total() > 0)
                 <span class="badge badge-red" style="font-size:.8rem;margin-left:.5rem">{{ $pending->total() }}</span>
             @endif
@@ -14,18 +14,18 @@
     </div>
 
     @if($pending->isEmpty())
-        <p style="color:#94a3b8;font-size:.875rem;padding:.5rem 0">Keine ausstehenden Anträge. ✓</p>
+        <p style="color:#94a3b8;font-size:.875rem;padding:.5rem 0">{{ __('time_page.no_pending_requests') }}</p>
     @else
     <table>
         <thead>
             <tr>
-                <th>Mitarbeiter</th>
-                <th>Auftragstyp</th>
-                <th>Angeforderter Zeitraum</th>
-                <th>Ursprünglicher Zeitraum</th>
-                <th>Grund</th>
-                <th>Eingereicht</th>
-                <th>Aktionen</th>
+                <th>{{ __('time_page.employee') }}</th>
+                <th>{{ __('time_page.job_type') }}</th>
+                <th>{{ __('time_page.requested_period') }}</th>
+                <th>{{ __('time_page.original_period') }}</th>
+                <th>{{ __('time_page.reason') }}</th>
+                <th>{{ __('time_page.submitted') }}</th>
+                <th>{{ __('time_page.actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -34,7 +34,7 @@
                 <td><strong>{{ $req->employee->name }}</strong></td>
                 <td>
                     <span class="badge badge-gray" style="font-size:.75rem">
-                        {{ $req->job_type === 'fix_object' ? 'Fixobjekt' : 'Extra-Auftrag' }}
+                        {{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : __('time_page.extra_assignment') }}
                     </span>
                 </td>
                 <td style="font-size:.8rem">
@@ -49,12 +49,12 @@
                 <td style="font-size:.8rem">{{ $req->client_submitted_at?->format('d.m.Y H:i') ?? $req->created_at->format('d.m.Y H:i') }}</td>
                 <td>
                     <div class="actions">
-                        <a href="{{ route('admin.time-adjustments.show', $req) }}" class="btn btn-secondary btn-sm">Details</a>
+                        <a href="{{ route('admin.time-adjustments.show', $req) }}" class="btn btn-secondary btn-sm">{{ __('time_page.details') }}</a>
 
                         {{-- Quick approve --}}
                         <form action="{{ route('admin.time-adjustments.approve', $req) }}" method="POST" style="display:inline">
                             @csrf
-                            <button class="btn btn-primary btn-sm" onclick="return confirm('Zeitkorrektur genehmigen?')">✓ Genehmigen</button>
+                            <button class="btn btn-primary btn-sm" onclick="return confirm('{{ __('time_page.approve_confirm') }}')">✓ {{ __('time_page.approve') }}</button>
                         </form>
 
                         {{-- Quick reject --}}
@@ -62,7 +62,7 @@
                               onsubmit="return promptReject(this)">
                             @csrf
                             <input type="hidden" name="admin_note" id="note_{{ $req->id }}">
-                            <button type="submit" class="btn btn-danger btn-sm">✗ Ablehnen</button>
+                            <button type="submit" class="btn btn-danger btn-sm">✗ {{ __('time_page.reject') }}</button>
                         </form>
                     </div>
                 </td>
@@ -76,16 +76,16 @@
 {{-- All Requests --}}
 <div class="card">
     <div class="card-header">
-        <span class="card-title">Alle Anträge</span>
+        <span class="card-title">{{ __('time_page.all_requests') }}</span>
     </div>
     <table>
         <thead>
             <tr>
-                <th>Mitarbeiter</th>
-                <th>Typ</th>
-                <th>Status</th>
-                <th>Geprüft von</th>
-                <th>Datum</th>
+                <th>{{ __('time_page.employee') }}</th>
+                <th>{{ __('time_page.type') }}</th>
+                <th>{{ __('time_page.status') }}</th>
+                <th>{{ __('time_page.reviewed_by') }}</th>
+                <th>{{ __('time_page.date') }}</th>
                 <th></th>
             </tr>
         </thead>
@@ -93,7 +93,7 @@
             @forelse($all as $req)
             <tr>
                 <td>{{ $req->employee->name }}</td>
-                <td><span class="badge badge-gray" style="font-size:.75rem">{{ $req->job_type === 'fix_object' ? 'Fixobjekt' : 'Extra' }}</span></td>
+                <td><span class="badge badge-gray" style="font-size:.75rem">{{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : __('time_page.extra') }}</span></td>
                 <td>
                     @php $s = $req->status->value @endphp
                     <span class="badge {{ $s === 'approved' ? 'badge-green' : ($s === 'rejected' ? 'badge-red' : 'badge-gray') }}">
@@ -102,10 +102,10 @@
                 </td>
                 <td>{{ $req->reviewer?->name ?? '—' }}</td>
                 <td style="font-size:.8rem">{{ $req->created_at->format('d.m.Y') }}</td>
-                <td><a href="{{ route('admin.time-adjustments.show', $req) }}" class="btn btn-secondary btn-sm">Details</a></td>
+                <td><a href="{{ route('admin.time-adjustments.show', $req) }}" class="btn btn-secondary btn-sm">{{ __('time_page.details') }}</a></td>
             </tr>
             @empty
-            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:1.5rem">Keine Anträge vorhanden.</td></tr>
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:1.5rem">{{ __('time_page.no_requests') }}</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -114,9 +114,9 @@
 
 <script>
 function promptReject(form) {
-    const note = prompt('Ablehnungsgrund (Pflicht):');
+    const note = prompt('{{ __('time_page.reject_reason_prompt') }}');
     if (!note || note.trim().length < 5) {
-        alert('Bitte mindestens 5 Zeichen eingeben.');
+        alert('{{ __('time_page.reject_reason_min_length') }}');
         return false;
     }
     form.querySelector('[name="admin_note"]').value = note;

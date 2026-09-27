@@ -75,8 +75,18 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->name('fix-objects.generate-schedules');
 
     // ── Extra-Aufträge ────────────────────────────────────────────────────
-    Route::resource('extra-auftraege', ExtraAuftragController::class)
-         ->except(['destroy']);
+    Route::get('extra-auftraege', [ExtraAuftragController::class, 'index'])
+         ->name('extra-auftraege.index');
+    Route::get('extra-auftraege/create', [ExtraAuftragController::class, 'create'])
+         ->name('extra-auftraege.create');
+    Route::post('extra-auftraege', [ExtraAuftragController::class, 'store'])
+         ->name('extra-auftraege.store');
+    Route::get('extra-auftraege/{extraAuftrag}', [ExtraAuftragController::class, 'show'])
+         ->name('extra-auftraege.show');
+    Route::get('extra-auftraege/{extraAuftrag}/edit', [ExtraAuftragController::class, 'edit'])
+         ->name('extra-auftraege.edit');
+    Route::put('extra-auftraege/{extraAuftrag}', [ExtraAuftragController::class, 'update'])
+         ->name('extra-auftraege.update');
     Route::post('extra-auftraege/{extraAuftrag}/cancel', [ExtraAuftragController::class, 'cancel'])
          ->name('extra-auftraege.cancel');
     Route::post('extra-auftraege/{extraAuftrag}/reopen', [ReopenController::class, 'reopenExtra'])

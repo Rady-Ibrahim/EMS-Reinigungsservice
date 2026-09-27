@@ -1,9 +1,9 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Monatsberichte')
+@section('title', __('monthly_index.title'))
 @section('content')
     <div class="card-header">
-        <h1>Monatsberichte</h1>
+        <h1>{{ __('monthly_index.title') }}</h1>
     </div>
 
     <form method="GET" action="{{ route('admin.monthly-reports.index') }}" style="margin-bottom:.75rem;">
@@ -20,13 +20,13 @@
                     <option value="{{ $yearOption }}" {{ (int) $year === $yearOption ? 'selected' : '' }}>{{ $yearOption }}</option>
                 @endforeach
             </select>
-            <button type="submit" class="btn btn-secondary btn-sm">Anzeigen</button>
+            <button type="submit" class="btn btn-secondary btn-sm">{{ __('monthly_index.show') }}</button>
             <a href="{{ route('admin.monthly-reports.export-excel', ['year' => $year, 'month' => $month]) }}"
                class="btn btn-secondary btn-sm" style="margin-left:auto;">
-                Excel exportieren
+                {{ __('monthly_index.export_excel') }}
             </a>
             <a href="{{ route('admin.monthly-reports.discrepancies', ['year' => $year, 'month' => $month]) }}"
-               class="btn btn-secondary btn-sm">Abweichungsanalyse</a>
+               class="btn btn-secondary btn-sm">{{ __('monthly_index.discrepancies') }}</a>
         </div>
     </form>
 
@@ -34,12 +34,12 @@
         <table>
             <thead>
                 <tr>
-                    <th>Mitarbeiter</th>
-                    <th class="num">Fix gepaart</th>
-                    <th class="num">Extra Arbeit</th>
-                    <th class="num">Extra Fahrt</th>
-                    <th class="num">Gesamt gepaart</th>
-                    <th>Status</th>
+                    <th>{{ __('monthly_index.employee') }}</th>
+                    <th class="num">{{ __('monthly_index.fix_paired') }}</th>
+                    <th class="num">{{ __('monthly_index.extra_work') }}</th>
+                    <th class="num">{{ __('monthly_index.extra_travel') }}</th>
+                    <th class="num">{{ __('monthly_index.total_paired') }}</th>
+                    <th>{{ __('monthly_index.status') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -56,14 +56,14 @@
                         <td class="num">{{ number_format((float) $report->total_paid_hours, 2, ',', '.') }}</td>
                         <td>
                             @if($report->isApproved())
-                                <span class="badge badge-green">Freigegeben</span>
+                                <span class="badge badge-green">{{ __('monthly_index.approved') }}</span>
                             @else
-                                <span class="badge badge-yellow">Entwurf</span>
+                                <span class="badge badge-yellow">{{ __('monthly_index.draft') }}</span>
                             @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">Keine Mitarbeiter gefunden.</td></tr>
+                    <tr><td colspan="6">{{ __('monthly_index.empty') }}</td></tr>
                 @endforelse
             </tbody>
         </table>
