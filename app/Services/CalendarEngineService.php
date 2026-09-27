@@ -44,12 +44,12 @@ class CalendarEngineService
     public function layerDefinitions(): array
     {
         return [
-            ['key' => 'fix',      'label' => 'Fixobjekte',        'color' => self::COLORS['fix'],      'enabled' => true],
-            ['key' => 'extra',    'label' => 'Extra-Aufträge',    'color' => self::COLORS['extra'],    'enabled' => true],
-            ['key' => 'shifts',   'label' => 'Schichten',         'color' => self::COLORS['shifts'],   'enabled' => true],
-            ['key' => 'personal', 'label' => 'Meine Termine',     'color' => self::COLORS['personal'], 'enabled' => true],
-            ['key' => 'internal', 'label' => 'Interne Termine',   'color' => self::COLORS['internal'], 'enabled' => true],
-            ['key' => 'teamup',   'label' => 'Teamup (extern)',   'color' => self::COLORS['teamup'],   'enabled' => false],
+            ['key' => 'fix',      'label' => __('messages.cal.layers.fix'),      'color' => self::COLORS['fix'],      'enabled' => true],
+            ['key' => 'extra',    'label' => __('messages.cal.layers.extra'),    'color' => self::COLORS['extra'],    'enabled' => true],
+            ['key' => 'shifts',   'label' => __('messages.cal.layers.shifts'),   'color' => self::COLORS['shifts'],   'enabled' => true],
+            ['key' => 'personal', 'label' => __('messages.cal.layers.personal'), 'color' => self::COLORS['personal'], 'enabled' => true],
+            ['key' => 'internal', 'label' => __('messages.cal.layers.internal'), 'color' => self::COLORS['internal'], 'enabled' => true],
+            ['key' => 'teamup',   'label' => __('messages.cal.layers.teamup'),   'color' => self::COLORS['teamup'],   'enabled' => false],
         ];
     }
 

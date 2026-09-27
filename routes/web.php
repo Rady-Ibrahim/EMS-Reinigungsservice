@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
+use App\Http\Controllers\Web\Admin\LocaleController;
 use App\Http\Controllers\Web\Admin\MonthlyReportController;
 use App\Http\Controllers\Web\Admin\NotificationController;
 use App\Http\Controllers\Web\Admin\ReassignmentController;
@@ -42,11 +43,15 @@ Route::middleware('guest')->group(function () {
 // Alias so Laravel's built-in auth middleware redirect works
 Route::get('/login', fn() => redirect()->route('admin.login'))->name('login');
 
+// Language switch — accessible for guests too (login page toggle)
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
+
 // ── Authenticated Admin routes ────────────────────────────────────────────
 Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 
     // ── Customers ────────────────────────────────────────────────────────
     Route::resource('customers', CustomerController::class);
