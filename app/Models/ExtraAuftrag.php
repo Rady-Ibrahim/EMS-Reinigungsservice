@@ -6,6 +6,7 @@ use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExtraAuftragStatusEnum;
 use App\Enums\ExtraOrderTypeEnum;
 use App\Traits\HasAuditLog;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,7 @@ class ExtraAuftrag extends Model
         'scheduled_time_start',
         'estimated_hours',
         'is_travel_time_paid',
+        'is_travel_paid',
         'status',
         'checklist_template',
         'price',
@@ -41,6 +43,19 @@ class ExtraAuftrag extends Model
         'cancelled_reason',
         'offline_uuid',
     ];
+
+    /**
+     * `is_travel_paid` is the name used in the client specification; the
+     * column has always been called `is_travel_time_paid`. This alias lets
+     * both spellings be read and written against the single stored value.
+     */
+    protected function isTravelPaid(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => (bool) $this->attributes['is_travel_time_paid'] ?? false,
+            set: fn($value) => ['is_travel_time_paid' => (int) (bool) $value],
+        );
+    }
 
     protected function casts(): array
     {

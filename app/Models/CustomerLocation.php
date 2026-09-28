@@ -59,10 +59,23 @@ class CustomerLocation extends Model
         return $this->hasMany(LocationFile::class, 'location_id');
     }
 
+    /**
+     * The documents attached to this location (client nomenclature for `files`).
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(LocationDocument::class, 'location_id');
+    }
+
     public function externFiles(): HasMany
     {
         return $this->hasMany(LocationFile::class, 'location_id')
                     ->where('visibility', 'extern');
+    }
+
+    public function externDocuments(): HasMany
+    {
+        return $this->documents()->where('visibility', 'extern');
     }
 
     // ── Scopes ─────────────────────────────────────────────────────────────

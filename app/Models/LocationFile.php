@@ -16,6 +16,7 @@ class LocationFile extends Model
     protected $fillable = [
         'location_id',
         'uploaded_by',
+        'title',
         'file_path',
         'original_name',
         'mime_type',
@@ -54,5 +55,14 @@ class LocationFile extends Model
     public function sizeInKb(): float
     {
         return round($this->size_bytes / 1024, 2);
+    }
+
+    /**
+     * Human readable label. `title` is the client-facing name; older rows may
+     * only carry the uploaded `original_name`.
+     */
+    public function displayTitle(): string
+    {
+        return $this->title ?: ($this->original_name ?: __('locations.document.untitled'));
     }
 }

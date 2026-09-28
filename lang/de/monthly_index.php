@@ -14,6 +14,7 @@ return [
     'approved'            => 'Freigegeben',
     'draft'               => 'Entwurf',
     'empty'               => 'Keine Mitarbeiter gefunden.',
+    'sum_month'           => 'Summe Monat',
     'discrepancy_meta'    => 'Ist-Stunden vs. bezahlte/geplante Stunden',
     'filter'              => 'Filtern',
     'back'                => 'Zurück',

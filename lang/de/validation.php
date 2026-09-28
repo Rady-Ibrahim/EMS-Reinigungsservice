@@ -13,11 +13,16 @@ return [
     'unique'    => 'Das Feld :attribute ist bereits vergeben.',
     'confirmed' => 'Die Bestätigung des Feldes :attribute stimmt nicht überein.',
 
+    'current_password_incorrect' => 'Das aktuelle Passwort ist nicht korrekt.',
+    'resolution_required'         => 'Eine Beschreibung der Lösung ist erforderlich.',
+
     'attributes' => [
-        'email'    => 'E-Mail',
-        'password' => 'Passwort',
-        'name'     => 'Name',
-        'role'     => 'Rolle',
-        'locale'   => 'Sprache',
+        'email'            => 'E-Mail',
+        'password'         => 'Passwort',
+        'current_password' => 'Aktuelles Passwort',
+        'resolution'       => 'Lösung',
+        'name'             => 'Name',
+        'role'             => 'Rolle',
+        'locale'           => 'Sprache',
     ],
 ];

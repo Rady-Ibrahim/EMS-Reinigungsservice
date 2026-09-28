@@ -13,11 +13,16 @@ return [
     'unique'    => 'قيمة :attribute مستخدمة بالفعل.',
     'confirmed' => 'حقل تأكيد :attribute غير متطابق.',
 
+    'current_password_incorrect' => 'كلمة المرور الحالية غير صحيحة.',
+    'resolution_required'         => 'وصف الحل مطلوب.',
+
     'attributes' => [
-        'email'    => 'البريد الإلكتروني',
-        'password' => 'كلمة المرور',
-        'name'     => 'الاسم',
-        'role'     => 'الدور',
-        'locale'   => 'اللغة',
+        'email'            => 'البريد الإلكتروني',
+        'password'         => 'كلمة المرور',
+        'current_password' => 'كلمة المرور الحالية',
+        'resolution'       => 'الحل',
+        'name'             => 'الاسم',
+        'role'             => 'الدور',
+        'locale'           => 'اللغة',
     ],
 ];

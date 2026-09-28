@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\Admin\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Web\Admin\AppointmentController;
 use App\Http\Controllers\Web\Admin\AuditLogController;
 use App\Http\Controllers\Web\Admin\CalendarController;
+use App\Http\Controllers\Web\Admin\ComplaintController;
 use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
 use App\Http\Controllers\Web\Admin\LocaleController;
+use App\Http\Controllers\Web\Admin\LocationDocumentController;
 use App\Http\Controllers\Web\Admin\MonthlyReportController;
 use App\Http\Controllers\Web\Admin\NotificationController;
 use App\Http\Controllers\Web\Admin\ReassignmentController;
@@ -61,6 +63,23 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // ── Customer Locations (nested) ───────────────────────────────────────
     Route::resource('customers.locations', CustomerLocationController::class)
          ->shallow(); // generates non-nested routes for show/edit/update/destroy
+
+    // ── Location Documents (Objekt-Dokumenten) ────────────────────────────
+    Route::prefix('locations/{location}/documents')->name('locations.documents.')->group(function () {
+        Route::get('/', [LocationDocumentController::class, 'index'])->name('index');
+        Route::post('/', [LocationDocumentController::class, 'store'])->name('store');
+        Route::get('/{document}/download', [LocationDocumentController::class, 'download'])->name('download');
+        Route::patch('/{document}', [LocationDocumentController::class, 'update'])->name('update');
+        Route::delete('/{document}', [LocationDocumentController::class, 'destroy'])->name('destroy');
+    });
+
+    // ── Complaints / Reklamationen ────────────────────────────────────────
+    Route::get('complaints', [ComplaintController::class, 'index'])->name('complaints.index');
+    Route::get('complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
+    Route::post('complaints', [ComplaintController::class, 'store'])->name('complaints.store');
+    Route::get('complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::patch('complaints/{complaint}/status', [ComplaintController::class, 'updateStatus'])->name('complaints.status.update');
+    Route::patch('complaints/{complaint}/assign', [ComplaintController::class, 'assign'])->name('complaints.assign');
 
     // ── Employees ─────────────────────────────────────────────────────────
     Route::resource('employees', EmployeeController::class);

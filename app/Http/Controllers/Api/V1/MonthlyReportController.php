@@ -36,23 +36,36 @@ class MonthlyReportController extends Controller
 
         $report = $this->engine->buildReport($user, $year, $month);
 
-        return response()->json([
-            'data' => [
-                'user_id'              => $user->id,
-                'period'               => sprintf('%s-%02d', $year, $month),
-                'period_label'         => $report->periodLabel(),
-                'fix_paid_hours'       => (float) $report->fix_paid_hours,
-                'fix_actual_hours'     => (float) $report->fix_actual_hours,
-                'extra_work_hours'     => (float) $report->extra_work_hours,
-                'extra_travel_hours'   => (float) $report->extra_travel_hours,
-                'extra_paid_hours'     => (float) $report->extra_paid_hours,
-                'extra_actual_hours'   => (float) $report->extra_actual_hours,
-                'total_paid_hours'     => (float) $report->total_paid_hours,
-                'is_approved'          => $report->isApproved(),
-                'approved_by'          => $report->approver?->name,
-                'approved_at'          => $report->approved_at?->toIso8601String(),
-            ],
-        ]);
+        $data = [
+            'user_id'              => $user->id,
+            'period'               => sprintf('%s-%02d', $year, $month),
+            'period_label'         => $report->periodLabel(),
+            'fix_paid_hours'       => (float) $report->fix_paid_hours,
+            'fix_actual_hours'     => (float) $report->fix_actual_hours,
+            'extra_work_hours'     => (float) $report->extra_work_hours,
+            'extra_travel_hours'   => (float) $report->extra_travel_hours,
+            'extra_paid_hours'     => (float) $report->extra_paid_hours,
+            'extra_actual_hours'   => (float) $report->extra_actual_hours,
+            'total_paid_hours'     => (float) $report->total_paid_hours,
+            'is_approved'          => $report->isApproved(),
+            'approved_by'          => $report->approver?->name,
+            'approved_at'          => $report->approved_at?->toIso8601String(),
+        ];
+
+        // Money is admin-only. Everyone else gets their own hours and nothing
+        // else — the keys are omitted entirely rather than sent as null, so a
+        // non-admin payload never hints that the figures exist.
+        if ($user->isAdministrator()) {
+            $data += [
+                'hourly_cost'         => (float) $report->hourly_cost_applied,
+                'revenue'             => (float) $report->revenue,
+                'employee_cost'       => (float) $report->employee_cost,
+                'profit'              => (float) $report->profit,
+                'profit_margin_percent' => $report->profitMarginPercent(),
+            ];
+        }
+
+        return response()->json(['data' => $data]);
     }
 
     /**

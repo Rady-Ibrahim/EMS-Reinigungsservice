@@ -39,6 +39,9 @@
                     <th class="num">{{ __('monthly_index.extra_work') }}</th>
                     <th class="num">{{ __('monthly_index.extra_travel') }}</th>
                     <th class="num">{{ __('monthly_index.total_paired') }}</th>
+                    <th class="num">{{ __('messages.report.revenue') }}</th>
+                    <th class="num">{{ __('messages.report.employee_cost') }}</th>
+                    <th class="num">{{ __('messages.report.profit') }}</th>
                     <th>{{ __('monthly_index.status') }}</th>
                 </tr>
             </thead>
@@ -54,6 +57,14 @@
                         <td class="num">{{ number_format((float) $report->extra_work_hours, 2, ',', '.') }}</td>
                         <td class="num">{{ number_format((float) $report->extra_travel_hours, 2, ',', '.') }}</td>
                         <td class="num">{{ number_format((float) $report->total_paid_hours, 2, ',', '.') }}</td>
+                        <td class="num">{{ number_format((float) $report->revenue, 2, ',', '.') }} €</td>
+                        <td class="num">{{ number_format((float) $report->employee_cost, 2, ',', '.') }} €</td>
+                        <td class="num">
+                            @php $p = (float) $report->profit; @endphp
+                            <span class="badge {{ $p >= 0 ? 'badge-green' : 'badge-red' }}">
+                                {{ number_format($p, 2, ',', '.') }} €
+                            </span>
+                        </td>
                         <td>
                             @if($report->isApproved())
                                 <span class="badge badge-green">{{ __('monthly_index.approved') }}</span>
@@ -63,9 +74,30 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">{{ __('monthly_index.empty') }}</td></tr>
+                    <tr><td colspan="9">{{ __('monthly_index.empty') }}</td></tr>
                 @endforelse
             </tbody>
+            @if($reports->isNotEmpty())
+                @php
+                    $sumRevenue = (float) $reports->sum(fn($r) => (float) $r->revenue);
+                    $sumCost    = (float) $reports->sum(fn($r) => (float) $r->employee_cost);
+                    $sumProfit  = (float) $reports->sum(fn($r) => (float) $r->profit);
+                @endphp
+                <tfoot>
+                    <tr class="tot-row">
+                        <td><strong>{{ __('monthly_index.sum_month') }}</strong></td>
+                        <td colspan="4"></td>
+                        <td class="num"><strong>{{ number_format($sumRevenue, 2, ',', '.') }} €</strong></td>
+                        <td class="num"><strong>{{ number_format($sumCost, 2, ',', '.') }} €</strong></td>
+                        <td class="num">
+                            <span class="badge {{ $sumProfit >= 0 ? 'badge-green' : 'badge-red' }}">
+                                {{ number_format($sumProfit, 2, ',', '.') }} €
+                            </span>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            @endif
         </table>
     </div>
 @endsection

@@ -2,20 +2,22 @@
 
 namespace App\Models;
 
-use App\Traits\HasAuditLog;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
- * Personal calendar of a single user (Meine Termine).
+ * A single user's private calendar entry (Meine Termine).
  *
- * These are NOT work orders — they never create paid work hours or
- * count toward time tracking. They can be toggled as an independent layer.
+ * Now backed by the unified `personal_events` table — see {@see PersonalEvent}.
+ * This class is kept as the public name for a private appointment so the API,
+ * the views and the Teamup integration keep working unchanged.
+ *
+ * These are NOT work orders: they never create paid work hours and never
+ * count toward time tracking.
  */
-class PersonalAppointment extends Model
+class PersonalAppointment extends PersonalEvent
 {
-    use HasFactory, HasAuditLog;
+    protected $table = 'personal_events';
 
     protected $fillable = [
         'user_id',
@@ -29,45 +31,48 @@ class PersonalAppointment extends Model
         'reminders',
     ];
 
-    protected function casts(): array
+    protected static function booted(): void
     {
-        return [
-            'start_at'  => 'datetime',
-            'end_at'    => 'datetime',
-            'all_day'   => 'boolean',
-            'reminders' => 'array',
-        ];
+        // A private appointment can only ever be a `personal_appointment` row.
+        static::addGlobalScope('personal_appointment_source', function (Builder $query) {
+            $query->where('source', self::SOURCE_APPOINTMENT);
+        });
+
+        // Private appointments are private by definition.
+        static::creating(function (self $event) {
+            $event->source = self::SOURCE_APPOINTMENT;
+            $event->is_private = true;
+            $event->event_type = $event->event_type ?? \App\Enums\InternalEventTypeEnum::Other;
+        });
     }
 
-    // ── Relationships ──────────────────────────────────────────────────────
-
-    public function user(): BelongsTo
+    /**
+     * `color` is the historical column name; the unified table stores
+     * `color_code`. This alias keeps every existing call site working.
+     */
+    protected function color(): Attribute
     {
-        return $this->belongsTo(User::class);
+        return Attribute::make(
+            get: fn() => $this->color_code,
+            set: fn($value) => ['color_code' => $value],
+        );
     }
 
-    // ── Scopes ─────────────────────────────────────────────────────────────
-
-    public function scopeForUser($query, int $userId)
+    /**
+     * Private appointments belong to exactly one person.
+     */
+    public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
 
-    public function scopeForDateRange($query, $from, $to)
+    /**
+     * A private appointment never has attendees — only its owner.
+     *
+     * @return array<int>
+     */
+    public function participatingUserIds(): array
     {
-        return $query->where('start_at', '<=', $to)
-                     ->where('end_at', '>=', $from);
-    }
-
-    // ── Helpers ────────────────────────────────────────────────────────────
-
-    public function isOwnedBy(int $userId): bool
-    {
-        return $this->user_id === $userId;
-    }
-
-    public function overlaps(\Carbon\CarbonInterface $start, \Carbon\CarbonInterface $end): bool
-    {
-        return $start->lt($this->end_at) && $this->start_at->lt($end);
+        return [$this->user_id];
     }
 }

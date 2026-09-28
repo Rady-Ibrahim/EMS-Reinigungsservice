@@ -27,6 +27,10 @@ class MonthlyReport extends Model
         'extra_paid_hours',
         'extra_actual_hours',
         'total_paid_hours',
+        'revenue',
+        'employee_cost',
+        'profit',
+        'hourly_cost_applied',
         'snapshot',
         'approved_at',
         'approved_by',
@@ -42,6 +46,10 @@ class MonthlyReport extends Model
             'extra_paid_hours'    => 'decimal:2',
             'extra_actual_hours'  => 'decimal:2',
             'total_paid_hours'    => 'decimal:2',
+            'revenue'             => 'decimal:2',
+            'employee_cost'       => 'decimal:2',
+            'profit'              => 'decimal:2',
+            'hourly_cost_applied' => 'decimal:2',
             'snapshot'            => 'array',
             'approved_at'         => 'datetime',
         ];
@@ -69,6 +77,21 @@ class MonthlyReport extends Model
     public function monthLabel(): string
     {
         return $this->periodLabel();
+    }
+
+    /**
+     * Profit as a share of revenue, or null when there is no revenue to divide
+     * by (a loss month should not report "−∞ %").
+     */
+    public function profitMarginPercent(): ?float
+    {
+        $revenue = (float) $this->revenue;
+
+        if ($revenue <= 0.0) {
+            return null;
+        }
+
+        return round(((float) $this->profit / $revenue) * 100, 1);
     }
 
     public function periodLabel(): string

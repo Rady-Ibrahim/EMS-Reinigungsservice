@@ -128,6 +128,67 @@
         </div>
     </div>
 
+    {{-- Profitability · administrator only --}}
+    @if(auth()->user()->isAdministrator())
+        @php
+            $revenue = (float) $monthlyReport->revenue;
+            $empCost = (float) $monthlyReport->employee_cost;
+            $profit  = (float) $monthlyReport->profit;
+            $margin  = $monthlyReport->profitMarginPercent();
+            $rate    = (float) $monthlyReport->hourly_cost_applied;
+        @endphp
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">{{ __('messages.report.profitability') }}</span>
+                @if($monthlyReport->isApproved())
+                    <span class="badge badge-green">{{ __('messages.report.frozen_numbers') }}</span>
+                @else
+                    <span class="badge badge-yellow">{{ __('messages.report.live_figures') }}</span>
+                @endif
+            </div>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>{{ __('messages.report.revenue') }}</td>
+                        <td class="num">{{ number_format($revenue, 2, ',', '.') }} €</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ __('messages.report.employee_cost') }}
+                            <div class="meta">
+                                {{ number_format($total, 2, ',', '.') }} h ×
+                                {{ number_format($rate, 2, ',', '.') }} {{ __('messages.report.per_hour') }}
+                            </div>
+                        </td>
+                        <td class="num">{{ number_format($empCost, 2, ',', '.') }} €</td>
+                    </tr>
+                    <tr class="tot-row">
+                        <td><strong>{{ __('messages.report.profit') }}</strong></td>
+                        <td class="num">
+                            <strong>{{ number_format($profit, 2, ',', '.') }} €</strong>
+                            <span class="badge {{ $profit >= 0 ? 'badge-green' : 'badge-red' }}">
+                                {{ $profit >= 0 ? '+' : '' }}{{ number_format($profit, 2, ',', '.') }} €
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>{{ __('messages.report.profit_margin') }}</td>
+                        <td class="num">
+                            @if($margin === null)
+                                <span class="meta">—</span>
+                            @else
+                                <span class="badge {{ $margin >= 0 ? 'badge-green' : 'badge-red' }}">
+                                    {{ number_format($margin, 1, ',', '.') }} %
+                                </span>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="meta" style="margin-top:.8rem">{{ __('messages.report.revenue_note') }}</div>
+        </div>
+    @endif
+
     {{-- Line items --}}
     @if($lineItems->isNotEmpty())
         <div class="card">

@@ -10,7 +10,10 @@ class LocaleController extends Controller
 {
     public function switch(string $locale, Request $request): RedirectResponse
     {
-        $locale = in_array($locale, ['de', 'ar'], true) ? $locale : config('app.locale', 'de');
+        $supported = (array) config('locales.supported', ['de', 'ar', 'en']);
+        $default   = (string) config('locales.default', 'de');
+
+        $locale = in_array($locale, $supported, true) ? $locale : $default;
 
         if ($user = $request->user()) {
             $user->forceFill(['locale' => $locale])->save();

@@ -22,12 +22,17 @@ use Illuminate\Support\Facades\Route;
  * normalized {@see CalendarEvent} collection for a given date range.
  *
  * Layer keys: fix | extra | shifts | personal | internal | teamup
+ *
+ * The `personal` and `internal` layers are two views onto the same
+ * `personal_events` table (see {@see \App\Models\PersonalEvent}); `personal`
+ * holds a user's private entries and can be switched off with the
+ * `show_personal` option without affecting company events.
  */
 class CalendarEngineService
 {
     /** Default layer color per layer key. */
     public const COLORS = [
-        'fix'      => '#FFD700',
+        'fix'      => '#D4AF37',   // Fixobjekte — the signature EMS gold
         'extra'    => '#3b82f6',
         'shifts'   => '#10b981',
         'personal' => '#8b5cf6',
@@ -60,14 +65,22 @@ class CalendarEngineService
      *
      * @param  array<string>  $layers  layer keys; empty = all layers
      * @param  int|null  $employeeId  only events booking this employee
+     * @param  array{show_personal?: bool, viewer_id?: int|null}  $options
+     *        show_personal — include a user's private entries (default true).
+     *        viewer_id     — whose private entries may be shown at all;
+     *                        null means "no restriction" (admin planning view).
      */
     public function forRange(
         CarbonInterface $from,
         CarbonInterface $to,
         array $layers = [],
-        ?int $employeeId = null
+        ?int $employeeId = null,
+        array $options = []
     ): Collection {
         $layers = empty($layers) ? array_column($this->layerDefinitions(), 'key') : array_values($layers);
+
+        $showPersonal = (bool) ($options['show_personal'] ?? true);
+        $viewerId     = array_key_exists('viewer_id', $options) ? $options['viewer_id'] : $employeeId;
 
         $dateFrom = $from->toDateString();
         $dateTo   = $to->toDateString();
@@ -85,8 +98,8 @@ class CalendarEngineService
         if (in_array('shifts', $layers)) {
             $events = $events->merge($this->shiftEvents($tzFrom, $tzTo, $employeeId));
         }
-        if (in_array('personal', $layers)) {
-            $events = $events->merge($this->personalEvents($tzFrom, $tzTo, $employeeId));
+        if (in_array('personal', $layers) && $showPersonal) {
+            $events = $events->merge($this->personalEvents($tzFrom, $tzTo, $employeeId, $viewerId));
         }
         if (in_array('internal', $layers)) {
             $events = $events->merge($this->internalEvents($tzFrom, $tzTo, $employeeId));
@@ -100,21 +113,21 @@ class CalendarEngineService
             ->values();
     }
 
-    public function forDay(CarbonInterface $day, array $layers = [], ?int $employeeId = null): Collection
+    public function forDay(CarbonInterface $day, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
-        return $this->forRange($day->copy()->startOfDay(), $day->copy()->endOfDay(), $layers, $employeeId);
+        return $this->forRange($day->copy()->startOfDay(), $day->copy()->endOfDay(), $layers, $employeeId, $options);
     }
 
-    public function forWeek(CarbonInterface $dayInWeek, array $layers = [], ?int $employeeId = null): Collection
+    public function forWeek(CarbonInterface $dayInWeek, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
         $start = $dayInWeek->copy()->startOfWeek();
-        return $this->forRange($start, $start->copy()->endOfWeek(), $layers, $employeeId);
+        return $this->forRange($start, $start->copy()->endOfWeek(), $layers, $employeeId, $options);
     }
 
-    public function forMonth(CarbonInterface $dayInMonth, array $layers = [], ?int $employeeId = null): Collection
+    public function forMonth(CarbonInterface $dayInMonth, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
         $start = $dayInMonth->copy()->startOfMonth();
-        return $this->forRange($start, $start->copy()->endOfMonth(), $layers, $employeeId);
+        return $this->forRange($start, $start->copy()->endOfMonth(), $layers, $employeeId, $options);
     }
 
     // ── Agenda list view ───────────────────────────────────────────────────
@@ -122,9 +135,9 @@ class CalendarEngineService
     /**
      * Sorted flat agenda (chronological, no grouping needed by client).
      */
-    public function agenda(CarbonInterface $from, CarbonInterface $to, array $layers = [], ?int $employeeId = null): Collection
+    public function agenda(CarbonInterface $from, CarbonInterface $to, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
-        return $this->forRange($from, $to, $layers, $employeeId)
+        return $this->forRange($from, $to, $layers, $employeeId, $options)
             ->sortBy(fn(CalendarEvent $e) => [$e->startAt->timestamp, $e->endAt->timestamp])
             ->values();
     }
@@ -205,9 +218,10 @@ class CalendarEngineService
         return $shifts->map(fn($shift) => $this->normalizeShift($shift));
     }
 
-    private function personalEvents(CarbonInterface $from, CarbonInterface $to, ?int $employeeId): Collection
+    private function personalEvents(CarbonInterface $from, CarbonInterface $to, ?int $employeeId, ?int $viewerId = null): Collection
     {
         $appointments = PersonalAppointment::forDateRange($from, $to)
+            ->visibleTo($viewerId)
             ->with(['user:id,name'])
             ->when($employeeId !== null, fn($q) => $q->where('user_id', $employeeId))
             ->get();
@@ -218,7 +232,7 @@ class CalendarEngineService
     private function internalEvents(CarbonInterface $from, CarbonInterface $to, ?int $employeeId): Collection
     {
         $events = InternalEvent::forDateRange($from, $to)
-            ->with(['creator:id,name', 'assignees.user:id,name'])
+            ->with(['user:id,name', 'assignees.user:id,name'])
             ->when($employeeId !== null, fn($q) => $q->forUser($employeeId))
             ->get();
 
@@ -396,12 +410,17 @@ class CalendarEngineService
             startAt: $appointment->start_at->copy(),
             endAt: $appointment->end_at->copy(),
             allDay: $appointment->all_day,
-            color: $appointment->color ?: self::COLORS['personal'],
+            color: $appointment->displayColor(),
             employeeIds: [$appointment->user_id],
             ownerId: $appointment->user_id,
             location: $appointment->location,
             sourceId: $appointment->id,
-            metadata: ['owner_name' => $appointment->user?->name, 'detail_url' => $this->routeTo('admin.appointments.edit', $appointment->id)],
+            metadata: [
+                'owner_name'   => $appointment->user?->name,
+                'is_private'   => (bool) $appointment->is_private,
+                'description'  => $appointment->description,
+                'detail_url'   => $this->routeTo('admin.appointments.edit', $appointment->id),
+            ],
         );
     }
 
@@ -415,17 +434,19 @@ class CalendarEngineService
             startAt: $event->start_at->copy(),
             endAt: $event->end_at->copy(),
             allDay: $event->all_day,
-            color: $event->color ?: self::COLORS['internal'],
+            color: $event->displayColor(),
             employeeIds: $event->participatingUserIds(),
-            ownerId: $event->created_by,
+            ownerId: $event->user_id,
             status: $event->event_type->value,
             statusLabel: $event->event_type->label(),
             location: $event->location,
             sourceId: $event->id,
             metadata: [
-                'event_type'     => $event->event_type->value,
-                'creator_name'   => $event->creator?->name,
-                'detail_url'     => $this->routeTo('admin.calendar.internal-events.index', null),
+                'event_type'   => $event->event_type->value,
+                'creator_name' => $event->user?->name,
+                'attendees'    => $event->attendeeIds(),
+                'description'  => $event->description,
+                'detail_url'   => $this->routeTo('admin.calendar.internal-events.index', null),
             ],
         );
     }

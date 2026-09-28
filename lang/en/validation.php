@@ -13,11 +13,16 @@ return [
     'unique'    => 'The :attribute has already been taken.',
     'confirmed' => 'The :attribute confirmation does not match.',
 
+    'current_password_incorrect' => 'The current password is incorrect.',
+    'resolution_required'         => 'A resolution note is required.',
+
     'attributes' => [
-        'email'    => 'Email',
-        'password' => 'Password',
-        'name'     => 'Name',
-        'role'     => 'Role',
-        'locale'   => 'Language',
+        'email'            => 'Email',
+        'password'         => 'Password',
+        'current_password' => 'Current password',
+        'resolution'       => 'Resolution',
+        'name'             => 'Name',
+        'role'             => 'Role',
+        'locale'           => 'Language',
     ],
 ];

@@ -62,6 +62,15 @@ class AuthService
     private function tokenAbilities(User $user): array
     {
         return match($user->role) {
+            // Administrators are the top role and are unrestricted in the web
+            // area, so they get every ability here. They previously fell into
+            // the `default` branch and could not call a single endpoint.
+            \App\Enums\RoleEnum::Administrator => [
+                'jobs:view', 'jobs:close', 'jobs:upload',
+                'checklist:update', 'time:track', 'profile:view',
+                'calendar:view', 'appointments:manage', 'reassign:manage',
+                'notifications:manage', 'reports:view',
+            ],
             \App\Enums\RoleEnum::Vorarbeiter => [
                 'jobs:view', 'jobs:close', 'jobs:upload',
                 'checklist:update', 'time:track', 'profile:view',

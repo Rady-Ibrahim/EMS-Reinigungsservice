@@ -3,12 +3,16 @@
 use App\Http\Controllers\Api\V1\AppointmentController as ApiAppointmentController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CalendarController as ApiCalendarController;
+use App\Http\Controllers\Api\V1\ComplaintController;
 use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragController;
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
 use App\Http\Controllers\Api\V1\LocationController;
+use App\Http\Controllers\Api\V1\LocationDocumentController as ApiLocationDocumentController;
 use App\Http\Controllers\Api\V1\MonthlyReportController as ApiMonthlyReportController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OrderReopenController;
+use App\Http\Controllers\Api\V1\PreferenceController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReassignmentController as ApiReassignmentController;
 use App\Http\Controllers\Api\V1\ShiftController as ApiShiftController;
@@ -41,9 +45,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
+        // In-app preferences (language, password) — the "Me" settings screen
+        Route::get('/me/preferences', [PreferenceController::class, 'show'])->name('me.preferences.show');
+        Route::put('/me/preferences', [PreferenceController::class, 'update'])->name('me.preferences.update');
+
         // Locations (read-only for mobile)
         Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
         Route::get('/locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+
+        // Location documents (extern visibility only for field staff)
+        Route::get('/locations/{location}/documents', [ApiLocationDocumentController::class, 'index'])
+            ->name('locations.documents.index');
+        Route::get('/locations/{location}/documents/{document}/download', [ApiLocationDocumentController::class, 'download'])
+            ->name('locations.documents.download');
 
         // Fix Objects
         Route::get('/fix-objects', [ApiFixObjectController::class, 'index'])->name('fix-objects.index');
@@ -77,7 +91,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/time-adjustments', [TimeTrackingController::class, 'submitAdjustment'])->name('time-adjustments.submit');
 
         // ── Interactive Calendar (unified) ─────────────────────────────────
+        // `/calendar` is the canonical endpoint; `/calendar/events` is the
+        // alias named in the client specification — both are supported.
         Route::get('/calendar', [ApiCalendarController::class, 'index'])->name('calendar.index');
+        Route::get('/calendar/events', [ApiCalendarController::class, 'index'])->name('calendar.events');
 
         // ── Personal appointments (own) ────────────────────────────────────
         Route::get('/appointments', [ApiAppointmentController::class, 'index'])->name('appointments.index');
@@ -94,6 +111,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/schedules/{schedule}/reassign', [ApiReassignmentController::class, 'reassignSchedule'])->name('schedules.reassign');
         Route::post('/extra-assignees/{assignee}/reassign', [ApiReassignmentController::class, 'reassignExtraAssignee'])->name('extra-assignees.reassign');
 
+        // ── Reopen a closed order (governance: reason is mandatory) ─────────
+        Route::post('/orders/{order}/reopen', [OrderReopenController::class, 'reopen'])->name('orders.reopen');
+
         // ── Notifications & push devices ─────────────────────────────────────
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
@@ -101,6 +121,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::post('/device-tokens', [NotificationController::class, 'storeDeviceToken'])->name('device-tokens.store');
         Route::delete('/device-tokens/{deviceToken}', [NotificationController::class, 'destroyDeviceToken'])->name('device-tokens.destroy');
+
+        // Singular alias named in the client specification.
+        Route::post('/device-token', [NotificationController::class, 'storeDeviceToken'])->name('device-token.store');
+
+        // ── Complaints / Reklamationen ─────────────────────────────────────
+        Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
+        Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
+        Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+        Route::put('/complaints/{complaint}/status', [ComplaintController::class, 'updateStatus'])->name('complaints.status.update');
 
         // ── Monthly reports (own) ────────────────────────────────────────────
         Route::get('/monthly-reports', [ApiMonthlyReportController::class, 'show'])->name('monthly-reports.show');

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AuditEventEnum;
+use App\Models\EmployeeProfile;
 use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragExecution;
 use App\Models\FixObject;
@@ -24,12 +25,27 @@ use Illuminate\Support\Facades\DB;
  *  - Fixobjekte   → paid hours = contract_hours_applied (frozen at start)
  *  - Extra-Aufträge → paid hours = work + (travel if is_travel_time_paid)
  *
+ * Alongside the hours it derives the profitability of the month:
+ * employer cost = paid hours x hourly_cost, profit = revenue - employer cost.
+ *
  * Until approval the report is regenerated from live data; approving copies
  * a full snapshot and stamps approved_at / approved_by so no retroactive
  * change can silently alter a settled payroll period.
  */
 class MonthlyReportEngineService
 {
+    /**
+     * Per-month revenue attribution, keyed by "year-month".
+     *
+     * Deliberately only an in-memory cache for the lifetime of one injected
+     * instance. This service must NOT be registered as a singleton, or prices
+     * would be reused across requests and a report could be priced from a
+     * contract that has since been changed.
+     *
+     * @var array<string, array<int, float>>
+     */
+    private array $revenueMapCache = [];
+
     public function __construct(
         private readonly TimeTrackingEngine $timeTracking,
         private readonly ContractHoursCalculator $contractHours,
@@ -51,7 +67,8 @@ class MonthlyReportEngineService
             return $report;
         }
 
-        $aggregate = $this->aggregateFor($employee, $year, $month);
+        $aggregate     = $this->aggregateFor($employee, $year, $month);
+        $profitability = $this->profitabilityFor($employee, $year, $month, $aggregate);
 
         $report->fill([
             'fix_paid_hours'      => $aggregate['fix_paid_hours'],
@@ -61,6 +78,10 @@ class MonthlyReportEngineService
             'extra_paid_hours'    => $aggregate['extra_paid_hours'],
             'extra_actual_hours'  => $aggregate['extra_actual_hours'],
             'total_paid_hours'    => $aggregate['total_paid_hours'],
+            'revenue'             => $profitability['revenue'],
+            'employee_cost'       => $profitability['employee_cost'],
+            'profit'              => $profitability['profit'],
+            'hourly_cost_applied' => $profitability['hourly_cost'],
         ])->save();
 
         return $report->fresh();
@@ -89,9 +110,10 @@ class MonthlyReportEngineService
 
             $report->update([
                 'snapshot'      => [
-                    'aggregate' => $this->aggregateFor($employee, $year, $month),
-                    'line_items' => $lineItems->values(),
-                    'generated_at' => now()->toIso8601String(),
+                    'aggregate'     => $this->aggregateFor($employee, $year, $month),
+                    'profitability' => $this->profitabilityFor($employee, $year, $month),
+                    'line_items'    => $lineItems->values(),
+                    'generated_at'  => now()->toIso8601String(),
                 ],
                 'approved_at'   => now(),
                 'approved_by'   => $admin->id,
@@ -223,6 +245,132 @@ class MonthlyReportEngineService
             ->get()
             ->map(fn(User $employee) => $this->buildReport($employee, $year, $month))
             ->values();
+    }
+
+    // ── Profitability ──────────────────────────────────────────────────────
+
+    /**
+     * Revenue, employer cost and profit for one employee/month.
+     *
+     *  - employee_cost = total paid hours x the employee's hourly cost
+     *  - revenue       = this employee's share of the contracts they worked
+     *  - profit        = revenue - employee_cost
+     *
+     * Note the two hourly figures on the employee profile are deliberately
+     * different numbers: `hourly_rate` is what the customer is charged and is
+     * not used here, `hourly_cost` is what employing the person costs.
+     *
+     * @return array{hourly_cost: float, revenue: float, employee_cost: float, profit: float}
+     */
+    public function profitabilityFor(User $employee, int $year, int $month, ?array $aggregate = null): array
+    {
+        $aggregate    ??= $this->aggregateFor($employee, $year, $month);
+        $hourlyCost    = $this->hourlyCostFor($employee);
+        $employeeCost  = round((float) $aggregate['total_paid_hours'] * $hourlyCost, 2);
+        $revenue       = round($this->monthlyRevenueMap($year, $month)[$employee->id] ?? 0.0, 2);
+
+        return [
+            'hourly_cost'   => $hourlyCost,
+            'revenue'       => $revenue,
+            'employee_cost' => $employeeCost,
+            'profit'        => round($revenue - $employeeCost, 2),
+        ];
+    }
+
+    /**
+     * The employee's internal hourly cost. 0.0 when no profile is set up or
+     * the rate was never filled in — such a report then shows revenue but no
+     * cost, instead of silently pretending the labour was free.
+     */
+    public function hourlyCostFor(User $employee): float
+    {
+        $profile = EmployeeProfile::where('user_id', $employee->id)->first();
+
+        return $profile?->getHourlyCostAsFloat() ?? 0.0;
+    }
+
+    /**
+     * Revenue attributed to each employee for one month, keyed by user id.
+     *
+     * The money is billed per customer contract, not per visit: a FixObject
+     * cleaned four times in a month is charged one monthly fee, and an
+     * Extra-Auftrag is charged one price. So each contract amount is split
+     * evenly between the employees who actually executed it — otherwise two
+     * people on the same object would each book the full fee and the
+     * per-employee figures would no longer add up to what the company earned.
+     *
+     * Fixobjekte use the monthly price when one is agreed, otherwise the
+     * hourly price times the hours spent on that object in the month.
+     *
+     * Memoised, because building a whole month of reports requests this once
+     * per employee while the underlying scans are company-wide.
+     *
+     * @return array<int, float>
+     */
+    public function monthlyRevenueMap(int $year, int $month): array
+    {
+        $key = "{$year}-{$month}";
+
+        if (isset($this->revenueMapCache[$key])) {
+            return $this->revenueMapCache[$key];
+        }
+
+        $map = [];
+
+        $fixExecutions = FixObjectExecution::whereNotNull('actual_end')
+            ->whereYear('actual_start', $year)
+            ->whereMonth('actual_start', $month)
+            ->with('schedule.fixObject')
+            ->get();
+
+        foreach ($fixExecutions->groupBy(fn($e) => $e->schedule?->fixObject?->id) as $group) {
+            $fix = $group->first()->schedule?->fixObject;
+
+            if ($fix === null) {
+                continue;
+            }
+
+            $amount = $fix->price_per_month !== null
+                ? (float) $fix->price_per_month
+                : (float) ($fix->price_per_hour ?? 0.0) * $group->sum(
+                    fn(FixObjectExecution $e) => $this->timeTracking->summarizeFixExecution($e)->paidHours
+                );
+
+            $this->shareRevenue($map, $group->pluck('user_id')->unique(), $amount);
+        }
+
+        $extraExecutions = ExtraAuftragExecution::whereNotNull('work_end')
+            ->whereYear('work_start', $year)
+            ->whereMonth('work_start', $month)
+            ->with('extraAuftrag')
+            ->get();
+
+        foreach ($extraExecutions->groupBy('extra_auftrag_id') as $group) {
+            $order = $group->first()->extraAuftrag;
+
+            $this->shareRevenue($map, $group->pluck('user_id')->unique(), (float) ($order?->price ?? 0.0));
+        }
+
+        return $this->revenueMapCache[$key] = $map;
+    }
+
+    /**
+     * Split one contract amount evenly between the employees who executed it.
+     *
+     * @param  array<int, float>  $map
+     * @param  \Illuminate\Support\Collection<int, int>  $userIds
+     */
+    private function shareRevenue(array &$map, Collection $userIds, float $amount): void
+    {
+        if ($amount <= 0.0 || $userIds->isEmpty()) {
+            return;
+        }
+
+        $share = $amount / $userIds->count();
+
+        foreach ($userIds as $userId) {
+            $map[$userId] = ($map[$userId] ?? 0.0) + $share;
+        }
     }
 
     // ── Admin helper ───────────────────────────────────────────────────────

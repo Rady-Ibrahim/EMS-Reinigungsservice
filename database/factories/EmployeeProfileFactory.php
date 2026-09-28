@@ -22,6 +22,7 @@ class EmployeeProfileFactory extends Factory
             'address'         => fake()->address(),
             'iban'            => null,    // sensitive — set explicitly in tests
             'hourly_rate'     => null,    // sensitive — set explicitly in tests
+            'hourly_cost'     => null,    // sensitive — set explicitly in tests
             'contract_type'   => ContractTypeEnum::Minijob,
             'joined_at'       => fake()->dateTimeBetween('-3 years', 'now'),
             'notes'           => null,
@@ -31,6 +32,15 @@ class EmployeeProfileFactory extends Factory
     public function withHourlyRate(float $rate = 12.50): static
     {
         return $this->state(fn() => ['hourly_rate' => (string) $rate]);
+    }
+
+    /**
+     * The employer's hourly cost — the number profitability multiplies paid
+     * hours by. Separate from `withHourlyRate`, which is the customer price.
+     */
+    public function withHourlyCost(float $cost = 15.00): static
+    {
+        return $this->state(fn() => ['hourly_cost' => (string) $cost]);
     }
 
     public function withIban(string $iban = 'DE89370400440532013000'): static

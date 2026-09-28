@@ -2,28 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InternalEventAssignee extends Model
+/**
+ * Attendee of a company-internal event.
+ *
+ * Backed by the unified `personal_event_assignees` table.
+ * `internal_event_id` is kept as the public attribute name so existing call
+ * sites (controllers, the Teamup sync, the admin views) keep working — it maps
+ * onto the `personal_event_id` column.
+ */
+class InternalEventAssignee extends PersonalEventAssignee
 {
-    use HasFactory;
+    protected $table = 'personal_event_assignees';
 
     protected $fillable = [
         'internal_event_id',
         'user_id',
     ];
 
-    // ── Relationships ──────────────────────────────────────────────────────
+    protected function internalEventId(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->personal_event_id,
+            set: fn($value) => ['personal_event_id' => $value],
+        );
+    }
 
     public function internalEvent(): BelongsTo
     {
-        return $this->belongsTo(InternalEvent::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(InternalEvent::class, 'personal_event_id');
     }
 }

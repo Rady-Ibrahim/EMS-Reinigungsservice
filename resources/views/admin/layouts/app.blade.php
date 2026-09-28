@@ -407,6 +407,7 @@
     $unreadCount = \App\Models\AdminNotification::unread()->count()
                  + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
     $pendingAdjustments = \App\Models\TimeAdjustmentRequest::pending()->count();
+    $openComplaints     = \App\Models\Complaint::open()->count();
 
     // ── Live employee status panel ────────────────────────────────
     $employeeRoles = [\App\Enums\RoleEnum::Vorarbeiter, \App\Enums\RoleEnum::Mitarbeiter];
@@ -500,9 +501,9 @@
                 <a href="{{ route('admin.monthly-reports.index') }}" class="nav-link {{ request()->routeIs('admin.monthly-reports*') ? 'active' : '' }}">
                     <span class="nav-ico">📈</span> {{ __('messages.nav.monthly_reports') }}
                 </a>
-                <a href="{{ route('admin.notifications.index') }}" class="nav-link {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                <a href="{{ route('admin.complaints.index') }}" class="nav-link {{ request()->routeIs('admin.complaints*') ? 'active' : '' }}">
                     <span class="nav-ico">⚠️</span> {{ __('messages.nav.reklamations') }}
-                    @if($unreadCount > 0)<span class="nav-badge">{{ $unreadCount }}</span>@endif
+                    @if($openComplaints > 0)<span class="nav-badge">{{ $openComplaints }}</span>@endif
                 </a>
                 <a href="{{ route('admin.audit-log.index') }}" class="nav-link {{ request()->routeIs('admin.audit-log*') ? 'active' : '' }}">
                     <span class="nav-ico">🛡️</span> {{ __('messages.nav.audit') }}
@@ -667,7 +668,8 @@
                         'auftrag': '{{ route('admin.extra-auftraege.index') }}',
                         'kalender': '{{ route('admin.calendar.index') }}',
                         'bericht': '{{ route('admin.monthly-reports.index') }}',
-                        'reklamation': '{{ route('admin.notifications.index') }}',
+                        'reklamation': '{{ route('admin.complaints.index') }}',
+                        'complaint': '{{ route('admin.complaints.index') }}',
                         'zeit': '{{ route('admin.time-tracking.overview') }}'
                     };
                     for (var key in blockMapping) {

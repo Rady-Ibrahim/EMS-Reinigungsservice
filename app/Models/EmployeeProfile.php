@@ -21,6 +21,7 @@ class EmployeeProfile extends Model
         'address',
         'iban',
         'hourly_rate',
+        'hourly_cost',
         'contract_type',
         'joined_at',
         'notes',
@@ -34,6 +35,7 @@ class EmployeeProfile extends Model
             // Encryption at rest — these values are opaque in the database
             'iban'          => 'encrypted',
             'hourly_rate'   => 'encrypted',
+            'hourly_cost'   => 'encrypted',
         ];
     }
 
@@ -52,5 +54,15 @@ class EmployeeProfile extends Model
     public function getHourlyRateAsFloat(): ?float
     {
         return $this->hourly_rate !== null ? (float) $this->hourly_rate : null;
+    }
+
+    /**
+     * Hourly cost as float — the employer's cost per hour, which is what the
+     * profitability calculation multiplies the paid hours by. Distinct from
+     * `hourly_rate`, which is the rate charged to the customer.
+     */
+    public function getHourlyCostAsFloat(): float
+    {
+        return $this->hourly_cost !== null ? (float) $this->hourly_cost : 0.0;
     }
 }
