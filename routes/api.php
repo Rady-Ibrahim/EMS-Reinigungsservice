@@ -32,6 +32,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/login', [AuthController::class, 'login'])->name('login');
     });
 
+    // `POST /api/v1/login` — the path named in the client specification.
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+
     // ── Protected (valid Sanctum token required) ──────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -75,7 +78,20 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/extra-orders/{extraAuftrag}/travel/start', [ApiExtraAuftragController::class, 'startTravel'])->name('extra-orders.travel.start');
         Route::post('/extra-orders/{extraAuftrag}/travel/arrive', [ApiExtraAuftragController::class, 'recordArrival'])->name('extra-orders.travel.arrive');
         Route::post('/extra-orders/{extraAuftrag}/work/start', [ApiExtraAuftragController::class, 'startWork'])->name('extra-orders.work.start');
+        Route::post('/extra-orders/{extraAuftrag}/work-end', [ApiExtraAuftragController::class, 'endWork'])->name('extra-orders.work-end');
+        Route::post('/extra-orders/{extraAuftrag}/pause', [ApiExtraAuftragController::class, 'togglePause'])->name('extra-orders.pause');
+        Route::post('/extra-orders/{extraAuftrag}/notes', [ApiExtraAuftragController::class, 'addNote'])->name('extra-orders.notes');
         Route::post('/extra-orders/{extraAuftrag}/complete', [ApiExtraAuftragController::class, 'completeOrder'])->name('extra-orders.complete');
+
+        // `auftraege` aliases named in the client specification. `extra-orders`
+        // stays the canonical prefix used by the rest of the API.
+        Route::get('/auftraege', [ApiExtraAuftragController::class, 'index'])->name('auftraege.index');
+        Route::get('/auftraege/{extraAuftrag}', [ApiExtraAuftragController::class, 'show'])->name('auftraege.show');
+        Route::post('/auftraege/{extraAuftrag}/work-start', [ApiExtraAuftragController::class, 'startWork'])->name('auftraege.work-start');
+        Route::post('/auftraege/{extraAuftrag}/work-end', [ApiExtraAuftragController::class, 'endWork'])->name('auftraege.work-end');
+        Route::post('/auftraege/{extraAuftrag}/pause', [ApiExtraAuftragController::class, 'togglePause'])->name('auftraege.pause');
+        Route::post('/auftraege/{extraAuftrag}/notes', [ApiExtraAuftragController::class, 'addNote'])->name('auftraege.notes');
+        Route::post('/auftraege/{extraAuftrag}/photos', [ApiExtraAuftragController::class, 'uploadOrderPhotos'])->name('auftraege.photos');
         // Execution-level actions (leader only)
         Route::post('/extra-executions/{execution}/before-photos', [ApiExtraAuftragController::class, 'uploadBeforePhotos'])->name('extra-executions.before-photos');
         Route::patch('/extra-executions/{execution}/checklist', [ApiExtraAuftragController::class, 'updateChecklist'])->name('extra-executions.checklist');

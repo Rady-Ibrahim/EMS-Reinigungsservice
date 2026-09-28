@@ -31,6 +31,16 @@ class LocationDocumentController extends Controller
     {
         abort_unless($location->is_active, Response::HTTP_NOT_FOUND);
 
+        // The mobile client sends `visibility=extern`. It is accepted for
+        // readability but can never widen the result set: the service layer
+        // already restricts the listing to what this user may see, and any
+        // other value is rejected rather than silently ignored.
+        $requested = $request->query('visibility');
+
+        if ($requested !== null && $requested !== 'extern') {
+            abort(Response::HTTP_FORBIDDEN, 'Nur externe Dokumente sind mobil sichtbar.');
+        }
+
         $documents = $this->documents->listFor($location, $request->user());
 
         return response()->json([

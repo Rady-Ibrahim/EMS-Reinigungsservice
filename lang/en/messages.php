@@ -92,6 +92,8 @@ return [
     'live' => [
         'working'     => 'On duty',
         'onway'       => 'On the way',
+        'paused'      => 'On break',
+        'off_duty'    => 'Off duty',
         'done'        => 'Done',
         'pending'     => 'Pending',
         'not_started' => 'Not started yet',
@@ -147,6 +149,14 @@ return [
             'personal' => 'My Appointments',
             'internal' => 'Internal Appointments',
             'teamup'   => 'Teamup (external)',
+        ],
+        'types' => [
+            'fix_schedule'         => 'Fix Object Visit',
+            'extra_auftrag'        => 'Extra Order',
+            'employee_shift'       => 'Shift',
+            'personal_appointment' => 'Personal Appointment',
+            'internal_event'       => 'Internal Appointment',
+            'teamup_external'      => 'Teamup (external)',
         ],
     ],
     'dash' => [

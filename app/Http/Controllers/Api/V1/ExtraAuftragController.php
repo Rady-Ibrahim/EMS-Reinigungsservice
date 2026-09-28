@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExtraExecutionStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\AddFieldNoteRequest;
 use App\Http\Requests\Api\V1\CompleteExtraOrderRequest;
+use App\Http\Requests\Api\V1\EndWorkRequest;
+use App\Http\Requests\Api\V1\PauseExecutionRequest;
 use App\Http\Requests\Api\V1\RecordArrivalRequest;
 use App\Http\Requests\Api\V1\StartTravelRequest;
 use App\Models\ExtraAuftrag;
@@ -147,6 +150,33 @@ class ExtraAuftragController extends Controller
     }
 
     /**
+     * POST /api/v1/auftraege/{id}/photos
+     * Order-scoped photo upload named in the client specification. Accepts
+     * `stage=before|after` and resolves the caller's own leader execution,
+     * so the mobile client does not have to know the execution id first.
+     */
+    public function uploadOrderPhotos(Request $request, ExtraAuftrag $extraAuftrag): JsonResponse
+    {
+        $request->validate([
+            'stage'   => ['nullable', 'in:before,after'],
+            'photos'  => ['required', 'array', 'min:1'],
+            'photos.*' => ['string', 'max:2048'],
+        ]);
+
+        $stage  = $request->input('stage', 'before');
+        $photos = $request->input('photos');
+
+        $execution = $stage === 'after'
+            ? $this->service->uploadAfterPhotos($extraAuftrag, $request->user()->id, $photos)
+            : $this->service->uploadBeforePhotos($extraAuftrag, $request->user()->id, $photos);
+
+        return response()->json([
+            'message' => $stage === 'after' ? 'Nachher-Fotos gespeichert.' : 'Vorher-Fotos gespeichert.',
+            'data'    => $this->formatExecution($execution),
+        ]);
+    }
+
+    /**
      * PATCH /api/v1/executions/{id}/checklist
      * Leader only — update checklist items.
      */
@@ -168,6 +198,68 @@ class ExtraAuftragController extends Controller
 
         return response()->json([
             'message' => 'Checkliste aktualisiert.',
+            'data'    => $this->formatExecution($execution),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/extra-orders/{id}/work-end
+     * Closing screen: the employee leaves the site and confirms the hand-over.
+     *
+     * Requires before/after photos, a complete checklist and the security
+     * confirmations the site needs; anything missing returns 422 naming the
+     * exact field. The order itself is closed separately by the leader.
+     */
+    public function endWork(EndWorkRequest $request, ExtraAuftrag $extraAuftrag): JsonResponse
+    {
+        $execution = $this->service->endWork(
+            $extraAuftrag,
+            $request->user()->id,
+            $request->validated()
+        );
+
+        return response()->json([
+            'message' => 'Auftrag abgeschlossen und Übergabe dokumentiert.',
+            'data'    => $this->formatExecution($execution),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/extra-orders/{id}/pause
+     * Start or stop the unpaid break. Break minutes are deducted from the
+     * paid working time when the execution is closed.
+     */
+    public function togglePause(PauseExecutionRequest $request, ExtraAuftrag $extraAuftrag): JsonResponse
+    {
+        $execution = $this->service->togglePause(
+            $extraAuftrag,
+            $request->user()->id,
+            [
+                'action'    => $request->input('action'),
+                'paused_at' => $request->date('paused_at'),
+            ]
+        );
+
+        return response()->json([
+            'message' => $execution->isPaused() ? 'Pause gestartet.' : 'Pause beendet.',
+            'data'    => $this->formatExecution($execution),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/extra-orders/{id}/notes
+     * Append a quick field note from the assigned employee.
+     */
+    public function addNote(AddFieldNoteRequest $request, ExtraAuftrag $extraAuftrag): JsonResponse
+    {
+        $execution = $this->service->addNote(
+            $extraAuftrag,
+            $request->user()->id,
+            (string) $request->validated('note')
+        );
+
+        return response()->json([
+            'message' => 'Notiz gespeichert.',
             'data'    => $this->formatExecution($execution),
         ]);
     }
@@ -205,6 +297,14 @@ class ExtraAuftragController extends Controller
             'is_travel_time_paid'  => $order->is_travel_time_paid,
             'status'               => $order->status->value,
             'is_leader'            => $order->isLeader($userId),
+            'vehicle_info'         => [
+                'label' => $order->vehicle_label,
+            ],
+            'equipment_info'       => $order->equipment_info ?? [],
+            'security'             => [
+                'has_alarm_system' => (bool) $order->has_alarm_system,
+                'has_key_safe'     => (bool) $order->has_key_safe,
+            ],
             'customer'             => ['id' => $order->customer?->id, 'name' => $order->customer?->name],
             'location'             => $order->location ? [
                 'id'        => $order->location->id,
@@ -255,6 +355,15 @@ class ExtraAuftragController extends Controller
             'after_photos'    => $exec->after_photos ?? [],
             'checklist_items' => $exec->checklist_items ?? [],
             'allowed_next'    => array_map(fn($s) => $s->value, $exec->status->allowedNextStatuses()),
+
+            // Closing screen (Auftrag beenden & Übergabe)
+            'key_returned'     => (bool) $exec->key_returned,
+            'windows_closed'   => (bool) $exec->windows_closed,
+            'alarm_activated'  => (bool) $exec->alarm_activated,
+            'shift_note'       => $exec->shift_note,
+            'is_paused'        => $exec->isPaused(),
+            'pause_started_at' => $exec->pause_started_at?->toIso8601String(),
+            'pause_minutes'    => $exec->pause_minutes,
         ];
     }
 

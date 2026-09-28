@@ -30,7 +30,7 @@ class FixObjectFactory extends Factory
             'valid_from'     => now()->startOfMonth()->toDateString(),
             'valid_until'    => null,
             'is_active'      => true,
-            'calendar_color' => '#FFD700',
+            'calendar_color' => '#D4AF37',
             'price_per_month'=> null,
             'price_per_hour' => null,
             'internal_cost'  => null,

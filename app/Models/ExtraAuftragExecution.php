@@ -28,6 +28,13 @@ class ExtraAuftragExecution extends Model
         'after_photos',
         'checklist_items',
         'employee_notes',
+        'shift_note',
+        'key_returned',
+        'windows_closed',
+        'alarm_activated',
+        'pause_started_at',
+        'pause_ended_at',
+        'pause_minutes',
         'offline_uuid',
         'client_submitted_at',
     ];
@@ -46,6 +53,11 @@ class ExtraAuftragExecution extends Model
             'after_photos'        => 'array',
             'checklist_items'     => 'array',
             'client_submitted_at' => 'datetime',
+            'key_returned'        => 'boolean',
+            'windows_closed'      => 'boolean',
+            'alarm_activated'     => 'boolean',
+            'pause_started_at'    => 'datetime',
+            'pause_ended_at'      => 'datetime',
         ];
     }
 
@@ -122,6 +134,71 @@ class ExtraAuftragExecution extends Model
     public function isCompleted(): bool
     {
         return $this->status === ExtraExecutionStatusEnum::Completed;
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->pause_started_at !== null && $this->pause_ended_at === null;
+    }
+
+    /**
+     * Append a timestamped field note, keeping the existing note.
+     *
+     * Notes are kept in one column so the order history stays in a single
+     * readable place, with a time prefix because field notes are only
+     * meaningful in sequence.
+     */
+    public function appendNote(string $note): self
+    {
+        $stamp   = now()->format('d.m.Y H:i');
+        $current = trim((string) $this->employee_notes);
+
+        $combined = $current === ''
+            ? "[{$stamp}] {$note}"
+            : $current."\n[{$stamp}] {$note}";
+
+        $this->update(['employee_notes' => $combined]);
+
+        return $this;
+    }
+
+    /**
+     * Total unpaid break minutes, counting an open pause up to now.
+     */
+    public function accumulatedPauseMinutes(): int
+    {
+        $total = (int) ($this->pause_minutes ?? 0);
+
+        if (! $this->isPaused()) {
+            return $total;
+        }
+
+        return $total + (int) $this->pause_started_at->diffInMinutes(now());
+    }
+
+    /**
+     * Whether the stored security confirmations already satisfy a site that
+     * has an alarm and/or a key safe.
+     *
+     * Used by the admin alert evaluator, which inspects a refused close long
+     * after the payload was submitted and therefore only has the saved state
+     * to go by. The closing endpoint itself validates the incoming payload.
+     */
+    public function securityHandOverComplete(bool $siteHasAlarm, bool $siteHasKeySafe): bool
+    {
+        if ($siteHasKeySafe && ! $this->key_returned) {
+            return false;
+        }
+
+        if (! $this->windows_closed) {
+            return false;
+        }
+
+        if ($siteHasAlarm && ! $this->alarm_activated) {
+            return false;
+        }
+
+        return true;
     }
 
     public function workDurationMinutes(): ?int

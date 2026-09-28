@@ -92,6 +92,8 @@ return [
     'live' => [
         'working'     => 'يعمل الآن',
         'onway'       => 'في الطريق',
+        'paused'      => 'في استراحة',
+        'off_duty'    => 'انتهى الدوام',
         'done'        => 'منجز',
         'pending'     => 'معلّق',
         'not_started' => 'لم يبدأ بعد',
@@ -147,6 +149,14 @@ return [
             'personal' => 'مواعيدي',
             'internal' => 'المواعيد الداخلية',
             'teamup'   => 'Teamup (خارجي)',
+        ],
+        'types' => [
+            'fix_schedule'         => 'زيارة موقع ثابت',
+            'extra_auftrag'        => 'طلب إضافي',
+            'employee_shift'       => 'وردية',
+            'personal_appointment' => 'موعد شخصي',
+            'internal_event'       => 'موعد داخلي',
+            'teamup_external'      => 'Teamup (خارجي)',
         ],
     ],
     'dash' => [

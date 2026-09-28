@@ -85,7 +85,7 @@
                                 <div class="tl-title">
                                     {{ $event->title }}
                                     <span class="badge {{ $event->layer === 'jobs' ? 'badge-blue' : 'badge-purple' }}" style="margin-inline-start:.3rem;font-size:.62rem">
-                                        {{ $event->type_label }}
+                                        {{ __('messages.cal.types.' . $event->type->value) }}
                                     </span>
                                 </div>
                                 <div class="tl-loc">{{ $event->location ?: '—' }}</div>

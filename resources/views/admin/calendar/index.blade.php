@@ -209,6 +209,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             const calendarEl = document.getElementById('calendar');
             const employeeMap = {!! json_encode($employeeMap) !!};
+            const layerLabels = {!! json_encode(collect($layers)->pluck('label', 'key')) !!};
             const T = {!! json_encode($cal) !!};
             const locale = '{{ app()->getLocale() }}';
 
@@ -311,7 +312,10 @@
             function panelContent(ev) {
                 const m = ev.extendedProps || {};
                 const meta = m.metadata || {};
-                const layer = m.layer || ev.type || '';
+                // Resolve through the layer legend so the panel shows a
+                // translated label; the raw key would fall through untranslated.
+                const layerKey = m.layer || ev.type || '';
+                const layer = (layerLabels[layerKey] || ev.type_label || layerKey);
                 const allDay = ev.allDay || m.all_day;
                 const intlLocale = locale === 'ar' ? 'ar-EG' : 'de-DE';
                 const arrow = locale === 'ar' ? '←' : '→';

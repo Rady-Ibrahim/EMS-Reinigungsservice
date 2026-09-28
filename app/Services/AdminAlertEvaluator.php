@@ -7,6 +7,8 @@ use App\Enums\ExtraAuftragStatusEnum;
 use App\Enums\ExecutionStatusEnum;
 use App\Enums\ExtraExecutionStatusEnum;
 use App\Enums\NotificationTypeEnum;
+use App\Models\AdminCloseAttempt;
+use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragExecution;
 use App\Models\FixObjectExecution;
 use App\Models\User;
@@ -36,6 +38,112 @@ class AdminAlertEvaluator
     // ── Hourly ─────────────────────────────────────────────────────────────
 
     /**
+     * `checklist_blocked_close` — a close was attempted while the order was
+     * still missing checklist ticks or required photos.
+     *
+     * The blocking error is raised by the service layer, so this looks for the
+     * evidence it leaves behind: a recorded, deduplicated attempt against a
+     * leader execution that is demonstrably not ready to close.
+     *
+     * @return int  number of alerts created
+     */
+    public function evaluateBlockedCloses(?CarbonInterface $since = null): int
+    {
+        $since ??= now()->subDay();
+
+        $created = 0;
+
+        $attempts = AdminCloseAttempt::query()
+            ->where('created_at', '>=', $since)
+            ->get();
+
+        foreach ($attempts as $attempt) {
+            $blockedOn = $attempt->reasons ?? [];
+
+            if ($blockedOn === []) {
+                continue;
+            }
+
+            $order = ExtraAuftrag::find($attempt->extra_auftrag_id);
+
+            if (! $order) {
+                continue;
+            }
+
+            $missing = $this->outstandingClosureGaps($order, $blockedOn);
+
+            if ($missing === []) {
+                // The gaps were closed in the meantime — nothing to report.
+                continue;
+            }
+
+            if ($this->alert(
+                'checklist_blocked_close:'.$order->id,
+                'Abschluss blockiert: #'.$order->id,
+                "\"{$order->title}\" konnte nicht abgeschlossen werden. Offen: ".implode(', ', $missing).'.',
+                [
+                    'type'       => 'extra',
+                    'auftrag_id' => $order->id,
+                    'missing'    => $missing,
+                ]
+            )) {
+                $created++;
+            }
+        }
+
+        return $created;
+    }
+
+    /**
+     * Which of the named blocking reasons are still true for this order.
+     *
+     * @param  array<int, string>  $blockedOn
+     * @return array<int, string>
+     */
+    private function outstandingClosureGaps(\App\Models\ExtraAuftrag $order, array $blockedOn): array
+    {
+        // Resolved through the order's leader instead of a `whereHas` on the
+        // execution's assignee relation: that relation constrains itself to the
+        // parent execution, so inside a `whereHas` the extra order id is null
+        // and the sub-query can never match.
+        $leader = $order->leader()->first();
+
+        $execution = $leader
+            ? $order->executions()->where('user_id', $leader->user_id)->first()
+            : null;
+
+        if (! $execution) {
+            return [];
+        }
+
+        $labels = [
+            'checklist'  => 'Checklist',
+            'photos'     => 'Fotos',
+            'security'   => 'Sicherheitsübergabe',
+        ];
+
+        $outstanding = [];
+
+        foreach ($blockedOn as $reason) {
+            $stillTrue = match ($reason) {
+                'checklist' => ! $execution->isChecklistComplete(),
+                'photos'    => ! $execution->hasRequiredPhotos(),
+                'security'  => ! $execution->securityHandOverComplete(
+                    (bool) $order->has_alarm_system,
+                    (bool) $order->has_key_safe
+                ),
+                default     => false,
+            };
+
+            if ($stillTrue) {
+                $outstanding[] = $labels[$reason] ?? $reason;
+            }
+        }
+
+        return $outstanding;
+    }
+
+    /**
      * Extra: leader stuck at PhotosAfter without after photos.
      * Extra: orders completed while after photos were never recorded.
      * Fix:   completed executions without after photos.
@@ -63,7 +171,7 @@ class AdminAlertEvaluator
                 ? 'abgeschlossen ohne Nachher-Fotos'
                 : 'wartet auf Nachher-Fotos';
 
-            if ($this->alert(
+            if ($this->writeAlert(
                 'photos_missing:extra_exec:'.$execution->id,
                 "Nachher-Fotos fehlen: Auftrag #{$order->id}",
                 "\"{$order->title}\" wurde {$stage}. Mitarbeiter: {$execution->employee->name}.",
@@ -82,7 +190,7 @@ class AdminAlertEvaluator
                 continue;
             }
 
-            if ($this->alert(
+            if ($this->writeAlert(
                 'photos_missing:fix_exec:'.$execution->id,
                 "Nachher-Fotos fehlen: Termin {$execution->schedule?->scheduled_date->format('d.m.Y')}",
                 "Das Objekt-Protokoll wurde ohne Nachher-Fotos abgeschlossen. Mitarbeiter: {$execution->employee->name}.",
@@ -93,6 +201,50 @@ class AdminAlertEvaluator
         }
 
         return $created;
+    }
+
+    /**
+     * Geofence deviation: recorded from the closing service, because the
+     * distance can only be judged once the closing position is known.
+     */
+    public function alertGeofenceDeviation(
+        \App\Models\ExtraAuftrag $order,
+        ExtraAuftragExecution $execution,
+        string $stage,
+        float $distance,
+        float $radius
+    ): bool {
+        $stageLabel = $stage === 'start' ? 'Arbeitsbeginn' : 'Arbeitsende';
+
+        return $this->alert(
+            'geofence_deviation:'.$order->id.':'.$execution->id.':'.$stage,
+            "GPS-Abweichung bei {$stageLabel}: #{$order->id}",
+            sprintf(
+                '"%s" — %s von %s liegt %.0f m vom Einsatzort entfernt (zulässig: %.0f m). Mitarbeiter: %s.',
+                $order->title,
+                $stageLabel,
+                'Position',
+                $distance,
+                $radius,
+                $execution->employee?->name ?? '—'
+            ),
+            [
+                'type'          => 'geofence',
+                'auftrag_id'    => $order->id,
+                'execution_id'  => $execution->id,
+                'stage'         => $stage,
+                'distance_m'    => round($distance, 1),
+                'radius_m'      => round($radius, 1),
+            ]
+        );
+    }
+
+    /**
+     * Public wrapper so callers outside this class can raise a deduped alert.
+     */
+    public function alert(string $dedupeKey, string $title, string $message, array $payload): bool
+    {
+        return $this->writeAlert($dedupeKey, $title, $message, $payload);
     }
 
     /**
@@ -217,7 +369,7 @@ class AdminAlertEvaluator
      *
      * @return bool  true if a new alert was created
      */
-    private function alert(string $dedupeKey, string $title, string $message, array $payload): bool
+    private function writeAlert(string $dedupeKey, string $title, string $message, array $payload): bool
     {
         if ($this->alreadySent($dedupeKey)) {
             return false;

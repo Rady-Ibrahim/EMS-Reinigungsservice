@@ -135,6 +135,7 @@
         .dot-yellow { background: #EAB308;     box-shadow: 0 0 8px rgba(234,179,8,.55); }
         .dot-red    { background: var(--red);   box-shadow: 0 0 8px rgba(239,68,68,.55); }
         .dot-gray   { background: #6B7280;      box-shadow: none; }
+        .dot-white  { background: #E5E7EB;      box-shadow: 0 0 8px rgba(229,231,235,.4); }
 
         /* ── Top header ───────────────────────────────────────────── */
         .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -410,40 +411,98 @@
     $openComplaints     = \App\Models\Complaint::open()->count();
 
     // ── Live employee status panel ────────────────────────────────
+    // Priority order: paused beats everything, then actively working, then
+    // travelling, then a finished day, then a scheduled-but-not-started day,
+    // and finally nobody has any trace of them today.
     $employeeRoles = [\App\Enums\RoleEnum::Vorarbeiter, \App\Enums\RoleEnum::Mitarbeiter];
     $liveEmployees = \App\Models\User::query()
         ->where('is_active', true)
         ->whereIn('role', $employeeRoles)
-        ->with('employeeProfile')
         ->orderBy('name')
-        ->get([ 'id', 'name', 'role' ]);
+        ->get(['id', 'name', 'role']);
 
-    $today = now()->toDateString();
-    $todayStatus = collect();
+    $today   = now()->toDateString();
+    $paused  = collect();
+    $working = collect();
+    $travelling = collect();
+    $gpsToday = collect();
+
     try {
-        $todayStatus = \App\Models\FixObjectSchedule::where('scheduled_date', $today)
-            ->with('scheduleAssignments.user:id')
-            ->get()
-            ->flatMap(fn($s) => $s->scheduleAssignments->map(fn($a) => ['user_id' => $a->user_id, 'status' => $s->status->value]));
-        $gpsToday = \App\Models\GpsPoint::whereDate('recorded_at', $today)->pluck('user_id');
+        $openExecutions = \App\Models\ExtraAuftragExecution::query()
+            ->whereIn('status', [
+                \App\Enums\ExtraExecutionStatusEnum::Travelling,
+                \App\Enums\ExtraExecutionStatusEnum::Arrived,
+                \App\Enums\ExtraExecutionStatusEnum::Working,
+                \App\Enums\ExtraExecutionStatusEnum::PhotosAfter,
+            ])
+            ->get(['user_id', 'status', 'pause_started_at', 'pause_ended_at']);
+
+        foreach ($openExecutions as $execution) {
+            $id = (int) $execution->user_id;
+
+            if ($execution->pause_started_at !== null && $execution->pause_ended_at === null) {
+                $paused = $paused->push($id);
+                continue;
+            }
+
+            if ($execution->status === \App\Enums\ExtraExecutionStatusEnum::Travelling) {
+                $travelling = $travelling->push($id);
+                continue;
+            }
+
+            $working = $working->push($id);
+        }
+
+        $schedules = \App\Models\FixObjectSchedule::where('scheduled_date', $today)
+            ->whereIn('status', [
+                \App\Enums\ScheduleStatusEnum::Pending,
+                \App\Enums\ScheduleStatusEnum::InProgress,
+                \App\Enums\ScheduleStatusEnum::Completed,
+            ])
+            ->with([
+                'scheduleAssignments:id,schedule_id,user_id',
+                'fixObject.assignments:id,fix_object_id,user_id,assigned_from,assigned_until',
+            ])
+            ->get(['id', 'fix_object_id', 'scheduled_date', 'status']);
+
+        // effectiveEmployeeIds() resolves the day-level reassignment override
+        // and falls back to the contract assignment, which the raw override
+        // rows alone would miss.
+        $scheduleState = collect();
+        foreach ($schedules as $schedule) {
+            foreach ($schedule->effectiveEmployeeIds() as $userId) {
+                $scheduleState->push([
+                    'user_id' => (int) $userId,
+                    'status'  => $schedule->status->value,
+                ]);
+            }
+        }
+
+        $gpsToday = \App\Models\GpsPoint::whereDate('recorded_at', $today)->pluck('user_id')
+            ->map(fn($id) => (int) $id);
     } catch (\Throwable $e) {
-        $todayStatus = collect();
+        $scheduleState = collect();
         $gpsToday = collect();
     }
+
     $liveItems = [];
     foreach ($liveEmployees as $emp) {
-        $schedules = $todayStatus->where('user_id', $emp->id)->pluck('status');
-        if ($schedules->contains('in_progress')) {
-            $liveItems[] = ['name' => $emp->name, 'dot' => 'dot-green',  'code' => 'working'];
-        } elseif ($schedules->contains('completed') && ! $schedules->contains(function ($s) { return $s === 'pending' || $s === 'in_progress'; })) {
-            $liveItems[] = ['name' => $emp->name, 'dot' => 'dot-gray',   'code' => 'done'];
-        } elseif ($gpsToday->contains($emp->id) && $schedules->isNotEmpty()) {
-            $liveItems[] = ['name' => $emp->name, 'dot' => 'dot-blue',   'code' => 'onway'];
-        } elseif ($schedules->contains('pending')) {
-            $liveItems[] = ['name' => $emp->name, 'dot' => 'dot-yellow', 'code' => 'pending'];
-        } else {
-            $liveItems[] = ['name' => $emp->name, 'dot' => 'dot-red',    'code' => 'not_started'];
-        }
+        $id = (int) $emp->id;
+        $day = $scheduleState->where('user_id', $id)->pluck('status');
+
+        $state = match (true) {
+            $paused->contains($id)                             => ['dot-yellow', 'paused'],
+            $working->contains($id)                            => ['dot-green',  'working'],
+            $travelling->contains($id)                         => ['dot-blue',   'onway'],
+            $day->contains('in_progress')                      => ['dot-green',  'working'],
+            $day->contains('completed') && ! $day->contains('pending') && ! $day->contains('in_progress')
+                                                              => ['dot-white',  'off_duty'],
+            $gpsToday->contains($id) && $day->isNotEmpty()     => ['dot-blue',   'onway'],
+            $day->contains('pending')                          => ['dot-red',    'not_started'],
+            default                                            => ['dot-gray',   'off_duty'],
+        };
+
+        $liveItems[] = ['name' => $emp->name, 'dot' => $state[0], 'code' => $state[1]];
     }
     $switchLocale = app()->getLocale() === 'ar' ? 'de' : 'ar';
 @endphp

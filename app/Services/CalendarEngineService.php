@@ -315,7 +315,10 @@ class CalendarEngineService
         return new CalendarEvent(
             id: 'fix_schedule:'.$schedule->id,
             type: CalendarEventTypeEnum::FixSchedule,
-            layer: 'jobs',
+            // Must match the `key` published by layerDefinitions(). It used to
+            // say 'jobs', which no legend entry and no filter pill uses, so a
+            // client could not map the event back to the toggle it came from.
+            layer: 'fix',
             title: $fixObject->title,
             startAt: $start,
             endAt: $end,
@@ -359,7 +362,9 @@ class CalendarEngineService
         return new CalendarEvent(
             id: 'extra_auftrag:'.$order->id,
             type: CalendarEventTypeEnum::ExtraAuftrag,
-            layer: 'jobs',
+            // Must match the `key` published by layerDefinitions(). See the
+            // note in normalizeFix().
+            layer: 'extra',
             title: $order->title,
             startAt: $start,
             endAt: $end,

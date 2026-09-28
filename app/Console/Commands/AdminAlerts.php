@@ -20,19 +20,27 @@ class AdminAlerts extends Command
         {--photos : Missing photos check}
         {--unclosed : Overdue orders check}
         {--monthly-hours : Monthly hours coverage check}
+        {--blocked-closes : Blocked close attempts check}
         {--all : Run all checks}';
 
-    protected $description = 'Evaluiert die intelligenten Admin-Alarme (Fotos, Überfälligkeit, Monatsstunden)';
+    protected $description = 'Evaluiert die intelligenten Admin-Alarme (Fotos, Überfälligkeit, Monatsstunden, blockierte Abschlüsse)';
 
     public function handle(AdminAlertEvaluator $evaluator): int
     {
         $runAll = $this->option('all')
-            || (! $this->option('photos') && ! $this->option('unclosed') && ! $this->option('monthly-hours'));
+            || (! $this->option('photos')
+                && ! $this->option('unclosed')
+                && ! $this->option('monthly-hours')
+                && ! $this->option('blocked-closes'));
 
         $created = 0;
 
         if ($runAll || $this->option('photos')) {
             $created += $evaluator->evaluateMissingPhotos();
+        }
+
+        if ($runAll || $this->option('blocked-closes')) {
+            $created += $evaluator->evaluateBlockedCloses();
         }
         if ($runAll || $this->option('unclosed')) {
             $created += $evaluator->evaluateUnclosed();

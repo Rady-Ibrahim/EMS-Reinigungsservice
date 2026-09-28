@@ -92,6 +92,8 @@ return [
     'live' => [
         'working'     => 'Im Einsatz',
         'onway'       => 'Auf Anfahrt',
+        'paused'      => 'In Pause',
+        'off_duty'    => 'Feierabend',
         'done'        => 'Erledigt',
         'pending'     => 'Ausstehend',
         'not_started' => 'Noch nicht gestartet',
@@ -147,6 +149,14 @@ return [
             'personal' => 'Meine Termine',
             'internal' => 'Interne Termine',
             'teamup'   => 'Teamup (extern)',
+        ],
+        'types' => [
+            'fix_schedule'         => 'Fixobjekt-Termin',
+            'extra_auftrag'        => 'Extra-Auftrag',
+            'employee_shift'       => 'Schicht',
+            'personal_appointment' => 'Persönlicher Termin',
+            'internal_event'       => 'Interner Termin',
+            'teamup_external'      => 'Teamup (extern)',
         ],
     ],
     'dash' => [
