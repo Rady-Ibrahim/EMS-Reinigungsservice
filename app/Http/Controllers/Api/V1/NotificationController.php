@@ -19,7 +19,10 @@ class NotificationController extends Controller
     }
 
     /**
-     * Register / update this device's FCM push token for the logged-in user.
+     * Register / update this device's OneSignal player id for the logged-in user.
+     *
+     * The `token` is the OneSignal Player ID (the per-installation subscription
+     * id from the OneSignal SDK), not an FCM registration token.
      */
     public function storeDeviceToken(Request $request): JsonResponse
     {
@@ -28,7 +31,7 @@ class NotificationController extends Controller
         $validation = Validator::make($request->all(), [
             'token'       => ['required', 'string', 'max:2048'],
             'platform'    => ['required', 'in:android,ios,web'],
-            'provider'    => ['sometimes', 'in:fcm,webpush'],
+            'provider'    => ['required', 'in:onesignal,webpush'],
             'device_name' => ['sometimes', 'nullable', 'string', 'max:191'],
         ]);
 
@@ -54,7 +57,7 @@ class NotificationController extends Controller
         $device = DeviceToken::create([
             'user_id'     => $request->user()->id,
             'platform'    => $request->input('platform'),
-            'provider'    => $request->input('provider', 'fcm'),
+            'provider'    => $request->input('provider'),
             'token'       => $request->input('token'),
             'device_name' => $request->input('device_name'),
             'last_used_at'=> now(),

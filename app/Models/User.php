@@ -122,4 +122,26 @@ class User extends Authenticatable
     {
         return $this->role->isApiRole();
     }
+
+    // ── Notification routing ───────────────────────────────────────────────
+
+    /**
+     * OneSignal Player IDs for Laravel's Notification system.
+     *
+     * A crew member can register up to config('push.max_devices_per_user')
+     * phones, so this returns every active subscription rather than a single id.
+     * App\Notifications\Channels\OneSignalDeviceChannel fans the notification
+     * out across all of them.
+     *
+     * @return array<int, string>
+     */
+    public function routeNotificationForOneSignal(): array
+    {
+        return $this->deviceTokens()
+            ->activeOneSignal()
+            ->orderByDesc('last_used_at')
+            ->limit((int) config('push.max_devices_per_user', 5))
+            ->pluck('token')
+            ->all();
+    }
 }

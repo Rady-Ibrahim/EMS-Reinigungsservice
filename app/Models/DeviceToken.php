@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Push device token for Firebase FCM / WebPush delivery.
+ * Push device token for OneSignal delivery.
+ *
+ * `token` holds the OneSignal Player ID (the per-installation subscription id
+ * from the OneSignal SDK) for `provider = onesignal` rows.
  */
 class DeviceToken extends Model
 {
@@ -53,5 +57,15 @@ class DeviceToken extends Model
     public function scopeOfProvider($query, string $provider)
     {
         return $query->where('provider', $provider);
+    }
+
+    /**
+     * Active OneSignal subscriptions for the given user, newest activity first.
+     *
+     * @return Collection<int, DeviceToken>
+     */
+    public function scopeActiveOneSignal($query)
+    {
+        return $query->where('provider', 'onesignal')->where('is_active', true);
     }
 }

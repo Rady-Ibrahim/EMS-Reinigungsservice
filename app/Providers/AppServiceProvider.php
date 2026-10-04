@@ -13,15 +13,15 @@ use App\Observers\ExtraAuftragObserver;
 use App\Observers\FixObjectAssignmentObserver;
 use App\Observers\TeamupEntityObserver;
 use App\Observers\UserObserver;
-use App\Services\Push\FcmChannel;
 use App\Services\Push\PushChannel;
+use App\Services\Push\PushChannelRouter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(PushChannel::class, FcmChannel::class);
+        $this->app->singleton(PushChannel::class, PushChannelRouter::class);
     }
 
     public function boot(): void

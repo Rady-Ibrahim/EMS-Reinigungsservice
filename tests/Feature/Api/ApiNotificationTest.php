@@ -26,16 +26,19 @@ class ApiNotificationTest extends TestCase
         $this->actingWithToken($employee);
 
         $this->postJson('/api/v1/device-tokens', [
-            'token'       => 'fcm-token-abc',
+            'token'       => 'onesignal-player-id-abc',
             'platform'    => 'android',
+            'provider'    => 'onesignal',
             'device_name' => 'Samsung S24',
         ])->assertCreated()
-          ->assertJsonPath('message', 'Gerät registriert.');
+          ->assertJsonPath('message', 'Gerät registriert.')
+          ->assertJsonPath('device.provider', 'onesignal');
 
         $this->assertDatabaseHas('device_tokens', [
             'user_id'     => $employee->id,
-            'token'       => 'fcm-token-abc',
+            'token'       => 'onesignal-player-id-abc',
             'platform'    => 'android',
+            'provider'    => 'onesignal',
             'is_active'   => true,
         ]);
     }
@@ -48,7 +51,33 @@ class ApiNotificationTest extends TestCase
         $this->postJson('/api/v1/device-tokens', [
             'token'    => 'x',
             'platform' => 'smartwatch',
+            'provider' => 'onesignal',
         ])->assertUnprocessable();
+    }
+
+    public function test_device_token_rejects_fcm_provider(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $this->actingWithToken($employee);
+
+        $this->postJson('/api/v1/device-tokens', [
+            'token'    => 'fcm-token-abc',
+            'platform' => 'android',
+            'provider' => 'fcm',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('provider');
+    }
+
+    public function test_device_token_requires_provider(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $this->actingWithToken($employee);
+
+        $this->postJson('/api/v1/device-tokens', [
+            'token'    => 'onesignal-player-id-abc',
+            'platform' => 'android',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('provider');
     }
 
     public function test_employee_can_delete_own_device_token(): void
@@ -59,7 +88,7 @@ class ApiNotificationTest extends TestCase
         $device = DeviceToken::create([
             'user_id' => $employee->id,
             'platform'=> 'android',
-            'provider'=> 'fcm',
+            'provider'=> 'onesignal',
             'token'   => 'delete-me',
         ]);
 

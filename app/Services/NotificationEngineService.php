@@ -18,8 +18,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
  *  - `notifications` (per-user): mobile in-app feed + admin notification center.
  *  - `admin_notifications`: global admin inbox (conflicts, Teamup, alerts).
  *
- * Push delivery goes through PushChannel and is a silent no-op whenever FCM
- * is not configured — database delivery always happens.
+ * Push delivery goes through PushChannel and is a silent no-op whenever no
+ * push provider is configured or enabled — database delivery always happens.
  */
 class NotificationEngineService
 {

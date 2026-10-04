@@ -200,10 +200,10 @@ class MobileFlowSimulationTest extends TestCase
 
         $this->assertSame('ar', $this->leader->fresh()->locale);
 
-        $this->step('Scenario 1.3 · Register FCM push token (POST /api/v1/device-token)', 'POST', '/api/v1/device-token', [
-            'token'       => 'fcm_simulated_token_' . bin2hex(random_bytes(8)),
+        $this->step('Scenario 1.3 · Register OneSignal push token (POST /api/v1/device-tokens)', 'POST', '/api/v1/device-tokens', [
+            'token'       => 'onesignal_simulated_player_id_' . bin2hex(random_bytes(8)),
             'platform'    => 'android',
-            'provider'    => 'fcm',
+            'provider'    => 'onesignal',
             'device_name' => 'Samsung Galaxy X Cover',
         ])->assertCreated();
 

@@ -5,7 +5,7 @@ namespace App\Services\Push;
 use App\Models\DeviceToken;
 
 /**
- * Contract for a push delivery channel (FCM, WebPush, ...).
+ * Contract for a push delivery channel (OneSignal, WebPush, ...).
  * Implementations MUST be fail-safe — a delivery failure must never break the
  * underlying business operation.
  */

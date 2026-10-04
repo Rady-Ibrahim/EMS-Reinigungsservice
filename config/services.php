@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | OneSignal (push delivery for the field-crew mobile app)
+    |--------------------------------------------------------------------------
+    |
+    | Read by laravel-notification-channels/onesignal when it boots the
+    | underlying OneSignal SDK. Push delivery itself goes through
+    | App\Services\Push\OneSignalChannel, which reads the same values from
+    | config/push.php so the engine and the SDK can never disagree.
+    |
+    */
+
+    'onesignal' => [
+        'app_id' => env('ONESIGNAL_APP_ID'),
+        'rest_api_key' => env('ONESIGNAL_REST_API_KEY'),
+    ],
+
 ];

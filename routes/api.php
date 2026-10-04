@@ -29,11 +29,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // ── Public (no token required) ────────────────────────────────────────
     Route::prefix('auth')->name('auth.')->group(function () {
-        Route::post('/login', [AuthController::class, 'login'])->name('login');
+        Route::post('/login', [AuthController::class, 'login'])
+            ->name('login')
+            ->middleware('throttle:5,1');
     });
-
-    // `POST /api/v1/login` — the path named in the client specification.
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
 
     // ── Protected (valid Sanctum token required) ──────────────────────────
     Route::middleware('auth:sanctum')->group(function () {

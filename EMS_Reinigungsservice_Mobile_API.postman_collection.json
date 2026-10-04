@@ -1,26 +1,76 @@
 {
   "info": {
-    "_postman_id": "b3f1c2a4-6d7e-4f18-9a21-3e5c8d0b7f42",
-    "name": "EMS Reinigungsservice — Mobile & Admin API",
-    "description": "Field-crew walkthrough of the EMS mobile app plus the admin endpoints exercised by it.\n\nHOW TO RUN\n1. Set the `base_url` variable (default http://localhost:8000).\n2. Set `email` / `password` to a Vorarbeiter or Administrator account.\n3. Send ANY request. The collection-level pre-request script logs in automatically\n   and writes the Sanctum token into `{{token}}`, so you never paste a token by hand.\n4. `{{order_id}}` is auto-filled by the first successful call in \"Today's Tasks\".\n\nEXPECTED STATUS CODES\nEvery request lists its expected code in the name and in the \"Tests\" tab.\nRequests prefixed [NEG] are negative paths and are EXPECTED to fail — a 2xx there\nis a bug, not a pass.\n\nKNOWN CONTRACT NOTES\n- The order-scoped photo endpoint takes `stage=before|after` and stores PATHS,\n  not file bodies. The app uploads to storage first and sends URLs.\n- `key_returned` is only enforced when the site has `has_key_safe`, and\n  `alarm_activated` only when it has `has_alarm_system`. A site with neither\n  closes with `windows_closed` alone.\n- If the shift was started with GPS, the closing call MUST send\n  `gps_work_end_lat` / `gps_work_end_lng` or it returns 422.",
+    "_postman_id": "1ae03117-de88-47e4-af92-e0212003c311",
+    "name": "EMS Reinigungsservice - Mobile API",
+    "description": "The endpoints the field-crew mobile app calls, in the order it calls them.\n\nHOW TO RUN\n1. Set the `base_url` variable (default http://localhost:8000).\n2. Set `email` / `password` to a Vorarbeiter or Administrator account.\n3. Send any request. The collection pre-request script logs in automatically and\n   stores the Sanctum token in `{{token}}`, so you never paste a token by hand.\n\nMANUAL VARIABLES\n`{{order_id}}`, `{{execution_id}}`, `{{location_id}}` and `{{complaint_id}}`\ndefault to 1. Fill them in from a real response, or let the Collection Runner\nsave the value to the environment after running the request that creates it.\n\nFOLDER ORDER\n1 sign in -> 2 read the day's work -> 3 run the execution workflow -> 4 report\ndamage -> 5 travel, notifications, reports. 3.10 closes the job and will not\nsucceed until the steps before it are done.\n\nCONTRACT NOTES\n- The photo endpoint takes `stage=before|after` and stores PATHS/URLs, not\n  file bodies. The app uploads to storage first and sends the URLs.\n- `key_returned` is only enforced when the site has `has_key_safe`, and\n  `alarm_activated` only when it has `has_alarm_system`.\n- If the shift was started with GPS, the closing call MUST send\n  `gps_work_end_lat` / `gps_work_end_lng` or it returns 422.\n- Financial fields (`price`, `internal_cost`, `profitability`, `revenue`,\n  `hourly_cost`) are never part of a field-crew response.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
-    { "key": "token", "value": "{{sanctum_bearer_token}}", "type": "string" },
-    { "key": "email", "value": "ems-1048@ems-reinigungsservice.de", "type": "string" },
-    { "key": "password", "value": "password", "type": "string" },
-    { "key": "order_id", "value": "1", "type": "string" },
-    { "key": "execution_id", "value": "1", "type": "string" },
-    { "key": "location_id", "value": "1", "type": "string" },
-    { "key": "complaint_id", "value": "1", "type": "string" },
-    { "key": "device_token", "value": "fcm_postman_test_token_0001", "type": "string" },
-    { "key": "gps_lat", "value": "49.10005", "type": "string" },
-    { "key": "gps_lng", "value": "8.10005", "type": "string" }
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "{{sanctum_bearer_token}}",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "ems-1048@ems-reinigungsservice.de",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "password",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "execution_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "location_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "complaint_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "onesignal_player_id",
+      "value": "your-onesignal-player-id",
+      "type": "string"
+    },
+    {
+      "key": "gps_lat",
+      "value": "49.10005",
+      "type": "string"
+    },
+    {
+      "key": "gps_lng",
+      "value": "8.10005",
+      "type": "string"
+    }
   ],
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
   },
   "event": [
     {
@@ -28,9 +78,8 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Log in once and cache the token for every subsequent request.",
-          "// Skipped once a real token is present, so re-running a single request",
-          "// does not burn through sessions.",
+          "// Auto-login: only runs while no real token is stored, so re-running a",
+          "// single request does not burn through sessions.",
           "if (!pm.collectionVariables.get('token') || pm.collectionVariables.get('token') === '{{sanctum_bearer_token}}') {",
           "    const base = pm.collectionVariables.get('base_url');",
           "    const req = pm.request.clone();",
@@ -58,1430 +107,1110 @@
   ],
   "item": [
     {
-      "name": "1 · Auth & Profile",
-      "description": "Sign in, read and change display language, register the push token.",
+      "name": "1 - Auth & Profile",
+      "description": "Sign in, read and change the display language, change the password, register the push token.",
       "item": [
         {
-          "name": "Login (expected 200) — returns the Sanctum token",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('envelope has a token', () => pm.expect(pm.response.json().data.token).to.be.a('string').and.not.empty);",
-                  "pm.test('role is present', () => pm.expect(pm.response.json().data.user.role).to.be.a('string'));",
-                  "",
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.token) {",
-                  "    pm.collectionVariables.set('token', json.data.token);",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "Login",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/login",
-            "description": "The client-spec path. `POST /api/v1/auth/login` is the canonical route and behaves identically."
+            "url": {
+              "raw": "{{base_url}}/api/v1/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "login"
+              ]
+            },
+            "description": "Returns the Sanctum token in `data.token`, plus the user profile with its role. `POST /api/v1/auth/login` is the canonical route and behaves identically."
           }
         },
         {
-          "name": "[NEG] Login with a wrong password (expected 401)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
-                  "pm.test('no token is leaked', () => pm.expect(pm.response.text()).to.not.include('token'));"
-                ]
-              }
-            }
-          ],
+          "name": "Get Preferences",
           "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/preferences",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "Returns the current `locale` and the `locales` list the app renders in the language picker."
+          }
+        },
+        {
+          "name": "Set Language",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"definitely-not-the-password\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"locale\": \"ar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/login"
-          }
-        },
-        {
-          "name": "[NEG] Login with a malformed email (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": ["pm.test('422 Unprocessable', () => pm.response.to.have.status(422));"]
-              }
-            }
-          ],
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"x\"\n}",
-              "options": { "raw": { "language": "json" } }
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/preferences",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "preferences"
+              ]
             },
-            "url": "{{base_url}}/api/v1/login"
+            "description": "One of de / en / ar. This request sets Arabic; send `de` afterwards to put the rest of the collection back into German. The response lists what actually changed in `data.changed`."
           }
         },
         {
-          "name": "Get my preferences (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('reports a locale', () => pm.expect(pm.response.json().data.locale).to.be.a('string'));",
-                  "pm.test('offers all supported locales', () => pm.expect(pm.response.json().data.locales.length).to.be.above(2));"
-                ]
-              }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/me/preferences" }
-        },
-        {
-          "name": "Set language to Arabic (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('locale is now ar', () => pm.expect(pm.response.json().data.locale).to.eql('ar'));",
-                  "pm.test('reported in changed[]', () => pm.expect(pm.response.json().data.changed).to.include('locale'));"
-                ]
-              }
-            }
-          ],
+          "name": "Change Password",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"locale\": \"ar\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/me/preferences",
-            "description": "One of de / en / ar."
-          }
-        },
-        {
-          "name": "Set language to German (expected 200)",
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"locale\": \"de\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/me/preferences"
-          }
-        },
-        {
-          "name": "[NEG] Set an unsupported language (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('the error names the field', () => pm.expect(pm.response.json().errors).to.have.property('locale'));",
-                  "pm.test('the message is translated, not a raw key', () => pm.expect(pm.response.json().errors.locale[0]).to.not.eql('validation.in'));"
-                ]
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"locale\": \"klingon\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/me/preferences"
-          }
-        },
-        {
-          "name": "Change my password (expected 200) — revokes all other tokens",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('other tokens were revoked', () => pm.expect(pm.response.json().data.tokens_revoked).to.be.a('number'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"password\": \"new-password-2026\",\n  \"password_confirmation\": \"new-password-2026\",\n  \"current_password\": \"{{password}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/me/preferences",
-            "description": "WARNING: this really changes the password and kills every other device session. Set `password` back afterwards."
+            "url": {
+              "raw": "{{base_url}}/api/v1/me/preferences",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "WARNING: this really changes the password and revokes every other device session. Reset the `password` variable afterwards."
           }
         },
         {
-          "name": "[NEG] Change password with the wrong current one (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames current_password', () => pm.expect(pm.response.json().errors).to.have.property('current_password'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"another-password-2026\",\n  \"password_confirmation\": \"another-password-2026\",\n  \"current_password\": \"wrong-current-password\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/me/preferences"
-          }
-        },
-        {
-          "name": "Register the FCM push token (expected 201)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                  "pm.test('echoes the platform', () => pm.expect(pm.response.json().device.platform).to.eql('android'));"
-                ]
-              }
-            }
-          ],
+          "name": "Register OneSignal Push Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"{{device_token}}\",\n  \"platform\": \"android\",\n  \"provider\": \"fcm\",\n  \"device_name\": \"Samsung Galaxy X Cover\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"token\": \"{{onesignal_player_id}}\",\n  \"platform\": \"android\",\n  \"provider\": \"onesignal\",\n  \"device_name\": \"Samsung Galaxy X Cover\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/device-token",
-            "description": "Re-sending the same token replaces the old row rather than duplicating it. Max 5 devices per user."
+            "url": {
+              "raw": "{{base_url}}/api/v1/device-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "device-token"
+              ]
+            },
+            "description": "Send the OneSignal Player ID (the per-installation device id from the OneSignal SDK, not the FCM registration token). Re-sending the same id replaces the existing row instead of duplicating it. Max 5 devices per user."
           }
         },
         {
-          "name": "[NEG] Register a push token with an unknown platform (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": ["pm.test('422 Unprocessable', () => pm.response.to.have.status(422));"]
-              }
-            }
-          ],
+          "name": "Logout",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"abc\",\n  \"platform\": \"blackberry\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/device-token"
-          }
-        },
-        {
-          "name": "[NEG] Any protected call without a token (expected 401)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
-                  "pm.test('leaks nothing', () => pm.expect(pm.response.text()).to.not.include('order_id'));"
-                ]
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/auftraege"
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes the Sanctum token the rest of the collection uses. WARNING: because this now sits in folder 1, running the whole collection in order will revoke the token here and every later request will come back 401. Clear the `token` variable back to `{{sanctum_bearer_token}}` afterwards so the pre-request script logs in again, or just send this request on its own when you are done."
           }
         }
       ]
     },
     {
-      "name": "2 · Calendar & Tasks",
-      "description": "The day's assigned work, job detail, and the unified calendar.",
+      "name": "2 - Calendar & Tasks",
+      "description": "The day's assigned work, the job detail, and the unified calendar.",
       "item": [
         {
-          "name": "Today's assigned tasks (expected 200) — captures order_id",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const data = pm.response.json().data;",
-                  "pm.test('is a list', () => pm.expect(data).to.be.an('array'));",
-                  "",
-                  "// Financial fields must never reach a field device.",
-                  "data.forEach((order) => {",
-                  "    pm.test('order ' + order.id + ' hides price', () => pm.expect(order).to.not.have.property('price'));",
-                  "    pm.test('order ' + order.id + ' hides internal_cost', () => pm.expect(order).to.not.have.property('internal_cost'));",
-                  "    pm.test('order ' + order.id + ' hides profitability', () => pm.expect(order).to.not.have.property('profitability'));",
-                  "});",
-                  "",
-                  "if (data.length) {",
-                  "    pm.collectionVariables.set('order_id', data[0].id);",
-                  "    if (data[0].location && data[0].location.id) {",
-                  "        pm.collectionVariables.set('location_id', data[0].location.id);",
-                  "    }",
-                  "    console.log('order_id set to', data[0].id);",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "Get Today's Tasks",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/auftraege",
-            "description": "Active Extra-Aufträge assigned to the signed-in employee."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege"
+              ]
+            },
+            "description": "Active Extra-Aufträge assigned to the signed-in employee. The response never contains price, internal_cost or profitability. Take an `id` from here for `{{order_id}}`, and `location.id` for `{{location_id}}`."
           }
         },
         {
-          "name": "Job detail (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const d = pm.response.json().data;",
-                  "pm.test('hides price', () => pm.expect(d).to.not.have.property('price'));",
-                  "pm.test('hides internal_notes', () => pm.expect(d).to.not.have.property('internal_notes'));"
-                ]
-              }
-            }
-          ],
+          "name": "Get Job Detail",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}",
-            "description": "A leader also sees the team list; a member sees only their own record."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}"
+              ]
+            },
+            "description": "A Vorarbeiter also sees the team list; a Mitarbeiter sees only their own record. Never contains price or internal_notes."
           }
         },
         {
-          "name": "[NEG] Job detail for an order that is not mine (expected 404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
-                  "// 404 rather than 403: an outsider must not be able to probe",
-                  "// which order ids exist.",
-                  "pm.test('does not confirm existence', () => pm.expect(pm.response.text()).to.not.include('location'));"
-                ]
-              }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/auftraege/999999" }
-        },
-        {
-          "name": "Unified calendar, personal included (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const body = pm.response.json();",
-                  "pm.test('publishes a layer legend', () => pm.expect(body.layers).to.be.an('array'));",
-                  "pm.test('the Fixobjekt layer is the brand gold', () => {",
-                  "    const fix = body.layers.find(l => l.key === 'fix');",
-                  "    pm.expect(fix.color.toUpperCase()).to.eql('#D4AF37');",
-                  "});",
-                  "",
-                  "// Every event must carry a layer that exists in the legend, or the",
-                  "// app cannot map it back to the toggle the user clicked.",
-                  "const keys = body.layers.map(l => l.key);",
-                  "body.data.forEach(ev => {",
-                  "    pm.test('event ' + ev.id + ' layer is a legend key', () => pm.expect(keys).to.include(ev.layer));",
-                  "});",
-                  "",
-                  "pm.test('echoes the personal flag', () => pm.expect(body.meta.personal).to.eql(true));"
-                ]
-              }
-            }
-          ],
+          "name": "Get Calendar Events",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/calendar/events?show_personal=true",
-            "description": "`from`/`to` are optional; omitting them returns a 7-day window ending today. `show_personal=true` forces the personal layer on. Use `layers=extra,shifts` to filter, and `employee=<id>` (Vorarbeiter/Admin only) to plan for someone else."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/calendar/events?show_personal=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calendar",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "show_personal",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "`from` / `to` are optional; omitting them returns a 7-day window ending today. The response carries a `layers` legend, and every event in `data` has a `layer` key that must exist in that legend. `show_personal=true` forces the personal layer on. Filter with `layers=extra,shifts`, and plan for someone else with `employee=<id>` (Vorarbeiter/Admin only)."
           }
         },
         {
-          "name": "Calendar, Fixobjekte only (expected 200) — layer filter check",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const data = pm.response.json().data;",
-                  "data.forEach(ev => {",
-                  "    pm.test('only the requested layer comes back', () => pm.expect(ev.layer).to.eql('fix'));",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/calendar/events?layers=fix" }
-        },
-        {
-          "name": "[NEG] Calendar with a bad date range (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames `to`', () => pm.expect(pm.response.json().errors).to.have.property('to'));"
-                ]
-              }
-            }
-          ],
+          "name": "Get Calendar Events (Filter by Layer)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/calendar/events?from=2026-12-31&to=2026-01-01",
-            "description": "`to` before `from`."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/calendar/events?layers=fix",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "calendar",
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "layers",
+                  "value": "fix"
+                }
+              ]
+            },
+            "description": "Same endpoint with the layer toggles the calendar filter bar sends. `fix` = Fixobjekte; the other layer keys come back in the legend."
           }
         },
         {
-          "name": "Create a personal appointment (expected 201)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                  "pm.test('is owned by the caller', () => pm.expect(pm.response.json().data.user_id).to.be.a('number'));"
-                ]
-              }
-            }
-          ],
+          "name": "Create Personal Appointment",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Team-Besprechung\",\n  \"start_at\": \"2026-09-28T16:00:00\",\n  \"end_at\": \"2026-09-28T17:00:00\",\n  \"location\": \"Offenburg\",\n  \"description\": \"Wöchentliche Abstimmung\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/appointments",
-            "description": "NOTE: the specification asked for POST /api/v1/personal-events. The implemented route is POST /api/v1/appointments — this collection uses the real one."
-          }
-        },
-        {
-          "name": "[NEG] Create an appointment that ends before it starts (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames end_at', () => pm.expect(pm.response.json().errors).to.have.property('end_at'));"
-                ]
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Impossible\",\n  \"start_at\": \"2026-09-28T18:00:00\",\n  \"end_at\": \"2026-09-28T17:00:00\"\n}",
-              "options": { "raw": { "language": "json" } }
             },
-            "url": "{{base_url}}/api/v1/appointments"
+            "url": {
+              "raw": "{{base_url}}/api/v1/appointments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            },
+            "description": "NOTE: the specification asked for POST /api/v1/personal-events. The implemented route is POST /api/v1/appointments - this collection uses the real one."
           }
         }
       ]
     },
     {
-      "name": "3 · Execution Workflow — 5 Steps",
-      "description": "The whole field cycle in order. Run these top to bottom on one order: 3.1 starts the shift, 3.2/3.3 bracket the break, 3.4–3.8 gather the evidence, 3.9 files the complaint, 3.10 closes the job. Step 3.10 refuses to succeed until everything before it is done — that is by design, not a bug.",
+      "name": "3 - Execution Workflow",
+      "description": "The whole field cycle, in order, on one order. 3.1 starts the shift, 3.2/3.3 bracket the break, 3.4-3.8 gather the evidence, then report the damage from folder 4, then 3.10 closes the job. 3.10 will not succeed until everything before it is done - that is by design, not a bug.",
       "item": [
         {
-          "name": "3.1 · Work start with GPS (expected 200) — captures execution_id",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('status is working', () => pm.expect(pm.response.json().data.status).to.eql('working'));",
-                  "",
-                  "if (pm.response.json().data.id) {",
-                  "    pm.collectionVariables.set('execution_id', pm.response.json().data.id);",
-                  "    console.log('execution_id set to', pm.response.json().data.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "3.1 - Work Start (GPS)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"gps_work_start_lat\": {{gps_lat}},\n  \"gps_work_start_lng\": {{gps_lng}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start",
-            "description": "Use coordinates within ~150 m of the site, otherwise a geofence alert is raised for the admin. Starting with GPS makes the GPS on 3.10 mandatory."
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "work-start"
+              ]
+            },
+            "description": "Use coordinates within ~150 m of the site, otherwise a geofence alert goes to the admin. Starting with GPS makes the GPS on 3.10 mandatory. The response `data.id` is the `{{execution_id}}` used by 3.6."
           }
         },
         {
-          "name": "[NEG] Work start twice (expected 4xx/5xx — already working)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// The state machine rejects a second start, but the exact code",
-                  "// depends on whether the RuntimeException is rendered as 400 or 500.",
-                  "// A 2xx here would be the real defect.",
-                  "pm.test('is not accepted', () => pm.expect(pm.response.code).to.be.within(400, 599));"
-                ]
-              }
-            }
-          ],
+          "name": "3.2 - Start Break",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"gps_work_start_lat\": {{gps_lat}},\n  \"gps_work_start_lng\": {{gps_lng}}\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start",
-            "description": "Run this after 3.1 succeeded. Starting an already-running execution must fail."
-          }
-        },
-        {
-          "name": "[NEG] Work start with an impossible latitude (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames the latitude', () => pm.expect(pm.response.json().errors).to.have.property('gps_work_start_lat'));"
-                ]
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"gps_work_start_lat\": 999,\n  \"gps_work_start_lng\": {{gps_lng}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"action\": \"start\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start"
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "pause"
+              ]
+            },
+            "description": "The break is unpaid and is deducted from paid_minutes at hand-over. `paused_at` is optional; the server falls back to now()."
           }
         },
         {
-          "name": "3.2 · Start the unpaid break (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('is paused', () => pm.expect(pm.response.json().data.is_paused).to.eql(true));"
-                ]
-              }
-            }
-          ],
+          "name": "3.3 - End Break",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"action\": \"start\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
-            "description": "A break is unpaid and is deducted from paid_minutes at hand-over. `paused_at` is optional; the server falls back to now()."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"stop\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "pause"
+              ]
+            },
+            "description": "Freezes `pause_minutes` on the execution. Wait a minute between 3.2 and 3.3 to get a non-zero value."
           }
         },
         {
-          "name": "3.3 · End the unpaid break (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('is no longer paused', () => pm.expect(pm.response.json().data.is_paused).to.eql(false));",
-                  "pm.test('freezes the break minutes', () => pm.expect(pm.response.json().data.pause_minutes).to.not.be.null);"
-                ]
-              }
-            }
-          ],
+          "name": "3.4 - Upload Before Photos",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"action\": \"stop\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
-            "description": "Wait a minute between 3.2 and 3.3 if you want a non-zero pause_minutes."
-          }
-        },
-        {
-          "name": "[NEG] Break with an unknown action (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames action', () => pm.expect(pm.response.json().errors).to.have.property('action'));"
-                ]
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"action\": \"toggle\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause"
-          }
-        },
-        {
-          "name": "3.4 · Upload the mandatory before photos (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('stores before_photos', () => pm.expect(pm.response.json().data.before_photos).to.be.an('array').and.not.empty);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"stage\": \"before\",\n  \"photos\": [\n    \"uploads/before-1.jpg\",\n    \"uploads/before-2.jpg\"\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
-            "description": "Leader only. Stores PATHS/URLs, not file bodies — upload to storage first. Repeated calls append rather than replace."
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "photos"
+              ]
+            },
+            "description": "Vorarbeiter only. Stores PATHS/URLs, not file bodies - upload to storage first. Repeated calls append rather than replace."
           }
         },
         {
-          "name": "[NEG] Upload photos with an empty list (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames photos', () => pm.expect(pm.response.json().errors).to.have.property('photos'));"
-                ]
-              }
-            }
-          ],
+          "name": "3.5 - Add Field Note",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"stage\": \"before\",\n  \"photos\": []\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos"
-          }
-        },
-        {
-          "name": "[NEG] Upload photos with an unknown stage (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames stage', () => pm.expect(pm.response.json().errors).to.have.property('stage'));"
-                ]
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"stage\": \"during\",\n  \"photos\": [\"uploads/x.jpg\"]\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos"
-          }
-        },
-        {
-          "name": "3.5 · Add a quick field note (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('the execution is returned', () => pm.expect(pm.response.json().data.id).to.be.a('number'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"note\": \"Schlüsselübergabe am Empfang; Alarmanlage-Code im Tresor.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/notes",
-            "description": "Appends to employee_notes rather than overwriting."
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/notes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "notes"
+              ]
+            },
+            "description": "Appends to employee_notes rather than overwriting them."
           }
         },
         {
-          "name": "[NEG] Add an empty note (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames note', () => pm.expect(pm.response.json().errors).to.have.property('note'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"note\": \"\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/notes"
-          }
-        },
-        {
-          "name": "3.6 · Complete the site checklist (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const items = pm.response.json().data.checklist_items;",
-                  "pm.test('every item is ticked', () => {",
-                  "    items.forEach(i => pm.expect(i.completed, i.task).to.eql(true));",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "3.6 - Complete Checklist",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"checklist_items\": [\n    { \"task\": \"Boden reinigen\", \"completed\": true },\n    { \"task\": \"Fenster putzen\", \"completed\": true },\n    { \"task\": \"Müll entsorgen\", \"completed\": true }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/extra-executions/{{execution_id}}/checklist",
-            "description": "Leader only. An unticked item blocks the close on 3.10 with `checklist_items`."
+            "url": {
+              "raw": "{{base_url}}/api/v1/extra-executions/{{execution_id}}/checklist",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "extra-executions",
+                "{{execution_id}}",
+                "checklist"
+              ]
+            },
+            "description": "Vorarbeiter only. Every item needs a `completed` flag; an unticked item blocks the close on 3.10."
           }
         },
         {
-          "name": "[NEG] Checklist with a missing completed flag (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames the nested flag', () => pm.expect(pm.response.json().errors).to.have.property('checklist_items.0.completed'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"checklist_items\": [\n    { \"task\": \"Boden reinigen\" }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/extra-executions/{{execution_id}}/checklist"
-          }
-        },
-        {
-          "name": "3.7 · Site documents, external only (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const docs = pm.response.json().data;",
-                  "docs.forEach(d => {",
-                  "    pm.test('document ' + d.id + ' is external', () => pm.expect(d.visibility).to.eql('extern'));",
-                  "    pm.test('document ' + d.id + ' hides its storage path', () => pm.expect(d).to.not.have.property('file_path'));",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "3.7 - Get Site Documents",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/locations/{{location_id}}/documents?visibility=extern",
-            "description": "Intern documents are invisible to field staff even here. `visibility=extern` is optional and cannot widen the result."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/locations/{{location_id}}/documents?visibility=extern",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "locations",
+                "{{location_id}}",
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "visibility",
+                  "value": "extern"
+                }
+              ]
+            },
+            "description": "Intern documents are invisible to field staff even here. `visibility=extern` is optional and cannot widen the result. The response never exposes the storage path."
           }
         },
         {
-          "name": "[NEG] Ask for internal documents (expected 403)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Refused outright rather than silently ignored, so a client bug",
-                  "// surfaces immediately instead of returning an empty list.",
-                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/locations/{{location_id}}/documents?visibility=intern"
-          }
-        },
-        {
-          "name": "3.8 · Upload the after photos (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('stores after_photos', () => pm.expect(pm.response.json().data.after_photos).to.be.an('array').and.not.empty);",
-                  "pm.test('kept the before photos', () => pm.expect(pm.response.json().data.before_photos).to.be.an('array').and.not.empty);"
-                ]
-              }
-            }
-          ],
+          "name": "3.8 - Upload After Photos",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"stage\": \"after\",\n  \"photos\": [\n    \"uploads/after-1.jpg\"\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos"
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "photos"
+              ]
+            },
+            "description": "Same endpoint as 3.4, second call. The before photos from 3.4 must survive it."
           }
         },
         {
-          "name": "3.10 · Secure the site and close the job (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const d = pm.response.json().data;",
-                  "pm.test('status is completed', () => pm.expect(d.status).to.eql('completed'));",
-                  "pm.test('key_returned is stored', () => pm.expect(d.key_returned).to.eql(true));",
-                  "pm.test('windows_closed is stored', () => pm.expect(d.windows_closed).to.eql(true));",
-                  "pm.test('alarm_activated is stored', () => pm.expect(d.alarm_activated).to.eql(true));",
-                  "pm.test('the shift note is stored', () => pm.expect(d.shift_note).to.be.a('string').and.not.empty);",
-                  "pm.test('paid minutes are frozen', () => pm.expect(d.paid_minutes).to.be.a('number'));",
-                  "",
-                  "// The break must be deducted, not just recorded.",
-                  "pm.test('paid minutes exclude the break', () => {",
-                  "    if (d.pause_minutes && d.work_minutes) {",
-                  "        pm.expect(d.work_minutes).to.be.below(d.work_minutes + d.pause_minutes);",
-                  "    }",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "3.10 - Close Job (Site Handover)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتفعيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}},\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
-            "description": "The hand-over. `key_returned` and `alarm_activated` are only enforced when the site actually has a key safe / alarm. GPS is mandatory here if 3.1 sent it. `after_photos` is optional here because 3.8 may have stored them already."
-          }
-        },
-        {
-          "name": "[NEG] Close with no hand-over, no photos, no checklist (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Run this INSTEAD of 3.10, on a fresh order, to see the full",
-                  "// list of what is still missing.",
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "const errors = pm.response.json().errors;",
-                  "",
-                  "['before_photos', 'after_photos', 'checklist_items', 'windows_closed'].forEach(field => {",
-                  "    pm.test('reports missing ' + field, () => pm.expect(errors).to.have.property(field));",
-                  "});",
-                  "",
-                  "pm.test('reports every gap at once, not just the first', () => {",
-                  "    pm.expect(Object.keys(errors).length).to.be.above(1);",
-                  "});",
-                  "",
-                  "pm.test('key_returned only appears when the site has a key safe', () => {",
-                  "    pm.expect(Object.keys(errors)).to.include('key_returned');",
-                  "});",
-                  "pm.test('alarm_activated only appears when the site has an alarm', () => {",
-                  "    pm.expect(Object.keys(errors)).to.include('alarm_activated');",
-                  "});",
-                  "",
-                  "// A refused close must leave an auditable trace for the admin",
-                  "// evaluator without spamming the admin inbox.",
-                  "pm.test('exposes nothing financial', () => pm.expect(pm.response.text()).to.not.match(/internal_cost|\"price\"/));"
-                ]
+              "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتعطيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}},\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key_returned\": false,\n  \"windows_closed\": false,\n  \"alarm_activated\": false\n}",
-              "options": { "raw": { "language": "json" } }
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
-            "description": "A 422 here writes a row to admin_close_attempts, which the hourly admin-alerts command turns into a `checklist_blocked_close` alert. The execution stays open so the crew can finish and retry."
-          }
-        },
-        {
-          "name": "[NEG] Close with a missing confirmation field (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('a hand-over cannot be silently skipped', () => pm.expect(pm.response.json().errors).to.have.property('windows_closed'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"key_returned\": true\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
-            "description": "Omitting a confirmation must not be read as \"false but fine\"."
-          }
-        },
-        {
-          "name": "[NEG] Close a job that is already closed (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames execution', () => pm.expect(pm.response.json().errors).to.have.property('execution'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true\n}",
-              "options": { "raw": { "language": "json" } }
+            "url": {
+              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auftraege",
+                "{{order_id}}",
+                "work-end"
+              ]
             },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
-            "description": "Run this after 3.10 succeeded. A double close must not double-count the paid minutes."
-          }
-        },
-        {
-          "name": "[NEG] Close without the GPS that the start recorded (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// A GPS-verified shift must close with a GPS-verified hand-over,",
-                  "// otherwise the geofence check at 3.1 is pointless.",
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames gps_work_end_lat', () => pm.expect(pm.response.json().errors).to.have.property('gps_work_end_lat'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end"
+            "description": "The hand-over. `key_returned` and `alarm_activated` are only enforced when the site actually has a key safe / alarm; a site with neither closes with `windows_closed` alone. GPS is mandatory here if 3.1 sent it. `after_photos` is optional because 3.8 may already have stored them. The response freezes `paid_minutes`, which already excludes the break."
           }
         }
       ]
     },
     {
-      "name": "4 · Complaints & Reopen",
+      "name": "4 - Complaints & Reopen",
       "description": "Damage reports from the field, and the governance path for reopening a closed job.",
       "item": [
         {
-          "name": "Report site damage (expected 201) — captures complaint_id",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                  "pm.test('starts as pending', () => pm.expect(pm.response.json().data.status).to.eql('pending'));",
-                  "if (pm.response.json().data.id) {",
-                  "    pm.collectionVariables.set('complaint_id', pm.response.json().data.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "Report Site Damage",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"location_id\": {{location_id}},\n  \"title\": \"Fensterscheibe gesprungen\",\n  \"description\": \"Beim Putzen ist die untere Scheibe des Bürofensters gesprungen.\",\n  \"photos\": [\"uploads/schaden-1.jpg\"]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/complaints"
-          }
-        },
-        {
-          "name": "[NEG] Report damage with no description (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames description', () => pm.expect(pm.response.json().errors).to.have.property('description'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"location_id\": {{location_id}},\n  \"title\": \"Nur ein Titel\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/complaints"
-          }
-        },
-        {
-          "name": "[NEG] Report damage against a location that does not exist (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames location_id', () => pm.expect(pm.response.json().errors).to.have.property('location_id'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"location_id\": 999999,\n  \"title\": \"Phantom\",\n  \"description\": \"Dieser Standort existiert nicht.\"\n}",
-              "options": { "raw": { "language": "json" } }
+            "url": {
+              "raw": "{{base_url}}/api/v1/complaints",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints"
+              ]
             },
-            "url": "{{base_url}}/api/v1/complaints"
+            "description": "Creates the complaint as `pending`. The response `data.id` is the `{{complaint_id}}` used by Get Complaint Detail."
           }
         },
         {
-          "name": "List complaints (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('is paginated', () => {",
-                  "    const meta = pm.response.json().meta;",
-                  "    pm.expect(meta).to.include.keys(['total', 'page', 'per_page']);",
-                  "});",
-                  "pm.test('hides the reporter\\'s internal fields', () => {",
-                  "    pm.response.json().data.forEach(c => {",
-                  "        pm.expect(c).to.not.have.property('internal_notes');",
-                  "        pm.expect(c).to.not.have.property('internal_cost');",
-                  "    });",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "List Complaints",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/complaints?per_page=20",
-            "description": "Filter with status=pending|in_progress|resolved|rejected, location_id, client_id, assigned_employee_id. per_page is 1–100."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/complaints?per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Paginated: `meta` carries total, page, per_page. Filter with status=pending|in_progress|resolved|rejected, location_id, client_id, assigned_employee_id. per_page is 1-100. The response never contains internal_notes or internal_cost."
           }
         },
         {
-          "name": "List complaints filtered by status (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.response.json().data.forEach(c => {",
-                  "    pm.test('every result matches the filter', () => pm.expect(c.status).to.eql('pending'));",
-                  "});"
-                ]
+          "name": "List Complaints (Filter by Status)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/complaints?status=pending" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/complaints?status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "Same endpoint with the status filter the complaint tabs send."
+          }
         },
         {
-          "name": "[NEG] List complaints with an unknown status (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames status', () => pm.expect(pm.response.json().errors).to.have.property('status'));"
-                ]
+          "name": "Get Complaint Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/complaints/{{complaint_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "complaints",
+                "{{complaint_id}}"
+              ]
             }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/complaints?status=on-fire" }
+          }
         },
         {
-          "name": "Show one complaint (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('is the requested one', () => pm.expect(pm.response.json().data.id).to.eql(Number(pm.collectionVariables.get('complaint_id'))));"
-                ]
-              }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/complaints/{{complaint_id}}" }
-        },
-        {
-          "name": "[NEG] Show a complaint that is not visible to me (expected 404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"]
-              }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/complaints/999999" }
-        },
-        {
-          "name": "Reopen a closed order (expected 200) — Administrator only",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('reports what it reopened', () => pm.expect(pm.response.json().data.type).to.be.a('string'));"
-                ]
-              }
-            }
-          ],
+          "name": "Reopen Order",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Kunde meldet, dass die Fenster nicht ordentlich gereinigt wurden. Nacharbeit erforderlich.\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/orders/{{order_id}}/reopen",
-            "description": "A supervisory act: Administrator or Vorarbeiter, never a plain Mitarbeiter. The reason is mandatory and audited. Use `schedule-<id>` in the path to reopen a Fixobjekt schedule instead of an Extra-Auftrag."
-          }
-        },
-        {
-          "name": "[NEG] Reopen without a reason (expected 422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('blames reason', () => pm.expect(pm.response.json().errors).to.have.property('reason'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/orders/{{order_id}}/reopen"
-          }
-        },
-        {
-          "name": "[NEG] Reopen an order that does not exist (expected 404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
-                  "pm.test('is not a 422 for the reason field', () => pm.expect(pm.response.json().errors).to.not.have.property('reason'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Dieser Auftrag existiert nicht und darf nicht geöffnet werden.\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/api/v1/orders/999999/reopen"
-          }
-        },
-        {
-          "name": "[NEG] Reopen as a plain field employee (expected 403)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Set `email` to a Mitarbeiter account first, then send this.",
-                  "// Reopening is supervisory and must not be available to the crew.",
-                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Mitarbeiter versucht einen Auftrag eigenmächtig wieder zu öffnen.\"\n}",
-              "options": { "raw": { "language": "json" } }
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders/{{order_id}}/reopen",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{order_id}}",
+                "reopen"
+              ]
             },
-            "url": "{{base_url}}/api/v1/orders/{{order_id}}/reopen"
+            "description": "Administrator or Vorarbeiter only, never a plain Mitarbeiter. The reason is mandatory and audited. Use `schedule-<id>` in the path to reopen a Fixobjekt schedule instead of an Extra-Auftrag."
           }
         }
       ]
     },
     {
-      "name": "5 · Supplementary Mobile Endpoints",
-      "description": "Travel, GPS, time, notifications and the self-service report — the rest of what the app calls.",
+      "name": "5 - Travel, Notifications & Reports",
+      "description": "Travel, GPS, time, notifications and the self-service report - the rest of what the app calls.",
       "item": [
         {
-          "name": "Start travel to the site (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": ["pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"]
-              }
-            }
-          ],
+          "name": "Start Travel",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"gps_departure_lat\": {{gps_lat}},\n  \"gps_departure_lng\": {{gps_lng}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start"
+            "url": {
+              "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "extra-orders",
+                "{{order_id}}",
+                "travel",
+                "start"
+              ]
+            }
           }
         },
         {
-          "name": "Record arrival (expected 200)",
+          "name": "Record Arrival",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"gps_arrival_lat\": {{gps_lat}},\n  \"gps_arrival_lng\": {{gps_lng}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
-            "description": "Required before work-start: the shift cannot be started from `pending`."
+            "url": {
+              "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "extra-orders",
+                "{{order_id}}",
+                "travel",
+                "arrive"
+              ]
+            },
+            "description": "Required before work-start: the shift cannot be started while the order is still pending."
           }
         },
         {
-          "name": "Push a GPS point (expected 201)",
+          "name": "Send GPS Point",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"latitude\": {{gps_lat}},\n  \"longitude\": {{gps_lng}},\n  \"accuracy\": 8.5,\n  \"recorded_at\": \"2026-09-28T08:05:00\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps"
+            "url": {
+              "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "travel-tracks",
+                "{{execution_id}}",
+                "gps"
+              ]
+            }
           }
         },
         {
-          "name": "My monthly time summary (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('a worker never sees the rate', () => pm.expect(pm.response.text()).to.not.include('hourly_cost'));"
-                ]
+          "name": "Get Time Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
-            }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/time-summary?month=2026-09" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/time-summary?month=2026-09",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "time-summary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-09"
+                }
+              ]
+            },
+            "description": "The worker never sees the rate - the response has no hourly_cost."
+          }
         },
         {
-          "name": "My notifications (expected 200)",
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/notifications" }
-        },
-        {
-          "name": "Mark all notifications read (expected 200)",
-          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/notifications/read-all" }
-        },
-        {
-          "name": "My monthly report (expected 200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "// Profitability is Administrator-only; a field device must not",
-                  "// receive the revenue or cost split at all.",
-                  "pm.test('no revenue for a worker', () => pm.expect(pm.response.text()).to.not.include('revenue'));",
-                  "pm.test('no cost for a worker', () => pm.expect(pm.response.text()).to.not.include('internal_cost'));"
-                ]
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications"
+              ]
             }
-          ],
-          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/v1/monthly-reports?month=2026-09" }
+          }
         },
         {
-          "name": "Log out (expected 200) — revokes this token",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('clears the stored token', () => pm.collectionVariables.set('token', '{{sanctum_bearer_token}}'));"
-                ]
-              }
-            }
-          ],
+          "name": "Mark All Notifications Read",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": "{{base_url}}/api/v1/auth/logout",
-            "description": "Run this LAST — it invalidates the token the rest of the collection uses."
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/read-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Monthly Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/monthly-reports?month=2026-09",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "monthly-reports"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-09"
+                }
+              ]
+            },
+            "description": "Profitability is Administrator-only; a field device gets neither revenue nor internal_cost."
           }
         }
       ]
