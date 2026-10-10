@@ -23,7 +23,6 @@ class ReassignmentService
 {
     public function __construct(
         private readonly ConflictCheckerService $conflicts,
-        private readonly TeamupSyncService $teamup,
         private readonly NotificationEngineService $notifications
     ) {
     }
@@ -139,9 +138,6 @@ class ReassignmentService
             'reason'      => $reason,
         ]);
 
-        // Overrides change the booked employee for that day → queue Teamup push
-        $this->teamup->markPending($schedule);
-
         $this->notifyNewUser(
             $newUserId,
             'Termin übernommen',
@@ -178,7 +174,6 @@ class ReassignmentService
         );
 
         $assignee->update(['user_id' => $newUserId]);
-        $this->teamup->markPending($order);
 
         // Old employee is removed from this order
         if ($oldUser = \App\Models\User::find($previousUserId)) {

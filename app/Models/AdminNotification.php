@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Admin notification inbox (conflicts, Teamup sync results, system).
+ * Admin notification inbox (conflicts, alerts, system).
  * Created_at only — one-way queue, never updated.
  */
 class AdminNotification extends Model

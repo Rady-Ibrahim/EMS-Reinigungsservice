@@ -7,8 +7,8 @@ use Carbon\CarbonInterface;
 
 /**
  * Normalized, immutable calendar event — the Unified Event Schema every
- * source model is flattened into (Fix, Extra, Shift, Personal, Internal,
- * Teamup-external). Produced by CalendarEngineService; never persisted.
+ * source model is flattened into (Fix, Extra, Shift, Personal, Internal).
+ * Produced by CalendarEngineService; never persisted.
  */
 final readonly class CalendarEvent
 {
@@ -20,7 +20,7 @@ final readonly class CalendarEvent
     public function __construct(
         public string $id,                      // "fix_schedule:123"
         public CalendarEventTypeEnum $type,
-        public string $layer,                   // jobs|shifts|personal|internal|teamup
+        public string $layer,                   // fix|extra|shifts|personal|internal
         public string $title,
         public CarbonInterface $startAt,
         public CarbonInterface $endAt,

@@ -65,9 +65,9 @@ class CalendarController extends Controller
         }
 
         if (is_array($value)) {
-            return array_values(array_filter($value, fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal', 'teamup'], true)));
+            return array_values(array_filter($value, fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
         }
 
-        return array_values(array_filter(explode(',', (string) $value), fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal', 'teamup'], true)));
+        return array_values(array_filter(explode(',', (string) $value), fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
     }
 }

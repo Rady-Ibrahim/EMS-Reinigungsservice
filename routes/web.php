@@ -20,7 +20,6 @@ use App\Http\Controllers\Web\Admin\NotificationController;
 use App\Http\Controllers\Web\Admin\ReassignmentController;
 use App\Http\Controllers\Web\Admin\ReopenController;
 use App\Http\Controllers\Web\Admin\ShiftController;
-use App\Http\Controllers\Web\Admin\TeamupController;
 use App\Http\Controllers\Web\Admin\TimeAdjustmentController;
 use App\Http\Controllers\Web\Admin\TwoFactorController;
 use Illuminate\Support\Facades\Route;
@@ -139,13 +138,6 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     // ── Payroll Excel export (single route, outside resource nesting) ──────
     Route::get('monthly-reports-export', [MonthlyReportController::class, 'exportExcel'])
          ->name('monthly-reports.export-excel');
-
-    // ── Teamup Integration ─────────────────────────────────────────────────
-    Route::prefix('teamup')->name('teamup.')->group(function () {
-        Route::get('/', [TeamupController::class, 'edit'])->name('edit');
-        Route::put('/', [TeamupController::class, 'update'])->name('update');
-        Route::post('/sync', [TeamupController::class, 'sync'])->name('sync');
-    });
 
     // ── Admin Notifications ────────────────────────────────────────────────
     Route::prefix('notifications')->name('notifications.')->group(function () {

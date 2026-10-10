@@ -119,6 +119,16 @@
             box-shadow: 0 0 0 3px rgba(212,175,55,.14), 0 0 22px rgba(212,175,55,.12);
         }
         .input-wrap input::placeholder { color: var(--text-faint, #6B7280); }
+        .pw-toggle {
+            position: absolute; inset-inline-end: .7rem; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; cursor: pointer;
+            color: var(--text-faint, #6B7280); display: flex; align-items: center; justify-content: center;
+            padding: .25rem; border-radius: 8px;
+            transition: color .15s ease;
+        }
+        .pw-toggle:hover { color: var(--gold-light); }
+        .pw-toggle svg { width: 18px; height: 18px; }
+        .input-wrap.has-toggle input { padding-inline-end: 2.6rem; }
         .error { color: #F87171; font-size: .78rem; margin-top: .3rem; }
 
         .remember {
@@ -159,10 +169,14 @@
 <body>
     <div class="login-shell">
         <div class="login-card">
-            @php $switchLocale = app()->getLocale() === 'ar' ? 'de' : 'ar'; @endphp
-            <a href="{{ route('locale.switch', $switchLocale) }}" class="lang-switch" title="{{ __('messages.topbar.switch_language') }}">
+            @php
+                $activeLocale = app()->getLocale();
+                $switchLocale = $activeLocale === 'ar' ? 'de' : 'ar';
+                $switchLabel = $switchLocale === 'ar' ? 'العربية' : 'Deutsch';
+            @endphp
+            <a href="{{ route('locale.switch', $switchLocale) }}" class="lang-switch" title="{{ __('messages.topbar.switch_language') }} — {{ $switchLabel }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
-                {{ $switchLocale === 'ar' ? 'عربي' : 'DE' }}
+                {{ strtoupper($activeLocale) }}
             </a>
             <div class="logo">
                 <img src="{{ asset('images/logo-gold.png') }}" alt="{{ 'EMS Reinigungsservice' }}">
@@ -203,7 +217,7 @@
 
                 <div class="form-group">
                     <label for="password">{{ __('messages.password') }}</label>
-                    <div class="input-wrap">
+                    <div class="input-wrap has-toggle">
                         <span class="ic">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         </span>
@@ -215,6 +229,10 @@
                             required
                             placeholder="••••••••"
                         >
+                        <button type="button" class="pw-toggle" id="pwToggle" aria-label="{{ __('messages.show_password') ?? 'Show password' }}" title="{{ __('messages.show_password') ?? 'Show password' }}">
+                            <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><path d="M2 2l20 20"></path></svg>
+                        </button>
                     </div>
                     @error('password')
                         <p class="error">{{ $message }}</p>
@@ -237,5 +255,20 @@
             </div>
         </div>
     </div>
+    <script>
+        (function () {
+            var toggle = document.getElementById('pwToggle');
+            var input = document.getElementById('password');
+            var eyeOpen = document.getElementById('eyeOpen');
+            var eyeClosed = document.getElementById('eyeClosed');
+            if (!toggle || !input) return;
+            toggle.addEventListener('click', function () {
+                var show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                eyeOpen.style.display = show ? '' : 'none';
+                eyeClosed.style.display = show ? 'none' : '';
+            });
+        })();
+    </script>
 </body>
 </html>

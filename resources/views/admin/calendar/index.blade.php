@@ -204,7 +204,11 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timeline@6.1.15/index.global.min.js"></script>
+    @if(app()->getLocale() === 'ar')
+        <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/ar.global.min.js"></script>
+    @elseif(app()->getLocale() === 'de')
+        <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/de.global.min.js"></script>
+    @endif
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const calendarEl = document.getElementById('calendar');
@@ -217,20 +221,41 @@
                 initialView: 'dayGridMonth',
                 locale: locale,
                 direction: locale === 'ar' ? 'rtl' : 'ltr',
-                plugins: [FullCalendar.Timeline],
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay,timelineWeek,listWeek'
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
                 buttonText: {
                     today: T.today, dayGridMonth: T.month, timeGridWeek: T.week,
-                    timeGridDay: T.day, timelineWeek: T.timeline, listWeek: T.agenda
+                    timeGridDay: T.day, listWeek: T.agenda
                 },
                 firstDay: 1,
                 height: 'auto',
                 eventDisplay: 'auto',
-                eventSources: [buildSource()],
+                events(fetchInfo, successCallback, failureCallback) {
+                    const layers = activeLayers();
+                    const params = new URLSearchParams({
+                        from: fetchInfo.start.toISOString(),
+                        to: fetchInfo.end.toISOString(),
+                        layers: layers.join(','),
+                    });
+                    fetch('{{ route('admin.calendar.events') }}?' + params.toString(), {
+                        headers: { 'Accept': 'application/json' },
+                    })
+                        .then(res => {
+                            if (!res.ok) { throw new Error('Kalender-Feed HTTP ' + res.status); }
+                            return res.json();
+                        })
+                        .then(data => {
+                            const events = Array.isArray(data) ? data : (data.events || []);
+                            successCallback(events);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            failureCallback(err);
+                        });
+                },
                 eventDidMount(info) {
                     const el = info.el;
                     const m = info.event.extendedProps;
@@ -265,24 +290,8 @@
                 return [...document.querySelectorAll('.layer-toggle:checked')].map(c => c.value);
             }
 
-            function buildSource() {
-                return {
-                    url: '{{ route('admin.calendar.events') }}',
-                    method: 'GET',
-                    extraParams() {
-                        const layers = activeLayers();
-                        return {
-                            from: calendar.view.currentStart.toISOString(),
-                            to: calendar.view.currentEnd.toISOString(),
-                            layers: layers.join(','),
-                        };
-                    },
-                    failure(err) { console.error(err); },
-                };
-            }
-
             document.querySelectorAll('.layer-toggle').forEach(input => {
-                input.addEventListener('change', () => calendar.refetchSources());
+                input.addEventListener('change', () => calendar.refetchEvents());
             });
 
             // ── Slide-over panel ──────────────────────────────────

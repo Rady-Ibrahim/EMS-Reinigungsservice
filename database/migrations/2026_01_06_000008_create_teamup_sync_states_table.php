@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\TeamupSyncStatusEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -20,8 +19,10 @@ return new class extends Migration
             $table->string('teamup_event_id')->nullable();
             $table->string('remote_hash')->nullable();
 
-            $table->enum('status', TeamupSyncStatusEnum::values())
-                  ->default(TeamupSyncStatusEnum::Pending->value);
+            // NOTE: values inlined (pending/synced/failed/deleted) — the
+            // TeamupSyncStatusEnum was removed with the Teamup integration.
+            $table->enum('status', ['pending', 'synced', 'failed', 'deleted'])
+                  ->default('pending');
 
             $table->text('error')->nullable();
             $table->timestamp('last_pushed_at')->nullable();

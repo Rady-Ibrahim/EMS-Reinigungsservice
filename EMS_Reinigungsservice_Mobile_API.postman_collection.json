@@ -1,1219 +1,1570 @@
 {
-  "info": {
-    "_postman_id": "1ae03117-de88-47e4-af92-e0212003c311",
-    "name": "EMS Reinigungsservice - Mobile API",
-    "description": "The endpoints the field-crew mobile app calls, in the order it calls them.\n\nHOW TO RUN\n1. Set the `base_url` variable (default http://localhost:8000).\n2. Set `email` / `password` to a Vorarbeiter or Administrator account.\n3. Send any request. The collection pre-request script logs in automatically and\n   stores the Sanctum token in `{{token}}`, so you never paste a token by hand.\n\nMANUAL VARIABLES\n`{{order_id}}`, `{{execution_id}}`, `{{location_id}}` and `{{complaint_id}}`\ndefault to 1. Fill them in from a real response, or let the Collection Runner\nsave the value to the environment after running the request that creates it.\n\nFOLDER ORDER\n1 sign in -> 2 read the day's work -> 3 run the execution workflow -> 4 report\ndamage -> 5 travel, notifications, reports. 3.10 closes the job and will not\nsucceed until the steps before it are done.\n\nCONTRACT NOTES\n- The photo endpoint takes `stage=before|after` and stores PATHS/URLs, not\n  file bodies. The app uploads to storage first and sends the URLs.\n- `key_returned` is only enforced when the site has `has_key_safe`, and\n  `alarm_activated` only when it has `has_alarm_system`.\n- If the shift was started with GPS, the closing call MUST send\n  `gps_work_end_lat` / `gps_work_end_lng` or it returns 422.\n- Financial fields (`price`, `internal_cost`, `profitability`, `revenue`,\n  `hourly_cost`) are never part of a field-crew response.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000",
-      "type": "string"
+    "info": {
+        "_postman_id": "1ae03117-de88-47e4-af92-e0212003c311",
+        "name": "EMS Reinigungsservice - Mobile API",
+        "description": "The endpoints the field-crew mobile app calls, in the order it calls them.\n\nHOW TO RUN\n1. Set the `base_url` variable (default http://localhost:8000).\n2. Set `email` / `password` to a Vorarbeiter or Administrator account.\n3. Send any request. The collection pre-request script logs in automatically and\n   stores the Sanctum token in `{{token}}`, so you never paste a token by hand.\n\nMANUAL VARIABLES\n`{{order_id}}`, `{{execution_id}}`, `{{location_id}}` and `{{complaint_id}}`\ndefault to 1. Fill them in from a real response, or let the Collection Runner\nsave the value to the environment after running the request that creates it.\n\nFOLDER ORDER\n1 sign in -> 2 read the day's work -> 3 run the execution workflow -> 4 report\ndamage -> 5 travel, notifications, reports. 3.10 closes the job and will not\nsucceed until the steps before it are done.\n\nCONTRACT NOTES\n- The photo endpoint takes `stage=before|after` and stores PATHS/URLs, not\n  file bodies. The app uploads to storage first and sends the URLs.\n- `key_returned` is only enforced when the site has `has_key_safe`, and\n  `alarm_activated` only when it has `has_alarm_system`.\n- If the shift was started with GPS, the closing call MUST send\n  `gps_work_end_lat` / `gps_work_end_lng` or it returns 422.\n- Financial fields (`price`, `internal_cost`, `profitability`, `revenue`,\n  `hourly_cost`) are never part of a field-crew response.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    {
-      "key": "token",
-      "value": "{{sanctum_bearer_token}}",
-      "type": "string"
-    },
-    {
-      "key": "email",
-      "value": "ems-1048@ems-reinigungsservice.de",
-      "type": "string"
-    },
-    {
-      "key": "password",
-      "value": "password",
-      "type": "string"
-    },
-    {
-      "key": "order_id",
-      "value": "1",
-      "type": "string"
-    },
-    {
-      "key": "execution_id",
-      "value": "1",
-      "type": "string"
-    },
-    {
-      "key": "location_id",
-      "value": "1",
-      "type": "string"
-    },
-    {
-      "key": "complaint_id",
-      "value": "1",
-      "type": "string"
-    },
-    {
-      "key": "onesignal_player_id",
-      "value": "your-onesignal-player-id",
-      "type": "string"
-    },
-    {
-      "key": "gps_lat",
-      "value": "49.10005",
-      "type": "string"
-    },
-    {
-      "key": "gps_lng",
-      "value": "8.10005",
-      "type": "string"
-    }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string"
-      }
-    ]
-  },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Auto-login: only runs while no real token is stored, so re-running a",
-          "// single request does not burn through sessions.",
-          "if (!pm.collectionVariables.get('token') || pm.collectionVariables.get('token') === '{{sanctum_bearer_token}}') {",
-          "    const base = pm.collectionVariables.get('base_url');",
-          "    const req = pm.request.clone();",
-          "    req.method = 'POST';",
-          "    req.url = base + '/api/v1/login';",
-          "    req.headers.remove('Authorization');",
-          "    req.headers.remove('Accept');",
-          "    req.body = { mode: 'raw', raw: JSON.stringify({",
-          "        email: pm.collectionVariables.get('email'),",
-          "        password: pm.collectionVariables.get('password')",
-          "    }), options: { raw: { language: 'json' } } };",
-          "",
-          "    pm.sendRequest(req, function (err, res) {",
-          "        if (err || res.code !== 200) {",
-          "            console.error('Auto-login failed:', err || res.code, res && res.text());",
-          "            return;",
-          "        }",
-          "        pm.collectionVariables.set('token', res.json().data.token);",
-          "        console.log('Auto-login OK, token stored.');",
-          "    });",
-          "}"
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "{{sanctum_bearer_token}}",
+            "type": "string"
+        },
+        {
+            "key": "email",
+            "value": "ems-1048@ems-reinigungsservice.de",
+            "type": "string"
+        },
+        {
+            "key": "password",
+            "value": "password",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "execution_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "location_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "complaint_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "onesignal_player_id",
+            "value": "your-onesignal-player-id",
+            "type": "string"
+        },
+        {
+            "key": "gps_lat",
+            "value": "49.10005",
+            "type": "string"
+        },
+        {
+            "key": "gps_lng",
+            "value": "8.10005",
+            "type": "string"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
         ]
-      }
-    }
-  ],
-  "item": [
-    {
-      "name": "1 - Auth & Profile",
-      "description": "Sign in, read and change the display language, change the password, register the push token.",
-      "item": [
-        {
-          "name": "Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "noauth"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/login",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "login"
-              ]
-            },
-            "description": "Returns the Sanctum token in `data.token`, plus the user profile with its role. `POST /api/v1/auth/login` is the canonical route and behaves identically."
-          }
-        },
-        {
-          "name": "Get Preferences",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/me/preferences",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "me",
-                "preferences"
-              ]
-            },
-            "description": "Returns the current `locale` and the `locales` list the app renders in the language picker."
-          }
-        },
-        {
-          "name": "Set Language",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"locale\": \"ar\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/me/preferences",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "me",
-                "preferences"
-              ]
-            },
-            "description": "One of de / en / ar. This request sets Arabic; send `de` afterwards to put the rest of the collection back into German. The response lists what actually changed in `data.changed`."
-          }
-        },
-        {
-          "name": "Change Password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"new-password-2026\",\n  \"password_confirmation\": \"new-password-2026\",\n  \"current_password\": \"{{password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/me/preferences",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "me",
-                "preferences"
-              ]
-            },
-            "description": "WARNING: this really changes the password and revokes every other device session. Reset the `password` variable afterwards."
-          }
-        },
-        {
-          "name": "Register OneSignal Push Token",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"{{onesignal_player_id}}\",\n  \"platform\": \"android\",\n  \"provider\": \"onesignal\",\n  \"device_name\": \"Samsung Galaxy X Cover\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/device-token",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "device-token"
-              ]
-            },
-            "description": "Send the OneSignal Player ID (the per-installation device id from the OneSignal SDK, not the FCM registration token). Re-sending the same id replaces the existing row instead of duplicating it. Max 5 devices per user."
-          }
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/logout",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": "Revokes the Sanctum token the rest of the collection uses. WARNING: because this now sits in folder 1, running the whole collection in order will revoke the token here and every later request will come back 401. Clear the `token` variable back to `{{sanctum_bearer_token}}` afterwards so the pre-request script logs in again, or just send this request on its own when you are done."
-          }
-        }
-      ]
     },
-    {
-      "name": "2 - Calendar & Tasks",
-      "description": "The day's assigned work, the job detail, and the unified calendar.",
-      "item": [
+    "event": [
         {
-          "name": "Get Today's Tasks",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege"
-              ]
-            },
-            "description": "Active Extra-Aufträge assigned to the signed-in employee. The response never contains price, internal_cost or profitability. Take an `id` from here for `{{order_id}}`, and `location.id` for `{{location_id}}`."
-          }
-        },
-        {
-          "name": "Get Job Detail",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}"
-              ]
-            },
-            "description": "A Vorarbeiter also sees the team list; a Mitarbeiter sees only their own record. Never contains price or internal_notes."
-          }
-        },
-        {
-          "name": "Get Calendar Events",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/calendar/events?show_personal=true",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "calendar",
-                "events"
-              ],
-              "query": [
-                {
-                  "key": "show_personal",
-                  "value": "true"
-                }
-              ]
-            },
-            "description": "`from` / `to` are optional; omitting them returns a 7-day window ending today. The response carries a `layers` legend, and every event in `data` has a `layer` key that must exist in that legend. `show_personal=true` forces the personal layer on. Filter with `layers=extra,shifts`, and plan for someone else with `employee=<id>` (Vorarbeiter/Admin only)."
-          }
-        },
-        {
-          "name": "Get Calendar Events (Filter by Layer)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/calendar/events?layers=fix",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "calendar",
-                "events"
-              ],
-              "query": [
-                {
-                  "key": "layers",
-                  "value": "fix"
-                }
-              ]
-            },
-            "description": "Same endpoint with the layer toggles the calendar filter bar sends. `fix` = Fixobjekte; the other layer keys come back in the legend."
-          }
-        },
-        {
-          "name": "Create Personal Appointment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Team-Besprechung\",\n  \"start_at\": \"2026-09-28T16:00:00\",\n  \"end_at\": \"2026-09-28T17:00:00\",\n  \"location\": \"Offenburg\",\n  \"description\": \"Wöchentliche Abstimmung\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/appointments",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "appointments"
-              ]
-            },
-            "description": "NOTE: the specification asked for POST /api/v1/personal-events. The implemented route is POST /api/v1/appointments - this collection uses the real one."
-          }
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Auto-login: only runs while no real token is stored, so re-running a",
+                    "// single request does not burn through sessions.",
+                    "if (!pm.collectionVariables.get('token') || pm.collectionVariables.get('token') === '{{sanctum_bearer_token}}') {",
+                    "    const base = pm.collectionVariables.get('base_url');",
+                    "    const req = pm.request.clone();",
+                    "    req.method = 'POST';",
+                    "    req.url = base + '/api/v1/auth/login';",
+                    "    req.headers.remove('Authorization');",
+                    "    req.headers.remove('Accept');",
+                    "    req.body = { mode: 'raw', raw: JSON.stringify({",
+                    "        email: pm.collectionVariables.get('email'),",
+                    "        password: pm.collectionVariables.get('password')",
+                    "    }), options: { raw: { language: 'json' } } };",
+                    "",
+                    "    pm.sendRequest(req, function (err, res) {",
+                    "        if (err || res.code !== 200) {",
+                    "            console.error('Auto-login failed:', err || res.code, res && res.text());",
+                    "            return;",
+                    "        }",
+                    "        pm.collectionVariables.set('token', res.json().data.token);",
+                    "        console.log('Auto-login OK, token stored.');",
+                    "    });",
+                    "}"
+                ]
+            }
         }
-      ]
-    },
-    {
-      "name": "3 - Execution Workflow",
-      "description": "The whole field cycle, in order, on one order. 3.1 starts the shift, 3.2/3.3 bracket the break, 3.4-3.8 gather the evidence, then report the damage from folder 4, then 3.10 closes the job. 3.10 will not succeed until everything before it is done - that is by design, not a bug.",
-      "item": [
+    ],
+    "item": [
         {
-          "name": "3.1 - Work Start (GPS)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"gps_work_start_lat\": {{gps_lat}},\n  \"gps_work_start_lng\": {{gps_lng}}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "work-start"
-              ]
-            },
-            "description": "Use coordinates within ~150 m of the site, otherwise a geofence alert goes to the admin. Starting with GPS makes the GPS on 3.10 mandatory. The response `data.id` is the `{{execution_id}}` used by 3.6."
-          }
-        },
-        {
-          "name": "3.2 - Start Break",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"start\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "pause"
-              ]
-            },
-            "description": "The break is unpaid and is deducted from paid_minutes at hand-over. `paused_at` is optional; the server falls back to now()."
-          }
-        },
-        {
-          "name": "3.3 - End Break",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"stop\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "pause"
-              ]
-            },
-            "description": "Freezes `pause_minutes` on the execution. Wait a minute between 3.2 and 3.3 to get a non-zero value."
-          }
-        },
-        {
-          "name": "3.4 - Upload Before Photos",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"stage\": \"before\",\n  \"photos\": [\n    \"uploads/before-1.jpg\",\n    \"uploads/before-2.jpg\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "photos"
-              ]
-            },
-            "description": "Vorarbeiter only. Stores PATHS/URLs, not file bodies - upload to storage first. Repeated calls append rather than replace."
-          }
-        },
-        {
-          "name": "3.5 - Add Field Note",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"note\": \"Schlüsselübergabe am Empfang; Alarmanlage-Code im Tresor.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/notes",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "notes"
-              ]
-            },
-            "description": "Appends to employee_notes rather than overwriting them."
-          }
-        },
-        {
-          "name": "3.6 - Complete Checklist",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"checklist_items\": [\n    { \"task\": \"Boden reinigen\", \"completed\": true },\n    { \"task\": \"Fenster putzen\", \"completed\": true },\n    { \"task\": \"Müll entsorgen\", \"completed\": true }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/extra-executions/{{execution_id}}/checklist",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "extra-executions",
-                "{{execution_id}}",
-                "checklist"
-              ]
-            },
-            "description": "Vorarbeiter only. Every item needs a `completed` flag; an unticked item blocks the close on 3.10."
-          }
-        },
-        {
-          "name": "3.7 - Get Site Documents",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/locations/{{location_id}}/documents?visibility=extern",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "locations",
-                "{{location_id}}",
-                "documents"
-              ],
-              "query": [
+            "name": "1 - Auth & Profile",
+            "description": "Sign in, read and change the display language, change the password, register the push token.",
+            "item": [
                 {
-                  "key": "visibility",
-                  "value": "extern"
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Returns the Sanctum token in `data.token`, plus the user profile with its role. Canonical route: POST /api/v1/auth/login."
+                    }
+                },
+                {
+                    "name": "Get Auth Me",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Basic info of the authenticated user: id, name, email, role, locale, last_login_at."
+                    }
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "profile"
+                            ]
+                        },
+                        "description": "Employee profile. Sensitive fields (hourly_rate, iban) are never exposed."
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "profile"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"locale\": \"ar\",\n  \"phone\": \"+49 170 000000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Employee may only update locale and phone."
+                    }
+                },
+                {
+                    "name": "Get Preferences",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/me/preferences",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "me",
+                                "preferences"
+                            ]
+                        },
+                        "description": "Returns the current `locale` and the `locales` list the app renders in the language picker."
+                    }
+                },
+                {
+                    "name": "Set Language",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"locale\": \"ar\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/me/preferences",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "me",
+                                "preferences"
+                            ]
+                        },
+                        "description": "One of de / en / ar. This request sets Arabic; send `de` afterwards to put the rest of the collection back into German. The response lists what actually changed in `data.changed`."
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"password\": \"new-password-2026\",\n  \"password_confirmation\": \"new-password-2026\",\n  \"current_password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/me/preferences",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "me",
+                                "preferences"
+                            ]
+                        },
+                        "description": "WARNING: this really changes the password and revokes every other device session. Reset the `password` variable afterwards."
+                    }
+                },
+                {
+                    "name": "Register OneSignal Push Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{onesignal_player_id}}\",\n  \"platform\": \"android\",\n  \"provider\": \"onesignal\",\n  \"device_name\": \"Samsung Galaxy X Cover\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/device-token",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "device-token"
+                            ]
+                        },
+                        "description": "Send the OneSignal Player ID (the per-installation device id from the OneSignal SDK, not the FCM registration token). Re-sending the same id replaces the existing row instead of duplicating it. Max 5 devices per user."
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Revokes the Sanctum token the rest of the collection uses. WARNING: because this now sits in folder 1, running the whole collection in order will revoke the token here and every later request will come back 401. Clear the `token` variable back to `{{sanctum_bearer_token}}` afterwards so the pre-request script logs in again, or just send this request on its own when you are done."
+                    }
                 }
-              ]
-            },
-            "description": "Intern documents are invisible to field staff even here. `visibility=extern` is optional and cannot widen the result. The response never exposes the storage path."
-          }
+            ]
         },
         {
-          "name": "3.8 - Upload After Photos",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"stage\": \"after\",\n  \"photos\": [\n    \"uploads/after-1.jpg\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            "name": "2 - Calendar & Tasks",
+            "description": "The day's assigned work, the job detail, and the unified calendar.",
+            "item": [
+                {
+                    "name": "Get Today's Tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege"
+                            ]
+                        },
+                        "description": "Active Extra-Aufträge assigned to the signed-in employee. The response never contains price, internal_cost or profitability. Take an `id` from here for `{{order_id}}`, and `location.id` for `{{location_id}}`."
+                    }
+                },
+                {
+                    "name": "Get Job Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}"
+                            ]
+                        },
+                        "description": "A Vorarbeiter also sees the team list; a Mitarbeiter sees only their own record. Never contains price or internal_notes."
+                    }
+                },
+                {
+                    "name": "Get Calendar Events",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/calendar/events?show_personal=true",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "calendar",
+                                "events"
+                            ],
+                            "query": [
+                                {
+                                    "key": "show_personal",
+                                    "value": "true"
+                                }
+                            ]
+                        },
+                        "description": "`from` / `to` are optional; omitting them returns a 7-day window ending today. The response carries a `layers` legend, and every event in `data` has a `layer` key that must exist in that legend. `show_personal=true` forces the personal layer on. Filter with `layers=extra,shifts`, and plan for someone else with `employee=<id>` (Vorarbeiter/Admin only)."
+                    }
+                },
+                {
+                    "name": "Get Calendar Events (Filter by Layer)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/calendar/events?layers=fix",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "calendar",
+                                "events"
+                            ],
+                            "query": [
+                                {
+                                    "key": "layers",
+                                    "value": "fix"
+                                }
+                            ]
+                        },
+                        "description": "Same endpoint with the layer toggles the calendar filter bar sends. `fix` = Fixobjekte; the other layer keys come back in the legend."
+                    }
+                },
+                {
+                    "name": "Create Personal Appointment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Team-Besprechung\",\n  \"start_at\": \"2026-09-28T16:00:00\",\n  \"end_at\": \"2026-09-28T17:00:00\",\n  \"location\": \"Offenburg\",\n  \"description\": \"Wöchentliche Abstimmung\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/appointments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "appointments"
+                            ]
+                        },
+                        "description": "NOTE: the specification asked for POST /api/v1/personal-events. The implemented route is POST /api/v1/appointments - this collection uses the real one."
+                    }
+                },
+                {
+                    "name": "Get Calendar (Canonical)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/calendar?show_personal=true",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "calendar?show_personal=true"
+                            ]
+                        },
+                        "description": "Canonical unified calendar. Alias /api/v1/calendar/events behaves identically. Optional from/to/layers/employee."
+                    }
+                },
+                {
+                    "name": "List Fix Objects",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/fix-objects",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "fix-objects"
+                            ]
+                        },
+                        "description": "Only fix objects assigned to the employee. Zero financial data. Take an id for the next two requests."
+                    }
+                },
+                {
+                    "name": "Get Fix Object Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/fix-objects/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "fix-objects",
+                                "1"
+                            ]
+                        },
+                        "description": "Employee must be assigned to the object, otherwise 404."
+                    }
+                },
+                {
+                    "name": "Get Fix Object Schedules",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/fix-objects/1/schedules",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "fix-objects",
+                                "1",
+                                "schedules"
+                            ]
+                        },
+                        "description": "Own schedules only (executions filtered to the caller). Optional ?from=&to=."
+                    }
                 }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "photos"
-              ]
-            },
-            "description": "Same endpoint as 3.4, second call. The before photos from 3.4 must survive it."
-          }
+            ]
         },
         {
-          "name": "3.10 - Close Job (Site Handover)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتعطيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}},\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            "name": "3 - Execution Workflow",
+            "description": "The whole field cycle, in order, on one order. 3.1 starts the shift, 3.2/3.3 bracket the break, 3.4-3.8 gather the evidence, then report the damage from folder 4, then 3.10 closes the job. 3.10 will not succeed until everything before it is done - that is by design, not a bug.",
+            "item": [
+                {
+                    "name": "3.1 - Work Start (GPS)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_work_start_lat\": {{gps_lat}},\n  \"gps_work_start_lng\": {{gps_lng}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-start",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "work-start"
+                            ]
+                        },
+                        "description": "Use coordinates within ~150 m of the site, otherwise a geofence alert goes to the admin. Starting with GPS makes the GPS on 3.10 mandatory. The response `data.id` is the `{{execution_id}}` used by 3.6."
+                    }
+                },
+                {
+                    "name": "3.2 - Start Break",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"start\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "pause"
+                            ]
+                        },
+                        "description": "The break is unpaid and is deducted from paid_minutes at hand-over. `paused_at` is optional; the server falls back to now()."
+                    }
+                },
+                {
+                    "name": "3.3 - End Break",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"stop\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/pause",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "pause"
+                            ]
+                        },
+                        "description": "Freezes `pause_minutes` on the execution. Wait a minute between 3.2 and 3.3 to get a non-zero value."
+                    }
+                },
+                {
+                    "name": "3.4 - Upload Before Photos",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"stage\": \"before\",\n  \"photos\": [\n    \"uploads/before-1.jpg\",\n    \"uploads/before-2.jpg\"\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "photos"
+                            ]
+                        },
+                        "description": "Vorarbeiter only. Stores PATHS/URLs, not file bodies - upload to storage first. Repeated calls append rather than replace."
+                    }
+                },
+                {
+                    "name": "3.5 - Add Field Note",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"note\": \"Schlüsselübergabe am Empfang; Alarmanlage-Code im Tresor.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/notes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "notes"
+                            ]
+                        },
+                        "description": "Appends to employee_notes rather than overwriting them."
+                    }
+                },
+                {
+                    "name": "3.6 - Complete Checklist",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"checklist_items\": [\n    { \"task\": \"Boden reinigen\", \"completed\": true },\n    { \"task\": \"Fenster putzen\", \"completed\": true },\n    { \"task\": \"Müll entsorgen\", \"completed\": true }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-executions/{{execution_id}}/checklist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-executions",
+                                "{{execution_id}}",
+                                "checklist"
+                            ]
+                        },
+                        "description": "Vorarbeiter only. Every item needs a `completed` flag; an unticked item blocks the close on 3.10."
+                    }
+                },
+                {
+                    "name": "3.7 - Get Site Documents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/locations/{{location_id}}/documents?visibility=extern",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "locations",
+                                "{{location_id}}",
+                                "documents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "visibility",
+                                    "value": "extern"
+                                }
+                            ]
+                        },
+                        "description": "Intern documents are invisible to field staff even here. `visibility=extern` is optional and cannot widen the result. The response never exposes the storage path."
+                    }
+                },
+                {
+                    "name": "3.8 - Upload After Photos",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"stage\": \"after\",\n  \"photos\": [\n    \"uploads/after-1.jpg\"\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "photos"
+                            ]
+                        },
+                        "description": "Same endpoint as 3.4, second call. The before photos from 3.4 must survive it."
+                    }
+                },
+                {
+                    "name": "3.10 - Close Job (Site Handover)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتعطيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}},\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auftraege",
+                                "{{order_id}}",
+                                "work-end"
+                            ]
+                        },
+                        "description": "The hand-over. `key_returned` and `alarm_activated` are only enforced when the site actually has a key safe / alarm; a site with neither closes with `windows_closed` alone. GPS is mandatory here if 3.1 sent it. `after_photos` is optional because 3.8 may already have stored them. The response freezes `paid_minutes`, which already excludes the break."
+                    }
+                },
+                {
+                    "name": "3.11 - Complete Order (Leader)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/complete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "complete"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Leader only: closes the whole order. Requires before/after photos + complete checklist on the leader execution."
+                    }
                 }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/work-end",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auftraege",
-                "{{order_id}}",
-                "work-end"
-              ]
-            },
-            "description": "The hand-over. `key_returned` and `alarm_activated` are only enforced when the site actually has a key safe / alarm; a site with neither closes with `windows_closed` alone. GPS is mandatory here if 3.1 sent it. `after_photos` is optional because 3.8 may already have stored them. The response freezes `paid_minutes`, which already excludes the break."
-          }
+            ]
+        },
+        {
+            "name": "4 - Complaints & Reopen",
+            "description": "Damage reports from the field, and the governance path for reopening a closed job.",
+            "item": [
+                {
+                    "name": "Report Site Damage",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"location_id\": {{location_id}},\n  \"title\": \"Fensterscheibe gesprungen\",\n  \"description\": \"Beim Putzen ist die untere Scheibe des Bürofensters gesprungen.\",\n  \"photos\": [\"uploads/schaden-1.jpg\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/complaints",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "complaints"
+                            ]
+                        },
+                        "description": "Creates the complaint as `pending`. The response `data.id` is the `{{complaint_id}}` used by Get Complaint Detail."
+                    }
+                },
+                {
+                    "name": "List Complaints",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/complaints?per_page=20",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "complaints"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "Paginated: `meta` carries total, page, per_page. Filter with status=pending|in_progress|resolved|rejected, location_id, client_id, assigned_employee_id. per_page is 1-100. The response never contains internal_notes or internal_cost."
+                    }
+                },
+                {
+                    "name": "List Complaints (Filter by Status)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/complaints?status=pending",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "complaints"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending"
+                                }
+                            ]
+                        },
+                        "description": "Same endpoint with the status filter the complaint tabs send."
+                    }
+                },
+                {
+                    "name": "Get Complaint Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/complaints/{{complaint_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "complaints",
+                                "{{complaint_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Reopen Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Kunde meldet, dass die Fenster nicht ordentlich gereinigt wurden. Nacharbeit erforderlich.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/orders/{{order_id}}/reopen",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "orders",
+                                "{{order_id}}",
+                                "reopen"
+                            ]
+                        },
+                        "description": "Administrator or Vorarbeiter only, never a plain Mitarbeiter. The reason is mandatory and audited. Use `schedule-<id>` in the path to reopen a Fixobjekt schedule instead of an Extra-Auftrag."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5 - Travel, Notifications & Reports",
+            "description": "Travel, GPS, time, notifications and the self-service report - the rest of what the app calls.",
+            "item": [
+                {
+                    "name": "Start Travel",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_departure_lat\": {{gps_lat}},\n  \"gps_departure_lng\": {{gps_lng}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "travel",
+                                "start"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Record Arrival",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_arrival_lat\": {{gps_lat}},\n  \"gps_arrival_lng\": {{gps_lng}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "travel",
+                                "arrive"
+                            ]
+                        },
+                        "description": "Required before work-start: the shift cannot be started while the order is still pending."
+                    }
+                },
+                {
+                    "name": "Send GPS Point",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"latitude\": {{gps_lat}},\n  \"longitude\": {{gps_lng}},\n  \"accuracy\": 8.5,\n  \"recorded_at\": \"2026-09-28T08:05:00\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "travel-tracks",
+                                "{{execution_id}}",
+                                "gps"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Time Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/time-summary?month=2026-09",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "time-summary"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "2026-09"
+                                }
+                            ]
+                        },
+                        "description": "The worker never sees the rate - the response has no hourly_cost."
+                    }
+                },
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Mark All Notifications Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/notifications/read-all",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "read-all"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Monthly Report",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/monthly-reports?month=2026-09",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "monthly-reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "month",
+                                    "value": "2026-09"
+                                }
+                            ]
+                        },
+                        "description": "Profitability is Administrator-only; a field device gets neither revenue nor internal_cost."
+                    }
+                },
+                {
+                    "name": "Send GPS Points (Batch)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps/batch",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "travel-tracks",
+                                "{{execution_id}}",
+                                "gps",
+                                "batch"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"points\": [\n    {\"latitude\": 49.10005, \"longitude\": 8.10005, \"accuracy\": 8.5, \"recorded_at\": \"2026-09-28T08:05:00\"},\n    {\"latitude\": 49.10010, \"longitude\": 8.10020, \"accuracy\": 9.0, \"recorded_at\": \"2026-09-28T08:06:00\"}\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Batch GPS upload for offline sync. Single-point endpoint: POST /api/v1/travel-tracks/{{execution_id}}/gps."
+                    }
+                },
+                {
+                    "name": "List Time Adjustments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/time-adjustments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "time-adjustments"
+                            ]
+                        },
+                        "description": "Own adjustment requests with status (pending/approved/rejected) and reviewer info."
+                    }
+                },
+                {
+                    "name": "Submit Time Adjustment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/time-adjustments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "time-adjustments"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"job_type\": \"extra\",\n  \"job_id\": 1,\n  \"requested_start\": \"2026-09-28T08:00:00\",\n  \"requested_end\": \"2026-09-28T12:00:00\",\n  \"reason\": \"GPS-Ausfall beim Arbeitsstart, korrekte Zeit laut Schichtplan.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Requires admin approval. Original times are frozen automatically from the execution."
+                    }
+                },
+                {
+                    "name": "Get Monthly Report Line Items",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/monthly-reports/line-items?year=2026&month=9",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "monthly-reports",
+                                "line-items?year=2026&month=9"
+                            ]
+                        },
+                        "description": "Per-execution breakdown of the own monthly report. No financial fields for field staff."
+                    }
+                }
+            ]
         }
-      ]
-    },
-    {
-      "name": "4 - Complaints & Reopen",
-      "description": "Damage reports from the field, and the governance path for reopening a closed job.",
-      "item": [
-        {
-          "name": "Report Site Damage",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"location_id\": {{location_id}},\n  \"title\": \"Fensterscheibe gesprungen\",\n  \"description\": \"Beim Putzen ist die untere Scheibe des Bürofensters gesprungen.\",\n  \"photos\": [\"uploads/schaden-1.jpg\"]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/complaints",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "complaints"
-              ]
-            },
-            "description": "Creates the complaint as `pending`. The response `data.id` is the `{{complaint_id}}` used by Get Complaint Detail."
-          }
-        },
-        {
-          "name": "List Complaints",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/complaints?per_page=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "complaints"
-              ],
-              "query": [
-                {
-                  "key": "per_page",
-                  "value": "20"
-                }
-              ]
-            },
-            "description": "Paginated: `meta` carries total, page, per_page. Filter with status=pending|in_progress|resolved|rejected, location_id, client_id, assigned_employee_id. per_page is 1-100. The response never contains internal_notes or internal_cost."
-          }
-        },
-        {
-          "name": "List Complaints (Filter by Status)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/complaints?status=pending",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "complaints"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "pending"
-                }
-              ]
-            },
-            "description": "Same endpoint with the status filter the complaint tabs send."
-          }
-        },
-        {
-          "name": "Get Complaint Detail",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/complaints/{{complaint_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "complaints",
-                "{{complaint_id}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reopen Order",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Kunde meldet, dass die Fenster nicht ordentlich gereinigt wurden. Nacharbeit erforderlich.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/orders/{{order_id}}/reopen",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "orders",
-                "{{order_id}}",
-                "reopen"
-              ]
-            },
-            "description": "Administrator or Vorarbeiter only, never a plain Mitarbeiter. The reason is mandatory and audited. Use `schedule-<id>` in the path to reopen a Fixobjekt schedule instead of an Extra-Auftrag."
-          }
-        }
-      ]
-    },
-    {
-      "name": "5 - Travel, Notifications & Reports",
-      "description": "Travel, GPS, time, notifications and the self-service report - the rest of what the app calls.",
-      "item": [
-        {
-          "name": "Start Travel",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"gps_departure_lat\": {{gps_lat}},\n  \"gps_departure_lng\": {{gps_lng}}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "extra-orders",
-                "{{order_id}}",
-                "travel",
-                "start"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Record Arrival",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"gps_arrival_lat\": {{gps_lat}},\n  \"gps_arrival_lng\": {{gps_lng}}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "extra-orders",
-                "{{order_id}}",
-                "travel",
-                "arrive"
-              ]
-            },
-            "description": "Required before work-start: the shift cannot be started while the order is still pending."
-          }
-        },
-        {
-          "name": "Send GPS Point",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"latitude\": {{gps_lat}},\n  \"longitude\": {{gps_lng}},\n  \"accuracy\": 8.5,\n  \"recorded_at\": \"2026-09-28T08:05:00\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "travel-tracks",
-                "{{execution_id}}",
-                "gps"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Time Summary",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/time-summary?month=2026-09",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "time-summary"
-              ],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "2026-09"
-                }
-              ]
-            },
-            "description": "The worker never sees the rate - the response has no hourly_cost."
-          }
-        },
-        {
-          "name": "Get Notifications",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/notifications",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "notifications"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Mark All Notifications Read",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/notifications/read-all",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "notifications",
-                "read-all"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Monthly Report",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/monthly-reports?month=2026-09",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "monthly-reports"
-              ],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "2026-09"
-                }
-              ]
-            },
-            "description": "Profitability is Administrator-only; a field device gets neither revenue nor internal_cost."
-          }
-        }
-      ]
-    }
-  ]
+    ]
 }

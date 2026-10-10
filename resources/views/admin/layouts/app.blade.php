@@ -504,7 +504,9 @@
 
         $liveItems[] = ['name' => $emp->name, 'dot' => $state[0], 'code' => $state[1]];
     }
-    $switchLocale = app()->getLocale() === 'ar' ? 'de' : 'ar';
+    $activeLocale = app()->getLocale();
+    $switchLocale = $activeLocale === 'ar' ? 'de' : 'ar';
+    $switchLabel = $switchLocale === 'ar' ? 'العربية' : 'Deutsch';
 @endphp
 <div class="app-shell">
     {{-- ═══ SIDEBAR ═══ --}}
@@ -571,9 +573,6 @@
 
             <div class="nav-section">
                 <div class="nav-section-title">{{ __('messages.nav.system') }}</div>
-                <a href="{{ route('admin.teamup.edit') }}" class="nav-link {{ request()->routeIs('admin.teamup*') ? 'active' : '' }}">
-                    <span class="nav-ico">🔗</span> {{ __('messages.nav.teamup') }}
-                </a>
                 <a href="{{ route('admin.two-factor.setup') }}" class="nav-link {{ request()->routeIs('admin.two-factor*') ? 'active' : '' }}">
                     <span class="nav-ico">🔐</span> {{ __('messages.nav.two_factor') }}
                 </a>
@@ -615,8 +614,8 @@
                 </div>
 
                 <a href="{{ route('admin.locale.switch', $switchLocale) }}" class="icon-btn lang-btn"
-                   title="{{ __('messages.topbar.switch_language') }}" aria-label="{{ __('messages.topbar.switch_language') }}">
-                    {{ $switchLocale === 'ar' ? 'عربي' : 'DE' }}
+                   title="{{ __('messages.topbar.switch_language') }} — {{ $switchLabel }}" aria-label="{{ __('messages.topbar.switch_language') }} — {{ $switchLabel }}">
+                    {{ strtoupper($activeLocale) }}
                 </a>
 
                 <div class="dropdown" id="notification-dropdown">

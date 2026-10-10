@@ -134,7 +134,7 @@ class CalendarEngineTest extends TestCase
 
         $events = $this->engine->forRange(now()->startOfMonth(), now()->addMonths(2)->endOfMonth(), ['shifts']);
 
-        $this->assertCount(0, $events->whereIn('layer', ['fix', 'shifts', 'personal', 'internal', 'teamup'])->where('layer', 'fix'));
+        $this->assertCount(0, $events->whereIn('layer', ['fix', 'shifts', 'personal', 'internal'])->where('layer', 'fix'));
         $this->assertTrue($events->where('layer', 'shifts')->isEmpty());
     }
 }

@@ -182,9 +182,9 @@ class MobileFlowSimulationTest extends TestCase
         $this->token = '';
 
         $login = $this->step(
-            'Scenario 1.1 · Login as field supervisor (POST /api/v1/login)',
+            'Scenario 1.1 · Login as field supervisor (POST /api/v1/auth/login)',
             'POST',
-            '/api/v1/login',
+            '/api/v1/auth/login',
             ['email' => 'ems-1048@ems-reinigungsservice.de', 'password' => 'password']
         )
             ->assertOk()
@@ -386,7 +386,7 @@ class MobileFlowSimulationTest extends TestCase
      */
     public function test_two_breaks_in_one_shift_accumulate(): void
     {
-        $login = $this->postJson('/api/v1/login', [
+        $login = $this->postJson('/api/v1/auth/login', [
             'email'    => 'ems-1048@ems-reinigungsservice.de',
             'password' => 'password',
         ])->assertOk();
@@ -495,7 +495,7 @@ class MobileFlowSimulationTest extends TestCase
     {
         $this->token = '';
 
-        $login = $this->postJson('/api/v1/login', [
+        $login = $this->postJson('/api/v1/auth/login', [
             'email' => 'ems-1048@ems-reinigungsservice.de',
             'password' => 'password',
         ])->assertOk();
@@ -575,7 +575,7 @@ class MobileFlowSimulationTest extends TestCase
     {
         $outsider = User::factory()->mitarbeiter()->create(['password' => bcrypt('password')]);
 
-        $token = $this->postJson('/api/v1/login', [
+        $token = $this->postJson('/api/v1/auth/login', [
             'email'    => $outsider->email,
             'password' => 'password',
         ])->assertOk()->json('data.token');

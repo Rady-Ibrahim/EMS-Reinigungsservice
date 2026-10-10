@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@ems-service.de'],
             [
-                'name'              => 'EMS Administrator',
+                'name'              => 'مدير النظام',
                 'password'          => Hash::make('Admin@2024!'),
                 'role'              => RoleEnum::Administrator,
                 'locale'            => 'de',
@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'vorarbeiter@ems-service.de'],
             [
-                'name'              => 'Klaus Müller',
+                'name'              => 'كلاوس مولر',
                 'password'          => Hash::make('Worker@2024!'),
                 'role'              => RoleEnum::Vorarbeiter,
                 'locale'            => 'de',
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'mitarbeiter@ems-service.de'],
             [
-                'name'              => 'Ahmed Hassan',
+                'name'              => 'أحمد حسن',
                 'password'          => Hash::make('Worker@2024!'),
                 'role'              => RoleEnum::Mitarbeiter,
                 'locale'            => 'ar',

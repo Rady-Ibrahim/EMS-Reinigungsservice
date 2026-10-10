@@ -96,7 +96,7 @@ return [
         'off_duty'    => 'انتهى الدوام',
         'done'        => 'منجز',
         'pending'     => 'معلّق',
-        'not_started' => 'لم يبدأ بعد',
+        'not_started' => 'لم يبدأ',
     ],
     'cal' => [
         'title'            => 'التقويم',

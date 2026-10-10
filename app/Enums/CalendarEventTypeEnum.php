@@ -9,7 +9,6 @@ enum CalendarEventTypeEnum: string
     case EmployeeShift       = 'employee_shift';
     case PersonalAppointment = 'personal_appointment';
     case InternalEvent       = 'internal_event';
-    case TeamupExternal      = 'teamup_external';
 
     public function label(): string
     {
@@ -19,7 +18,6 @@ enum CalendarEventTypeEnum: string
             self::EmployeeShift       => 'Schicht',
             self::PersonalAppointment => 'Persönlicher Termin',
             self::InternalEvent       => 'Interner Termin',
-            self::TeamupExternal      => 'Teamup (extern)',
         };
     }
 
@@ -31,7 +29,6 @@ enum CalendarEventTypeEnum: string
             self::EmployeeShift                   => 'shifts',
             self::PersonalAppointment             => 'personal',
             self::InternalEvent                   => 'internal',
-            self::TeamupExternal                  => 'teamup',
         };
     }
 

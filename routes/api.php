@@ -91,6 +91,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('/auftraege/{extraAuftrag}/pause', [ApiExtraAuftragController::class, 'togglePause'])->name('auftraege.pause');
         Route::post('/auftraege/{extraAuftrag}/notes', [ApiExtraAuftragController::class, 'addNote'])->name('auftraege.notes');
         Route::post('/auftraege/{extraAuftrag}/photos', [ApiExtraAuftragController::class, 'uploadOrderPhotos'])->name('auftraege.photos');
+        Route::post('/auftraege/{extraAuftrag}/travel/start', [ApiExtraAuftragController::class, 'startTravel'])->name('auftraege.travel.start');
+        Route::post('/auftraege/{extraAuftrag}/travel/arrive', [ApiExtraAuftragController::class, 'recordArrival'])->name('auftraege.travel.arrive');
+        Route::post('/auftraege/{extraAuftrag}/work/start', [ApiExtraAuftragController::class, 'startWork'])->name('auftraege.work.start');
+        Route::post('/auftraege/{extraAuftrag}/complete', [ApiExtraAuftragController::class, 'completeOrder'])->name('auftraege.complete');
         // Execution-level actions (leader only)
         Route::post('/extra-executions/{execution}/before-photos', [ApiExtraAuftragController::class, 'uploadBeforePhotos'])->name('extra-executions.before-photos');
         Route::patch('/extra-executions/{execution}/checklist', [ApiExtraAuftragController::class, 'updateChecklist'])->name('extra-executions.checklist');

@@ -11,9 +11,6 @@ Artisan::command('inspire', function () {
 // Run on the 1st of every month at 01:00 to pre-generate next month's schedules
 Schedule::command('ems:generate-schedules')->monthlyOn(1, '01:00');
 
-// Teamup sync — flush pending pushes and pull remote changes every 5 minutes
-Schedule::command('ems:teamup-sync')->everyFiveMinutes();
-
 // Smart admin alerts — hourly: missing photos + overdue orders + blocked closes
 Schedule::command('ems:admin-alerts', [
     '--photos' => true,

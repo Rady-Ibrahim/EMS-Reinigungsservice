@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * A single user's private calendar entry (Meine Termine).
  *
  * Now backed by the unified `personal_events` table — see {@see PersonalEvent}.
- * This class is kept as the public name for a private appointment so the API,
- * the views and the Teamup integration keep working unchanged.
+ * This class is kept as the public name for a private appointment so the API
+ * and the views keep working unchanged.
  *
  * These are NOT work orders: they never create paid work hours and never
  * count toward time tracking.

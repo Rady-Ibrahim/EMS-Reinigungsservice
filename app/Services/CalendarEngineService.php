@@ -8,20 +8,18 @@ use App\Models\ExtraAuftrag;
 use App\Models\FixObjectSchedule;
 use App\Models\InternalEvent;
 use App\Models\PersonalAppointment;
-use App\Models\TeamupSetting;
 use App\ValueObjects\CalendarEvent;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 /**
  * The Unified Calendar engine — aggregates every calendar source into one
  * normalized {@see CalendarEvent} collection for a given date range.
  *
- * Layer keys: fix | extra | shifts | personal | internal | teamup
+ * Layer keys: fix | extra | shifts | personal | internal
  *
  * The `personal` and `internal` layers are two views onto the same
  * `personal_events` table (see {@see \App\Models\PersonalEvent}); `personal`
@@ -37,12 +35,7 @@ class CalendarEngineService
         'shifts'   => '#10b981',
         'personal' => '#8b5cf6',
         'internal' => '#f59e0b',
-        'teamup'   => '#64748b',
     ];
-
-    public function __construct(private readonly TeamupClient $teamupClient)
-    {
-    }
 
     // ── Layer definitions (UI toggle sheet) ───────────────────────────────
 
@@ -54,7 +47,6 @@ class CalendarEngineService
             ['key' => 'shifts',   'label' => __('messages.cal.layers.shifts'),   'color' => self::COLORS['shifts'],   'enabled' => true],
             ['key' => 'personal', 'label' => __('messages.cal.layers.personal'), 'color' => self::COLORS['personal'], 'enabled' => true],
             ['key' => 'internal', 'label' => __('messages.cal.layers.internal'), 'color' => self::COLORS['internal'], 'enabled' => true],
-            ['key' => 'teamup',   'label' => __('messages.cal.layers.teamup'),   'color' => self::COLORS['teamup'],   'enabled' => false],
         ];
     }
 
@@ -104,9 +96,6 @@ class CalendarEngineService
         if (in_array('internal', $layers)) {
             $events = $events->merge($this->internalEvents($tzFrom, $tzTo, $employeeId));
         }
-        if (in_array('teamup', $layers) && $employeeId === null) {
-            $events = $events->merge($this->teamupEvents($from, $to));
-        }
 
         return $events
             ->sortBy(fn(CalendarEvent $e) => $e->startAt->timestamp)
@@ -142,11 +131,10 @@ class CalendarEngineService
             ->values();
     }
 
-    // ── Single-source lookup (Teamup push) ────────────────────────────────
+    // ── Single-source lookup ─────────────────────────────────────────────
 
     /**
      * Normalize any single source model into one calendar event.
-     * Used by the Teamup sync engine and tests.
      */
     public function eventForSource(Model $model): ?CalendarEvent
     {
@@ -237,58 +225,6 @@ class CalendarEngineService
             ->get();
 
         return $events->map(fn($event) => $this->normalizeInternal($event));
-    }
-
-    private function teamupEvents(CarbonInterface $from, CarbonInterface $to): Collection
-    {
-        $settings = TeamupSetting::current();
-
-        if (! $settings->isConfigured()) {
-            return collect();
-        }
-
-        try {
-            $remoteEvents = $this->teamupClient->fetchEvents($from, $to);
-        } catch (\Throwable $e) {
-            Log::warning('Teamup-Events konnten nicht geladen werden: '.$e->getMessage());
-
-            return collect();
-        }
-
-        $mappedIds = \App\Models\TeamupSyncState::query()
-            ->whereNotNull('teamup_event_id')
-            ->pluck('teamup_event_id')
-            ->map(fn($v) => (string) $v)
-            ->all();
-
-        $color = self::COLORS['teamup'];
-
-        return collect($remoteEvents)
-            ->filter(fn(array $ev) => ! in_array((string) ($ev['id'] ?? ''), $mappedIds, true))
-            ->map(function (array $ev) use ($color) {
-                $allDay = (bool) ($ev['all_day'] ?? false);
-                $start  = $this->parseTeamupDateTime($ev['start_dt'] ?? null, $allDay, true);
-                $end    = $this->parseTeamupDateTime($ev['end_dt'] ?? null, $allDay, false);
-
-                if (! $start || ! $end || $start->gte($end)) {
-                    return null;
-                }
-
-                return new CalendarEvent(
-                    id: 'teamup:'.($ev['id'] ?? 'unknown'),
-                    type: CalendarEventTypeEnum::TeamupExternal,
-                    layer: 'teamup',
-                    title: (string) ($ev['title'] ?? 'Teamup-Termin'),
-                    startAt: $start,
-                    endAt: $end,
-                    allDay: $allDay,
-                    color: $ev['color'] ?? $color,
-                    location: $ev['location'] ?? null,
-                    metadata: ['subcalendar_id' => $ev['subcalendar_id'] ?? null],
-                );
-            })
-            ->filter()
-            ->values();
     }
 
     // ── Normalizers ────────────────────────────────────────────────────────
@@ -492,25 +428,5 @@ class CalendarEngineService
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    /**
-     * Parse a Teamup event datetime. Handles naive datetime strings as well
-     * as ISO 8601 with offset. For all-day events Teamup uses date-only values
-     * with an EXCLUSIVE end date.
-     */
-    private function parseTeamupDateTime(?string $value, bool $allDay, bool $isStart): ?CarbonInterface
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if ($allDay && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            $day = Carbon::parse($value);
-
-            return $isStart ? $day->copy()->startOfDay() : $day->copy()->subDay()->endOfDay();
-        }
-
-        return Carbon::parse($value);
     }
 }

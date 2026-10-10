@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ConflictCheckerService
 {
-    /** Layers that occupy an employee's time. External Teamup events excluded. */
+    /** Layers that occupy an employee's time. */
     private const BOOKING_LAYERS = ['fix', 'extra', 'shifts', 'personal', 'internal'];
 
     public function __construct(

@@ -14,8 +14,7 @@ use Illuminate\Support\Facades\DB;
 class InternalEventService
 {
     public function __construct(
-        private readonly ConflictCheckerService $conflicts,
-        private readonly TeamupSyncService $teamup
+        private readonly ConflictCheckerService $conflicts
     ) {
     }
 
@@ -109,9 +108,6 @@ class InternalEventService
                 'user_id'           => (int) $userId,
             ]);
         }
-
-        // Attendee changes affect "who is booked" → queue Teamup re-push
-        $this->teamup->markPending($event);
 
         return $event->fresh(['creator', 'assignees.user']);
     }

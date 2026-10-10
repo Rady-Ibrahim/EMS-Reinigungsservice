@@ -16,7 +16,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
  *
  * Two complementary sinks:
  *  - `notifications` (per-user): mobile in-app feed + admin notification center.
- *  - `admin_notifications`: global admin inbox (conflicts, Teamup, alerts).
+ *  - `admin_notifications`: global admin inbox (conflicts, alerts).
  *
  * Push delivery goes through PushChannel and is a silent no-op whenever no
  * push provider is configured or enabled — database delivery always happens.

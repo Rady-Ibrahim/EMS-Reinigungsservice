@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * Backed by the unified `personal_event_assignees` table.
  * `internal_event_id` is kept as the public attribute name so existing call
- * sites (controllers, the Teamup sync, the admin views) keep working — it maps
+ * sites (controllers, admin views) keep working — it maps
  * onto the `personal_event_id` column.
  */
 class InternalEventAssignee extends PersonalEventAssignee
