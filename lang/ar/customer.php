@@ -32,4 +32,5 @@ return [
     'locations_count'   => 'المواقع (:count)',
     'details'           => 'التفاصيل',
     'no_locations'      => 'لا توجد مواقع بعد.',
+    'location'          => 'الموقع',
 ];

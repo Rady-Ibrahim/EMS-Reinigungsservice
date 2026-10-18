@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExtraAuftrag extends Model
@@ -21,7 +22,7 @@ class ExtraAuftrag extends Model
 
     protected $table = 'extra_auftraege';
 
-    protected array $auditExclude = ['price', 'internal_cost'];
+    protected array $auditExclude = ['price', 'internal_cost', 'price_per_hour', 'profit_margin'];
 
     protected $fillable = [
         'customer_id',
@@ -42,7 +43,14 @@ class ExtraAuftrag extends Model
         'has_alarm_system',
         'has_key_safe',
         'price',
+        'price_per_hour',
+        'profit_margin',
+        'profit_margin_type',
         'internal_cost',
+        'attachment_path',
+        'attachment_name',
+        'attachment_mime',
+        'attachment_size',
         'internal_notes',
         'cancelled_reason',
         'offline_uuid',
@@ -75,6 +83,8 @@ class ExtraAuftrag extends Model
             'has_key_safe'         => 'boolean',
             // Financial — encrypted at rest
             'price'                => 'encrypted',
+            'price_per_hour'       => 'encrypted',
+            'profit_margin'        => 'encrypted',
             'internal_cost'        => 'encrypted',
         ];
     }
@@ -130,6 +140,11 @@ class ExtraAuftrag extends Model
         return $this->hasMany(ExtraAuftragExecution::class);
     }
 
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
     // ── Scopes ─────────────────────────────────────────────────────────────
 
     public function scopeForEmployee($query, int $userId)
@@ -165,6 +180,31 @@ class ExtraAuftrag extends Model
     public function isAssigned(int $userId): bool
     {
         return $this->assignees()->where('user_id', $userId)->exists();
+    }
+
+    public function hasAttachment(): bool
+    {
+        return ! empty($this->attachment_path);
+    }
+
+    /**
+     * Normalised profit margin expressed as an absolute euro amount.
+     * Returns null when no margin is set.
+     */
+    public function profitMarginEuro(): ?float
+    {
+        if ($this->profit_margin === null || $this->profit_margin === '') {
+            return null;
+        }
+
+        $margin = (float) $this->profit_margin;
+
+        if ($this->profit_margin_type === 'pct') {
+            $base = (float) ($this->price ?: 0);
+            return round($base * $margin / 100, 2);
+        }
+
+        return round($margin, 2);
     }
 
     public function canBeClosed(): bool

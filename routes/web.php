@@ -11,7 +11,9 @@ use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
+use App\Http\Controllers\Web\Admin\ExtraAuftragDocumentController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
+use App\Http\Controllers\Web\Admin\FixObjectDocumentController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
 use App\Http\Controllers\Web\Admin\LocaleController;
 use App\Http\Controllers\Web\Admin\LocationDocumentController;
@@ -22,6 +24,7 @@ use App\Http\Controllers\Web\Admin\ReopenController;
 use App\Http\Controllers\Web\Admin\ShiftController;
 use App\Http\Controllers\Web\Admin\TimeAdjustmentController;
 use App\Http\Controllers\Web\Admin\TwoFactorController;
+use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,6 +62,13 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])
          ->name('customers.toggle-status');
 
+    // ── API: customer locations (for cascade selects) ─────────────────────
+    Route::get('api/customers/{customer}/locations', function (Customer $customer) {
+        return response()->json(
+            $customer->activeLocations()->orderBy('name')->get(['id', 'name', 'city'])
+        );
+    })->name('api.customers.locations');
+
     // ── Customer Locations (nested) ───────────────────────────────────────
     Route::resource('customers.locations', CustomerLocationController::class)
          ->shallow(); // generates non-nested routes for show/edit/update/destroy
@@ -92,6 +102,13 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::post('fix-objects/{fixObject}/generate-schedules', [FixObjectController::class, 'generateSchedules'])
          ->name('fix-objects.generate-schedules');
 
+    // ── Fix Object Documents (Vertrag / Anlagen) ───────────────────────────
+    Route::prefix('fix-objects/{fixObject}/documents')->name('fix-objects.documents.')->group(function () {
+        Route::post('/', [FixObjectDocumentController::class, 'store'])->name('store');
+        Route::get('{document}', [FixObjectDocumentController::class, 'download'])->name('download');
+        Route::delete('{document}', [FixObjectDocumentController::class, 'destroy'])->name('destroy');
+    });
+
     // ── Extra-Aufträge ────────────────────────────────────────────────────
     Route::get('extra-auftraege', [ExtraAuftragController::class, 'index'])
          ->name('extra-auftraege.index');
@@ -103,12 +120,21 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
          ->name('extra-auftraege.show');
     Route::get('extra-auftraege/{extraAuftrag}/edit', [ExtraAuftragController::class, 'edit'])
          ->name('extra-auftraege.edit');
+    Route::get('extra-auftraege/{extraAuftrag}/attachment', [ExtraAuftragController::class, 'downloadAttachment'])
+         ->name('extra-auftraege.attachment');
     Route::put('extra-auftraege/{extraAuftrag}', [ExtraAuftragController::class, 'update'])
          ->name('extra-auftraege.update');
     Route::post('extra-auftraege/{extraAuftrag}/cancel', [ExtraAuftragController::class, 'cancel'])
          ->name('extra-auftraege.cancel');
     Route::post('extra-auftraege/{extraAuftrag}/reopen', [ReopenController::class, 'reopenExtra'])
          ->name('extra-auftraege.reopen');
+
+    // ── Extra-Auftrag Documents (intern / extern) ──────────────────────────
+    Route::prefix('extra-auftraege/{extraAuftrag}/documents')->name('extra-auftraege.documents.')->group(function () {
+        Route::post('/', [ExtraAuftragDocumentController::class, 'store'])->name('store');
+        Route::get('{document}', [ExtraAuftragDocumentController::class, 'download'])->name('download');
+        Route::delete('{document}', [ExtraAuftragDocumentController::class, 'destroy'])->name('destroy');
+    });
 
     // ── Time Adjustments ──────────────────────────────────────────────────
     Route::get('time-adjustments', [TimeAdjustmentController::class, 'index'])

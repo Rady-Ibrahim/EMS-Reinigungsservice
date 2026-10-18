@@ -59,6 +59,19 @@
             <textarea name="notes" rows="3">{{ old('notes', $customer->notes) }}</textarea>
         </div>
 
+        @include('admin.customers._locations', ['existingLocations' => $customer->locations->map(fn($l) => [
+            'id' => $l->id,
+            'name' => $l->name,
+            'street' => $l->street,
+            'house_number' => $l->house_number,
+            'postal_code' => $l->postal_code,
+            'city' => $l->city,
+            'contact_person' => $l->contact_person,
+            'contact_phone' => $l->contact_phone,
+            'access_instructions' => $l->access_instructions,
+            'security_code' => $l->security_code,
+        ])->values()])
+
         <div style="display:flex;gap:.75rem">
             <button type="submit" class="btn btn-primary">{{ __('customer.save') }}</button>
             <a href="{{ route('admin.customers.show', $customer) }}" class="btn btn-secondary">{{ __('customer.cancel') }}</a>

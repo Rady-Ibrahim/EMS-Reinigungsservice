@@ -4,6 +4,8 @@ namespace App\Http\Requests\Admin\ExtraAuftrag;
 
 use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExtraOrderTypeEnum;
+use App\Enums\FileCategoryEnum;
+use App\Services\DocumentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,8 +29,24 @@ class UpdateExtraAuftragRequest extends FormRequest
             'checklist_template'   => ['nullable', 'array'],
             'checklist_template.*.task' => ['required_with:checklist_template', 'string', 'max:255'],
             'price'                => ['nullable', 'numeric', 'min:0'],
+            'price_per_hour'       => ['nullable', 'numeric', 'min:0'],
+            'profit_margin'        => ['nullable', 'numeric'],
+            'profit_margin_type'   => ['nullable', 'in:eur,pct'],
             'internal_cost'        => ['nullable', 'numeric', 'min:0'],
             'internal_notes'       => ['nullable', 'string'],
+            'attachment'           => ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,webp,heic,doc,docx'],
+            // Intern (admin-only) document section
+            'intern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
+            'intern_document.mimes'    => ['required_with:intern_document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'intern_document_title'    => ['nullable', 'string', 'max:191'],
+            'intern_document_category' => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],
+            'intern_document_notes'    => ['nullable', 'string', 'max:2000'],
+            // Extern (team-visible) document section
+            'extern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
+            'extern_document.mimes'    => ['required_with:extern_document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'extern_document_title'    => ['nullable', 'string', 'max:191'],
+            'extern_document_category' => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],
+            'extern_document_notes'    => ['nullable', 'string', 'max:2000'],
             'assignees'            => ['nullable', 'array'],
             'assignees.*.user_id'  => ['required_with:assignees', 'exists:users,id'],
             'assignees.*.role_in_order' => ['required_with:assignees', Rule::in(AssigneeRoleEnum::values())],

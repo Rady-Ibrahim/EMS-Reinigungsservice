@@ -46,7 +46,7 @@
             </div>
             <div class="form-group">
                 <label>{{ __('employee.calendar_color') }}</label>
-                <input type="text" name="calendar_color" value="{{ old('calendar_color', '#3b82f6') }}" placeholder="#3b82f6">
+                @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', '#3b82f6')])
                 @error('calendar_color')<p class="field-error">{{ $message }}</p>@enderror
             </div>
         </div>

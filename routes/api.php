@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AppointmentController as ApiAppointmentControlle
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CalendarController as ApiCalendarController;
 use App\Http\Controllers\Api\V1\ComplaintController;
+use App\Http\Controllers\Api\V1\DocumentController as ApiDocumentController;
 use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragController;
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
@@ -65,6 +66,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/fix-objects', [ApiFixObjectController::class, 'index'])->name('fix-objects.index');
         Route::get('/fix-objects/{fixObject}', [ApiFixObjectController::class, 'show'])->name('fix-objects.show');
         Route::get('/fix-objects/{fixObject}/schedules', [ApiFixObjectController::class, 'schedules'])->name('fix-objects.schedules');
+        Route::get('/fix-objects/{fixObject}/documents/{document}/download', [ApiDocumentController::class, 'downloadFixObject'])->name('fix-objects.documents.download');
 
         // Execution workflow
         Route::post('/schedules/{schedule}/start', [ApiFixObjectController::class, 'startExecution'])->name('schedules.start');
@@ -74,6 +76,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Extra-Aufträge ────────────────────────────────────────────────
         Route::get('/extra-orders', [ApiExtraAuftragController::class, 'index'])->name('extra-orders.index');
         Route::get('/extra-orders/{extraAuftrag}', [ApiExtraAuftragController::class, 'show'])->name('extra-orders.show');
+        Route::get('/extra-orders/{extraAuftrag}/documents/{document}/download', [ApiDocumentController::class, 'downloadExtraAuftrag'])->name('extra-orders.documents.download');
         Route::post('/extra-orders/{extraAuftrag}/travel/start', [ApiExtraAuftragController::class, 'startTravel'])->name('extra-orders.travel.start');
         Route::post('/extra-orders/{extraAuftrag}/travel/arrive', [ApiExtraAuftragController::class, 'recordArrival'])->name('extra-orders.travel.arrive');
         Route::post('/extra-orders/{extraAuftrag}/work/start', [ApiExtraAuftragController::class, 'startWork'])->name('extra-orders.work.start');

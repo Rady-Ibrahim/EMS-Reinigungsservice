@@ -22,7 +22,7 @@ class LocationDocumentController extends Controller
      */
     public function index(CustomerLocation $location): RedirectResponse
     {
-        return redirect()->route('admin.customers.locations.show', $location)
+        return redirect()->route('locations.show', $location)
             ->withFragment('documents');
     }
 

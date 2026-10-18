@@ -81,4 +81,16 @@ return [
     'executions_short'          => 'Exec.',
     'no_schedules'              => 'No schedules generated.',
     'from_prefix'               => 'from',
+
+    // ── Documents (contract attachments) ─────────────────────────────────
+    'documents'                 => 'Contracts & Documents',
+    'document_label'            => 'Contract / File',
+    'document_hint'             => 'PDF, image or document — max. 20 MB.',
+    'document_title'            => 'Title (optional)',
+    'document_visibility'       => 'Visibility',
+    'document_category'         => 'Category',
+    'document_notes'            => 'Notes',
+    'existing_documents'        => 'Attached documents',
+    'no_documents'              => 'No documents uploaded.',
+    'download'                  => 'Download',
 ];

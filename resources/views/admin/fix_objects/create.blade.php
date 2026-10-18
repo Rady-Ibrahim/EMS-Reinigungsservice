@@ -5,7 +5,7 @@
 <h1>{{ __('fix_object.title_create') }}</h1>
 
 <div class="card">
-    <form action="{{ route('admin.fix-objects.store') }}" method="POST" id="fixObjectForm">
+    <form action="{{ route('admin.fix-objects.store') }}" method="POST" id="fixObjectForm" enctype="multipart/form-data">
         @csrf
 
         <h2 style="font-size:1rem;margin-bottom:.75rem;color:#475569">{{ __('fix_object.location_contract_heading') }}</h2>
@@ -35,8 +35,8 @@
                 <input type="text" name="title" value="{{ old('title') }}" required placeholder="{{ __('fix_object.title_placeholder') }}">
             </div>
             <div class="form-group">
-                <label>{{ __('fix_object.calendar_color_admin') }}</label>
-                <input type="text" name="calendar_color" value="{{ old('calendar_color', '#FFD700') }}" placeholder="#FFD700">
+                <label>{{ __('fix_object.calendar_color') }}</label>
+                @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', '#D4AF37')])
                 <small style="color:#94a3b8">{{ __('fix_object.calendar_color_default') }}</small>
             </div>
         </div>
@@ -123,6 +123,43 @@
             <textarea name="internal_notes" rows="3">{{ old('internal_notes') }}</textarea>
         </div>
 
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">
+        <h2 style="font-size:1rem;margin-bottom:.5rem;color:#475569">📎 {{ __('fix_object.documents') }}</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ __('fix_object.document_label') }}</label>
+                <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv" style="color:var(--text-muted)">
+                <small style="color:var(--text-faint)">{{ __('fix_object.document_hint') }}</small>
+                @error('document')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="form-group">
+                <label>{{ __('fix_object.document_title') }}</label>
+                <input type="text" name="document_title" value="{{ old('document_title') }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ __('fix_object.document_visibility') }}</label>
+                <select name="document_visibility">
+                    @foreach(\App\Enums\FileVisibilityEnum::cases() as $vis)
+                    <option value="{{ $vis->value }}" {{ old('document_visibility', 'extern') === $vis->value ? 'selected' : '' }}>{{ $vis->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{{ __('fix_object.document_category') }}</label>
+                <select name="document_category">
+                    @foreach(\App\Enums\FileCategoryEnum::cases() as $cat)
+                    <option value="{{ $cat->value }}" {{ old('document_category', 'contract') === $cat->value ? 'selected' : '' }}>{{ $cat->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>{{ __('fix_object.document_notes') }}</label>
+            <textarea name="document_notes" rows="2">{{ old('document_notes') }}</textarea>
+        </div>
+
         <div style="display:flex;gap:.75rem;margin-top:.5rem">
             <button type="submit" class="btn btn-primary">{{ __('fix_object.save_generate') }}</button>
             <a href="{{ route('admin.fix-objects.index') }}" class="btn btn-secondary">{{ __('fix_object.cancel') }}</a>
@@ -136,16 +173,17 @@ document.getElementById('customerSelect').addEventListener('change', function() 
     const locationSelect = document.getElementById('locationSelect');
     locationSelect.innerHTML = '<option value="">' + @json(__('fix_object.loading')) + '</option>';
 
-    if (!customerId) return;
+    if (!customerId) { return; }
 
-    fetch(`/admin/api/customers/${customerId}/locations`)
+    fetch(`/admin/api/customers/${customerId}/locations`, { headers: { 'Accept': 'application/json' } })
         .then(r => r.json())
         .then(data => {
             locationSelect.innerHTML = '<option value="">' + @json(__('fix_object.location_placeholder')) + '</option>';
             data.forEach(loc => {
-                locationSelect.innerHTML += `<option value="${loc.id}">${loc.name} – ${loc.city}</option>`;
+                locationSelect.innerHTML += `<option value="${loc.id}">${loc.name} – ${loc.city || ''}</option>`;
             });
-        });
+        })
+        .catch(() => { locationSelect.innerHTML = '<option value="">—</option>'; });
 });
 </script>
 @endsection

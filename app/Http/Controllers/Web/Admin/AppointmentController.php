@@ -32,6 +32,7 @@ class AppointmentController extends Controller
         return view('admin.calendar.appointment_form', [
             'appointment' => new PersonalAppointment(),
             'users'       => $this->users(),
+            'date'        => request('date'),
         ]);
     }
 

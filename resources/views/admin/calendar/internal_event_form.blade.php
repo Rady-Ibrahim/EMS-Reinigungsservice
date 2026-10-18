@@ -36,13 +36,13 @@
                 <div class="form-group">
                     <label>{{ __('cal_page.start') }} *</label>
                     <input type="datetime-local" name="start_at"
-                           value="{{ old('start_at', $event->start_at?->format('Y-m-d\TH:i')) }}" required>
+                           value="{{ old('start_at', $event->start_at?->format('Y-m-d\TH:i') ?? ($date ? $date.'T09:00' : '')) }}" required>
                     @error('start_at') <div class="field-error">{{ $message }}</div> @enderror
                 </div>
                 <div class="form-group">
                     <label>{{ __('cal_page.end') }} *</label>
                     <input type="datetime-local" name="end_at"
-                           value="{{ old('end_at', $event->end_at?->format('Y-m-d\TH:i')) }}" required>
+                           value="{{ old('end_at', $event->end_at?->format('Y-m-d\TH:i') ?? ($date ? $date.'T10:00' : '')) }}" required>
                     @error('end_at') <div class="field-error">{{ $message }}</div> @enderror
                 </div>
             </div>

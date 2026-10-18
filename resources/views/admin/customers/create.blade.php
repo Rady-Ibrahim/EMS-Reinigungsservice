@@ -60,6 +60,8 @@
             <textarea name="notes" rows="3">{{ old('notes') }}</textarea>
         </div>
 
+        @include('admin.customers._locations')
+
         <div style="display:flex;gap:.75rem">
             <button type="submit" class="btn btn-primary">{{ __('customer.save') }}</button>
             <a href="{{ route('admin.customers.index') }}" class="btn btn-secondary">{{ __('customer.cancel') }}</a>

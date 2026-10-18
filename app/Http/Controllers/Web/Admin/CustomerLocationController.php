@@ -32,26 +32,29 @@ class CustomerLocationController extends Controller
                          ->with('success', __('messages.success'));
     }
 
-    public function show(Customer $customer, CustomerLocation $location): View
+    public function show(CustomerLocation $location): View
     {
-        $location->load(['files.uploader', 'auditLogs.user']);
+        $location->load(['customer', 'files.uploader', 'documents', 'auditLogs.user']);
+        $customer = $location->customer;
         return view('admin.locations.show', compact('customer', 'location'));
     }
 
-    public function edit(Customer $customer, CustomerLocation $location): View
+    public function edit(CustomerLocation $location): View
     {
+        $customer = $location->customer;
         return view('admin.locations.edit', compact('customer', 'location'));
     }
 
-    public function update(UpdateLocationRequest $request, Customer $customer, CustomerLocation $location): RedirectResponse
+    public function update(UpdateLocationRequest $request, CustomerLocation $location): RedirectResponse
     {
         $location->update($request->validated());
-        return redirect()->route('admin.customers.locations.show', [$customer, $location])
+        return redirect()->route('locations.show', $location)
                          ->with('success', __('messages.success'));
     }
 
-    public function destroy(Customer $customer, CustomerLocation $location): RedirectResponse
+    public function destroy(CustomerLocation $location): RedirectResponse
     {
+        $customer = $location->customer;
         $location->delete();
         return redirect()->route('admin.customers.locations.index', $customer)
                          ->with('success', __('messages.locations.deleted'));

@@ -116,4 +116,29 @@
         </tbody>
     </table>
 </div>
+
+{{-- Contract & documents --}}
+<div class="card" style="margin-top:1rem">
+    <div class="card-title" style="margin-bottom:.75rem">📎 {{ __('fix_object.documents') }}</div>
+    @forelse($fixObject->documents as $doc)
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+        <div style="font-size:.875rem">
+            <a href="{{ route('admin.fix-objects.documents.download', [$fixObject, $doc]) }}" target="_blank">{{ $doc->displayTitle() }}</a>
+            <small style="color:#94a3b8;display:block">
+                {{ $doc->visibility->label() }} · {{ $doc->category->label() }} · {{ number_format($doc->size_bytes / 1024, 0) }} KB
+                @if($doc->notes) · {{ $doc->notes }} @endif
+            </small>
+        </div>
+        <div style="display:flex;gap:.5rem">
+            <a href="{{ route('admin.fix-objects.documents.download', [$fixObject, $doc]) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.download') }}</a>
+            <form action="{{ route('admin.fix-objects.documents.destroy', [$fixObject, $doc]) }}" method="POST" onsubmit="return confirm('{{ __('fix_object.confirm_delete') }}')">
+                @csrf @method('DELETE')
+                <button class="btn btn-danger btn-sm">{{ __('fix_object.delete') }}</button>
+            </form>
+        </div>
+    </div>
+    @empty
+    <p style="color:#94a3b8;font-size:.85rem">{{ __('fix_object.no_documents') }}</p>
+    @endforelse
+</div>
 @endsection

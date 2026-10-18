@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Enums\FileCategoryEnum;
+use App\Enums\FileVisibilityEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\FixObject\StoreFixObjectRequest;
 use App\Http\Requests\Admin\FixObject\UpdateFixObjectRequest;
@@ -10,6 +12,7 @@ use App\Models\FixObject;
 use App\Models\FixObjectAssignment;
 use App\Models\User;
 use App\Services\ContractHoursCalculator;
+use App\Services\DocumentService;
 use App\Services\FixObjectService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -18,9 +21,14 @@ use Illuminate\View\View;
 
 class FixObjectController extends Controller
 {
+    private const DOCUMENT_FIELDS = [
+        'document', 'document_title', 'document_visibility', 'document_category', 'document_notes',
+    ];
+
     public function __construct(
         private readonly FixObjectService        $service,
-        private readonly ContractHoursCalculator $calculator
+        private readonly ContractHoursCalculator $calculator,
+        private readonly DocumentService         $documents
     ) {
     }
 
@@ -38,8 +46,10 @@ class FixObjectController extends Controller
 
     public function store(StoreFixObjectRequest $request): RedirectResponse
     {
-        $data = $this->prepareFinancialData($request->validated());
+        $data = $this->prepareFinancialData(collect($request->validated())->except(self::DOCUMENT_FIELDS)->all());
         $fixObject = $this->service->create($data);
+
+        $this->storeDocument($request, $fixObject);
 
         return redirect()->route('admin.fix-objects.show', $fixObject)
                          ->with('success', __('messages.success'));
@@ -47,7 +57,7 @@ class FixObjectController extends Controller
 
     public function show(FixObject $fixObject): View
     {
-        $fixObject->load(['customer', 'location', 'assignments.user']);
+        $fixObject->load(['customer', 'location', 'assignments.user', 'documents.uploader']);
 
         $now           = Carbon::now();
         $contractHours = $this->calculator->monthlyHours($fixObject, $now->year, $now->month);
@@ -64,14 +74,16 @@ class FixObjectController extends Controller
     public function edit(FixObject $fixObject): View
     {
         $customers = Customer::active()->orderBy('name')->get(['id', 'name']);
-        $fixObject->load(['customer', 'location']);
+        $fixObject->load(['customer', 'location', 'documents']);
         return view('admin.fix_objects.edit', compact('fixObject', 'customers'));
     }
 
     public function update(UpdateFixObjectRequest $request, FixObject $fixObject): RedirectResponse
     {
-        $data = $this->prepareFinancialData($request->validated());
+        $data = $this->prepareFinancialData(collect($request->validated())->except(self::DOCUMENT_FIELDS)->all());
         $this->service->update($fixObject, $data);
+
+        $this->storeDocument($request, $fixObject);
 
         return redirect()->route('admin.fix-objects.show', $fixObject)
                          ->with('success', __('messages.success'));
@@ -126,6 +138,26 @@ class FixObjectController extends Controller
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
+
+    /**
+     * Persist the (optional) contract/document uploaded with the form.
+     */
+    private function storeDocument(Request $request, FixObject $fixObject): void
+    {
+        if (! $request->hasFile('document')) {
+            return;
+        }
+
+        $this->documents->store(
+            $fixObject,
+            $request->user(),
+            $request->file('document'),
+            $request->input('document_title'),
+            $request->input('document_visibility') ?: FileVisibilityEnum::Extern->value,
+            $request->input('document_category') ?: FileCategoryEnum::Contract->value,
+            $request->input('document_notes')
+        );
+    }
 
     /**
      * Convert plaintext financial floats to strings for encrypted cast storage.

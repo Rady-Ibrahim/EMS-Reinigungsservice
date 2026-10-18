@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Admin\FixObject;
 
+use App\Enums\FileCategoryEnum;
+use App\Enums\FileVisibilityEnum;
 use App\Enums\FixFrequencyEnum;
+use App\Services\DocumentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,6 +38,13 @@ class StoreFixObjectRequest extends FormRequest
             'internal_cost'   => ['nullable', 'numeric', 'min:0'],
             'profit_margin'   => ['nullable', 'numeric'],
             'internal_notes'  => ['nullable', 'string'],
+            // Contract / attachment upload (optional)
+            'document'            => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
+            'document.mimes'      => ['required_with:document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'document_title'      => ['nullable', 'string', 'max:191'],
+            'document_visibility' => ['nullable', 'in:'.implode(',', FileVisibilityEnum::values())],
+            'document_category'   => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],
+            'document_notes'      => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

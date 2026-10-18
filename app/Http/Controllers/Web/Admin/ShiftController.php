@@ -34,6 +34,7 @@ class ShiftController extends Controller
         return view('admin.calendar.shift_form', [
             'shift'     => new EmployeeShift(),
             'employees' => $employees,
+            'date'      => request('date'),
         ]);
     }
 

@@ -24,6 +24,18 @@ class UpdateCustomerRequest extends FormRequest
             'notes'          => ['nullable', 'string'],
             'portal_access'  => ['boolean'],
             'portal_email'   => ['nullable', 'email', 'max:255', 'required_if:portal_access,true'],
+
+            'locations'                        => ['nullable', 'array'],
+            'locations.*.id'                   => ['nullable', 'integer', 'exists:customer_locations,id'],
+            'locations.*.name'                 => ['required', 'string', 'max:255'],
+            'locations.*.street'               => ['required', 'string', 'max:255'],
+            'locations.*.house_number'         => ['required', 'string', 'max:20'],
+            'locations.*.postal_code'          => ['required', 'string', 'max:10'],
+            'locations.*.city'                 => ['required', 'string', 'max:100'],
+            'locations.*.contact_person'       => ['nullable', 'string', 'max:255'],
+            'locations.*.contact_phone'        => ['nullable', 'string', 'max:30'],
+            'locations.*.access_instructions'  => ['nullable', 'string'],
+            'locations.*.security_code'        => ['nullable', 'string', 'max:100'],
         ];
     }
 }

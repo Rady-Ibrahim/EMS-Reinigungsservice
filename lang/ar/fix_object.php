@@ -81,4 +81,16 @@ return [
     'executions_short'          => 'تنفيذ',
     'no_schedules'              => 'لم يتم إنشاء أي مواعيد.',
     'from_prefix'               => 'ابتداءً من',
+
+    // ── Documents (contract attachments) ─────────────────────────────────
+    'documents'                 => 'العقود والمستندات',
+    'document_label'            => 'العقد / الملف',
+    'document_hint'             => 'PDF أو صورة أو مستند — بحد أقصى 20 ميجابايت.',
+    'document_title'            => 'العنوان (اختياري)',
+    'document_visibility'       => 'الظهور',
+    'document_category'         => 'الفئة',
+    'document_notes'            => 'ملاحظات',
+    'existing_documents'        => 'المستندات المحفوظة',
+    'no_documents'              => 'لا توجد مستندات مرفوعة.',
+    'download'                  => 'تنزيل',
 ];

@@ -3,12 +3,17 @@
 namespace Tests\Feature\Api;
 
 use App\Enums\ExecutionStatusEnum;
-use App\Enums\FixFrequencyEnum;
+use App\Enums\FileCategoryEnum;
+use App\Enums\FileVisibilityEnum;
+use App\Models\Document;
 use App\Models\FixObject;
 use App\Models\FixObjectAssignment;
+use App\Models\FixObjectExecution;
 use App\Models\FixObjectSchedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -21,19 +26,19 @@ class FixObjectApiTest extends TestCase
     public function test_employee_sees_only_assigned_fix_objects(): void
     {
         $employee = User::factory()->mitarbeiter()->create();
-        $other    = User::factory()->mitarbeiter()->create();
+        $other = User::factory()->mitarbeiter()->create();
 
         $fo1 = FixObject::factory()->create();
         $fo2 = FixObject::factory()->create(); // not assigned to $employee
 
         FixObjectAssignment::create([
             'fix_object_id' => $fo1->id,
-            'user_id'       => $employee->id,
+            'user_id' => $employee->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
         FixObjectAssignment::create([
             'fix_object_id' => $fo2->id,
-            'user_id'       => $other->id,
+            'user_id' => $other->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
 
@@ -41,8 +46,8 @@ class FixObjectApiTest extends TestCase
         $response = $this->getJson('/api/v1/fix-objects');
 
         $response->assertStatus(200)
-                 ->assertJsonCount(1, 'data')
-                 ->assertJsonPath('data.0.id', $fo1->id);
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $fo1->id);
     }
 
     // ── Financial data isolation ──────────────────────────────────────────
@@ -54,7 +59,7 @@ class FixObjectApiTest extends TestCase
 
         FixObjectAssignment::create([
             'fix_object_id' => $fo->id,
-            'user_id'       => $employee->id,
+            'user_id' => $employee->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
 
@@ -63,10 +68,10 @@ class FixObjectApiTest extends TestCase
         $data = $response->json('data.0');
 
         $this->assertArrayNotHasKey('price_per_month', $data);
-        $this->assertArrayNotHasKey('price_per_hour',  $data);
-        $this->assertArrayNotHasKey('internal_cost',   $data);
-        $this->assertArrayNotHasKey('profit_margin',   $data);
-        $this->assertArrayNotHasKey('internal_notes',  $data);
+        $this->assertArrayNotHasKey('price_per_hour', $data);
+        $this->assertArrayNotHasKey('internal_cost', $data);
+        $this->assertArrayNotHasKey('profit_margin', $data);
+        $this->assertArrayNotHasKey('internal_notes', $data);
     }
 
     // ── Employee cannot see unassigned fix object ─────────────────────────
@@ -80,29 +85,143 @@ class FixObjectApiTest extends TestCase
         $this->getJson("/api/v1/fix-objects/{$fo->id}")->assertStatus(404);
     }
 
+    // ── Documents: extern only reaches the mobile app ─────────────────────
+
+    public function test_fix_object_detail_exposes_only_extern_documents(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $fo = FixObject::factory()->create();
+
+        FixObjectAssignment::create([
+            'fix_object_id' => $fo->id,
+            'user_id' => $employee->id,
+            'assigned_from' => now()->subDay()->toDateString(),
+        ]);
+
+        Document::create([
+            'documentable_type' => $fo->getMorphClass(),
+            'documentable_id' => $fo->id,
+            'uploaded_by' => $employee->id,
+            'title' => 'Vertrag',
+            'file_path' => 'documents/fix_object/'.$fo->id.'/intern.pdf',
+            'original_name' => 'intern.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 1024,
+            'visibility' => FileVisibilityEnum::Intern->value,
+            'category' => FileCategoryEnum::Contract->value,
+        ]);
+
+        Document::create([
+            'documentable_type' => $fo->getMorphClass(),
+            'documentable_id' => $fo->id,
+            'uploaded_by' => $employee->id,
+            'title' => 'Reinigungsplan',
+            'file_path' => 'documents/fix_object/'.$fo->id.'/extern.pdf',
+            'original_name' => 'extern.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 2048,
+            'visibility' => FileVisibilityEnum::Extern->value,
+            'category' => FileCategoryEnum::Instructions->value,
+        ]);
+
+        Sanctum::actingAs($employee);
+        $response = $this->getJson("/api/v1/fix-objects/{$fo->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonCount(1, 'data.documents')
+            ->assertJsonPath('data.documents.0.title', 'Reinigungsplan')
+            ->assertJsonPath('data.documents.0.category', 'instructions');
+
+        // No intern-only columns / titles leak
+        $this->assertStringNotContainsString('Vertrag', $response->getContent());
+    }
+
+    public function test_fix_object_intern_document_download_returns_404(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $fo = FixObject::factory()->create();
+
+        FixObjectAssignment::create([
+            'fix_object_id' => $fo->id,
+            'user_id' => $employee->id,
+            'assigned_from' => now()->subDay()->toDateString(),
+        ]);
+
+        $doc = Document::create([
+            'documentable_type' => $fo->getMorphClass(),
+            'documentable_id' => $fo->id,
+            'uploaded_by' => $employee->id,
+            'title' => 'Intern',
+            'file_path' => 'documents/fix_object/'.$fo->id.'/intern.pdf',
+            'original_name' => 'intern.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 1024,
+            'visibility' => FileVisibilityEnum::Intern->value,
+            'category' => FileCategoryEnum::Other->value,
+        ]);
+
+        Sanctum::actingAs($employee);
+        $this->getJson("/api/v1/fix-objects/{$fo->id}/documents/{$doc->id}/download")
+            ->assertStatus(404);
+    }
+
+    public function test_fix_object_extern_document_download_streams_file(): void
+    {
+        Storage::fake('local');
+
+        $employee = User::factory()->mitarbeiter()->create();
+        $fo = FixObject::factory()->create();
+
+        FixObjectAssignment::create([
+            'fix_object_id' => $fo->id,
+            'user_id' => $employee->id,
+            'assigned_from' => now()->subDay()->toDateString(),
+        ]);
+
+        $path = 'documents/fix_object/'.$fo->id.'/extern.pdf';
+        Storage::disk('local')->put($path, '%PDF-1.4 test');
+
+        $doc = Document::create([
+            'documentable_type' => $fo->getMorphClass(),
+            'documentable_id' => $fo->id,
+            'uploaded_by' => $employee->id,
+            'title' => 'Reinigungsplan',
+            'file_path' => $path,
+            'original_name' => 'plan.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 13,
+            'visibility' => FileVisibilityEnum::Extern->value,
+            'category' => FileCategoryEnum::Instructions->value,
+        ]);
+
+        Sanctum::actingAs($employee);
+        $this->get("/api/v1/fix-objects/{$fo->id}/documents/{$doc->id}/download")
+            ->assertStatus(200);
+    }
+
     // ── Schedules: employee sees only their own ───────────────────────────
 
     public function test_employee_sees_only_own_schedules(): void
     {
         $emp1 = User::factory()->mitarbeiter()->create();
         $emp2 = User::factory()->mitarbeiter()->create();
-        $fo   = FixObject::factory()->create();
+        $fo = FixObject::factory()->create();
 
         FixObjectAssignment::create(['fix_object_id' => $fo->id, 'user_id' => $emp1->id, 'assigned_from' => now()->subDay()->toDateString()]);
 
         $schedule = FixObjectSchedule::factory()->create(['fix_object_id' => $fo->id, 'scheduled_date' => now()->toDateString()]);
 
         // emp2 execution — should not appear in emp1 API response
-        \App\Models\FixObjectExecution::create([
-            'schedule_id'            => $schedule->id,
-            'user_id'                => $emp2->id,
-            'actual_start'           => now(),
-            'status'                 => ExecutionStatusEnum::Started,
+        FixObjectExecution::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => $emp2->id,
+            'actual_start' => now(),
+            'status' => ExecutionStatusEnum::Started,
             'contract_hours_applied' => 2.0,
         ]);
 
         Sanctum::actingAs($emp1);
-        $response = $this->getJson("/api/v1/fix-objects/{$fo->id}/schedules?from=" . now()->toDateString() . "&to=" . now()->toDateString());
+        $response = $this->getJson("/api/v1/fix-objects/{$fo->id}/schedules?from=".now()->toDateString().'&to='.now()->toDateString());
 
         $response->assertStatus(200);
         $scheduleData = $response->json('data.0');
@@ -116,11 +235,11 @@ class FixObjectApiTest extends TestCase
     public function test_employee_can_start_execution(): void
     {
         $employee = User::factory()->mitarbeiter()->create();
-        $fo       = FixObject::factory()->withContractHours(2.5)->create();
+        $fo = FixObject::factory()->withContractHours(2.5)->create();
 
         FixObjectAssignment::create([
             'fix_object_id' => $fo->id,
-            'user_id'       => $employee->id,
+            'user_id' => $employee->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
 
@@ -133,22 +252,22 @@ class FixObjectApiTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-                 ->assertJsonPath('data.status', 'started')
-                 ->assertJsonPath('data.contract_hours_applied', '2.50');
+            ->assertJsonPath('data.status', 'started')
+            ->assertJsonPath('data.contract_hours_applied', '2.50');
     }
 
     public function test_workflow_transitions_in_correct_order(): void
     {
         $employee = User::factory()->mitarbeiter()->create();
-        $fo       = FixObject::factory()->create();
+        $fo = FixObject::factory()->create();
 
         FixObjectAssignment::create([
             'fix_object_id' => $fo->id,
-            'user_id'       => $employee->id,
+            'user_id' => $employee->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
 
-        $schedule  = FixObjectSchedule::factory()->create(['fix_object_id' => $fo->id]);
+        $schedule = FixObjectSchedule::factory()->create(['fix_object_id' => $fo->id]);
 
         Sanctum::actingAs($employee);
 
@@ -157,15 +276,15 @@ class FixObjectApiTest extends TestCase
 
         // photos_before
         $this->patchJson("/api/v1/executions/{$exec['id']}/status", ['status' => 'photos_before'])
-             ->assertJsonPath('data.status', 'photos_before');
+            ->assertJsonPath('data.status', 'photos_before');
 
         // cleaning
         $this->patchJson("/api/v1/executions/{$exec['id']}/status", ['status' => 'cleaning'])
-             ->assertJsonPath('data.status', 'cleaning');
+            ->assertJsonPath('data.status', 'cleaning');
 
         // photos_after
         $this->patchJson("/api/v1/executions/{$exec['id']}/status", ['status' => 'photos_after'])
-             ->assertJsonPath('data.status', 'photos_after');
+            ->assertJsonPath('data.status', 'photos_after');
 
         // complete
         $this->postJson("/api/v1/executions/{$exec['id']}/complete", [
@@ -180,11 +299,11 @@ class FixObjectApiTest extends TestCase
     public function test_invalid_workflow_transition_returns_error(): void
     {
         $employee = User::factory()->mitarbeiter()->create();
-        $fo       = FixObject::factory()->create();
+        $fo = FixObject::factory()->create();
 
         FixObjectAssignment::create([
             'fix_object_id' => $fo->id,
-            'user_id'       => $employee->id,
+            'user_id' => $employee->id,
             'assigned_from' => now()->subDay()->toDateString(),
         ]);
 
@@ -195,14 +314,14 @@ class FixObjectApiTest extends TestCase
 
         // Jumping directly to 'cleaning' from 'started' — invalid
         $this->expectException(\LogicException::class);
-        $execution = \App\Models\FixObjectExecution::find($exec['id']);
+        $execution = FixObjectExecution::find($exec['id']);
         $execution->transitionTo(ExecutionStatusEnum::Cleaning);
     }
 
     public function test_unassigned_employee_cannot_start_execution(): void
     {
         $employee = User::factory()->mitarbeiter()->create();
-        $fo       = FixObject::factory()->create();
+        $fo = FixObject::factory()->create();
         $schedule = FixObjectSchedule::factory()->create(['fix_object_id' => $fo->id]);
 
         Sanctum::actingAs($employee);
@@ -215,16 +334,16 @@ class FixObjectApiTest extends TestCase
     {
         $fo = FixObject::factory()->withFinancials(1200.00, 700.00)->create();
 
-        $raw = \Illuminate\Support\Facades\DB::table('fix_objects')
-                ->where('id', $fo->id)
-                ->first();
+        $raw = DB::table('fix_objects')
+            ->where('id', $fo->id)
+            ->first();
 
         $this->assertNotEquals('1200', $raw->price_per_month ?? '');
-        $this->assertNotEquals('700',  $raw->internal_cost ?? '');
+        $this->assertNotEquals('700', $raw->internal_cost ?? '');
 
         // But decrypted values must be readable
         $fo->refresh();
         $this->assertEquals('1200', $fo->price_per_month);
-        $this->assertEquals('700',  $fo->internal_cost);
+        $this->assertEquals('700', $fo->internal_cost);
     }
 }

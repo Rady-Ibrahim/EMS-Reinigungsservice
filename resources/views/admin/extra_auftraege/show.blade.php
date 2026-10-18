@@ -146,4 +146,23 @@
     </table>
 </div>
 @endif
+
+{{-- Documents (intern = admin only, extern = team) --}}
+<div class="card">
+    <div class="card-title" style="margin-bottom:.75rem">{{ __('extra_order.existing_documents') }}</div>
+    @forelse($extraAuftrag->documents as $doc)
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
+        <div style="font-size:.875rem">
+            <a href="{{ route('admin.extra-auftraege.documents.download', [$extraAuftrag, $doc]) }}">{{ $doc->displayTitle() }}</a>
+            <small style="color:#94a3b8;display:block">
+                {{ $doc->visibility->label() }} · {{ $doc->category->label() }}
+                @if($doc->notes) · {{ $doc->notes }} @endif
+            </small>
+        </div>
+        <a href="{{ route('admin.extra-auftraege.documents.download', [$extraAuftrag, $doc]) }}" class="btn btn-secondary btn-sm">{{ __('extra_order.download') }}</a>
+    </div>
+    @empty
+    <p style="color:#94a3b8;font-size:.85rem">{{ __('extra_order.no_documents') }}</p>
+    @endforelse
+</div>
 @endsection

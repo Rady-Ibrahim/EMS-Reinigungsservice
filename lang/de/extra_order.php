@@ -31,6 +31,10 @@
     'section_finance' => 'Finanzdaten',
     'admin_only' => 'Admin only',
     'label_price' => 'Preis (€)',
+    'label_price_per_hour' => 'Preis / Stunde (€)',
+    'label_profit_margin' => 'Gewinnmarge (€ / %)',
+    'label_attachment' => 'Vertrag / Datei',
+    'attachment_hint' => 'PDF, Bild oder Dokument — max. 20 MB. Sichtbar in der Admin-Oberfläche.',
     'label_internal_cost' => 'Interne Kosten (€)',
     'label_internal_notes' => 'Interne Notizen',
     'btn_create' => 'Auftrag erstellen',
@@ -67,4 +71,16 @@
     'label_paid' => 'Bezahlt',
     'minutes_abbr' => 'Min.',
     'hours_abbr' => 'h',
+
+    // ── Documents (intern / extern sections) ─────────────────────────────
+    'section_documents_intern' => 'Dokumente — Intern (nur Admin)',
+    'section_documents_extern' => 'Dokumente — Extern (Team / Mitarbeiter)',
+    'document_label' => 'Datei',
+    'document_hint' => 'PDF, Bild oder Dokument — max. 20 MB.',
+    'document_title' => 'Titel (optional)',
+    'document_category' => 'Kategorie',
+    'document_notes' => 'Notizen',
+    'existing_documents' => 'Vorhandene Dokumente',
+    'no_documents' => 'Keine Dokumente.',
+    'download' => 'Herunterladen',
 ];

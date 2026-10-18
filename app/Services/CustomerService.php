@@ -17,13 +17,49 @@ class CustomerService
 
     public function create(array $data): Customer
     {
-        return Customer::create($data);
+        $locations = $data['locations'] ?? [];
+        unset($data['locations']);
+
+        $customer = Customer::create($data);
+        $this->syncLocations($customer, $locations);
+
+        return $customer;
     }
 
     public function update(Customer $customer, array $data): Customer
     {
+        $locations = $data['locations'] ?? null;
+        unset($data['locations']);
+
         $customer->update($data);
+
+        if ($locations !== null) {
+            $this->syncLocations($customer, $locations);
+        }
+
         return $customer->fresh();
+    }
+
+    /**
+     * Create/update the customer's locations from the inline form payload.
+     * Existing locations not present in the payload are left untouched.
+     */
+    private function syncLocations(Customer $customer, array $locations): void
+    {
+        foreach ($locations as $row) {
+            $id = $row['id'] ?? null;
+            unset($row['id']);
+
+            if ($id) {
+                $location = $customer->locations()->find($id);
+                if ($location) {
+                    $location->update($row);
+                    continue;
+                }
+            }
+
+            $customer->locations()->create($row);
+        }
     }
 
     public function delete(Customer $customer): void

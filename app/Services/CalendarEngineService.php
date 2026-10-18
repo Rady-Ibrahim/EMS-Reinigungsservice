@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CalendarEventTypeEnum;
+use App\Models\Document;
 use App\Models\EmployeeShift;
 use App\Models\ExtraAuftrag;
 use App\Models\FixObjectSchedule;
@@ -139,8 +140,8 @@ class CalendarEngineService
     public function eventForSource(Model $model): ?CalendarEvent
     {
         return match (true) {
-            $model instanceof FixObjectSchedule  => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location:id,name,city'])),
-            $model instanceof ExtraAuftrag       => $this->normalizeExtra($model->loadMissing(['customer:id,name', 'location:id,name,city', 'assignees'])),
+            $model instanceof FixObjectSchedule  => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location:id,name,city', 'fixObject.documents'])),
+            $model instanceof ExtraAuftrag       => $this->normalizeExtra($model->loadMissing(['customer:id,name', 'location:id,name,city', 'assignees', 'documents'])),
             $model instanceof EmployeeShift      => $this->normalizeShift($model->loadMissing(['user.employeeProfile'])),
             $model instanceof PersonalAppointment => $this->normalizePersonal($model),
             $model instanceof InternalEvent      => $this->normalizeInternal($model->loadMissing(['assignees'])),
@@ -157,6 +158,7 @@ class CalendarEngineService
                 'fixObject.customer:id,name',
                 'fixObject.location:id,name,city,street,house_number',
                 'fixObject.assignments',
+                'fixObject.documents',
                 'scheduleAssignments',
             ])
             ->get();
@@ -180,7 +182,7 @@ class CalendarEngineService
     private function extraEvents(string $from, string $to, ?int $employeeId): Collection
     {
         $orders = ExtraAuftrag::whereBetween('scheduled_date', [$from, $to])
-            ->with(['customer:id,name', 'location:id,name,city,street,house_number', 'assignees'])
+            ->with(['customer:id,name', 'location:id,name,city,street,house_number', 'assignees', 'documents'])
             ->get();
 
         $output = collect();
@@ -271,6 +273,7 @@ class CalendarEngineService
                 'fix_object_id' => $fixObject->id,
                 'contract_hours'=> $fixObject->contract_hours,
                 'detail_url'    => $this->routeTo('admin.fix-objects.show', $fixObject->id),
+                'documents'     => $this->documentsMeta($fixObject->documents, 'admin.fix-objects.documents.download'),
             ],
         );
     }
@@ -316,6 +319,7 @@ class CalendarEngineService
                 'customer_name'     => $order->customer?->name,
                 'estimated_hours'   => $order->estimated_hours,
                 'detail_url'        => $this->routeTo('admin.extra-auftraege.show', $order->id),
+                'documents'         => $this->documentsMeta($order->documents, 'admin.extra-auftraege.documents.download'),
             ],
         );
     }
@@ -428,5 +432,30 @@ class CalendarEngineService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Flatten the documents of an owner into lightweight metadata entries for
+     * the admin calendar slide-over (title + download link).
+     *
+     * @param  \Illuminate\Support\Collection<int, Document>|iterable  $documents
+     * @return array<int, array<string, mixed>>
+     */
+    private function documentsMeta(iterable $documents, string $routeName): array
+    {
+        $routeExists = Route::has($routeName);
+
+        return collect($documents)->map(fn(Document $document) => [
+            'id'         => $document->id,
+            'title'      => $document->displayTitle(),
+            'notes'      => $document->notes,
+            'category'   => $document->category->value,
+            'visibility' => $document->visibility->value,
+            'mime_type'  => $document->mime_type,
+            'size_bytes' => (int) $document->size_bytes,
+            'url'        => $routeExists
+                ? route($routeName, [$document->documentable_id, $document->id])
+                : null,
+        ])->all();
     }
 }

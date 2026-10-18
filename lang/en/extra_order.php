@@ -31,6 +31,10 @@
     'section_finance' => 'Financial Data',
     'admin_only' => 'Admin only',
     'label_price' => 'Price (€)',
+    'label_price_per_hour' => 'Price / hour (€)',
+    'label_profit_margin' => 'Profit margin (€ / %)',
+    'label_attachment' => 'Contract / file',
+    'attachment_hint' => 'PDF, image or document — max 20 MB.',
     'label_internal_cost' => 'Internal Cost (€)',
     'label_internal_notes' => 'Internal Notes',
     'btn_create' => 'Create Order',
@@ -67,4 +71,16 @@
     'label_paid' => 'Paid',
     'minutes_abbr' => 'min',
     'hours_abbr' => 'h',
+
+    // ── Documents (intern / extern sections) ─────────────────────────────
+    'section_documents_intern' => 'Documents — Internal (admin only)',
+    'section_documents_extern' => 'Documents — External (team)',
+    'document_label' => 'File',
+    'document_hint' => 'PDF, image or document — max. 20 MB.',
+    'document_title' => 'Title (optional)',
+    'document_category' => 'Category',
+    'document_notes' => 'Notes',
+    'existing_documents' => 'Existing documents',
+    'no_documents' => 'No documents.',
+    'download' => 'Download',
 ];

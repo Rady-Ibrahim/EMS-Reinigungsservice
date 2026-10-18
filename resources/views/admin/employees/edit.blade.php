@@ -55,7 +55,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label>{{ __('employee.calendar_color') }}</label>
-                <input type="text" name="calendar_color" value="{{ old('calendar_color', $employee->employeeProfile?->calendar_color) }}">
+                @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', $employee->employeeProfile?->calendar_color ?? '#3b82f6')])
             </div>
             <div class="form-group">
                 <label>{{ __('employee.employee_number') }}</label>

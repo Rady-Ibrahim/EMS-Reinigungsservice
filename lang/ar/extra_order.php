@@ -31,6 +31,10 @@
     'section_finance' => 'البيانات المالية',
     'admin_only' => 'للمسؤول فقط',
     'label_price' => 'السعر (€)',
+    'label_price_per_hour' => 'السعر / الساعة (€)',
+    'label_profit_margin' => 'هامش الربح (€ / %)',
+    'label_attachment' => 'العقد / الملف',
+    'attachment_hint' => 'PDF أو صورة أو مستند — بحد أقصى 20 ميجابايت.',
     'label_internal_cost' => 'التكلفة الداخلية (€)',
     'label_internal_notes' => 'ملاحظات داخلية',
     'btn_create' => 'إنشاء الطلب',
@@ -67,4 +71,16 @@
     'label_paid' => 'مدفوع',
     'minutes_abbr' => 'د.',
     'hours_abbr' => 'س',
+
+    // ── Documents (intern / extern sections) ─────────────────────────────
+    'section_documents_intern' => 'المستندات — داخلية (للإدارة فقط)',
+    'section_documents_extern' => 'المستندات — خارجية (للفريق)',
+    'document_label' => 'الملف',
+    'document_hint' => 'PDF أو صورة أو مستند — بحد أقصى 20 ميجابايت.',
+    'document_title' => 'العنوان (اختياري)',
+    'document_category' => 'الفئة',
+    'document_notes' => 'ملاحظات',
+    'existing_documents' => 'المستندات الموجودة',
+    'no_documents' => 'لا توجد مستندات.',
+    'download' => 'تنزيل',
 ];

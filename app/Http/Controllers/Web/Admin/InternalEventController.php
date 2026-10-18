@@ -33,6 +33,7 @@ class InternalEventController extends Controller
             'event'     => new InternalEvent(),
             'users'     => $this->users(),
             'eventTypes'=> InternalEventTypeEnum::values(),
+            'date'      => request('date'),
         ]);
     }
 

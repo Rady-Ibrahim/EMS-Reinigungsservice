@@ -81,4 +81,16 @@ return [
     'executions_short'          => 'Ausf.',
     'no_schedules'              => 'Keine Termine generiert.',
     'from_prefix'               => 'ab',
+
+    // ── Documents (contract attachments) ─────────────────────────────────
+    'documents'                 => 'Verträge & Dokumente',
+    'document_label'            => 'Vertrag / Datei',
+    'document_hint'             => 'PDF, Bild oder Dokument — max. 20 MB.',
+    'document_title'            => 'Titel (optional)',
+    'document_visibility'       => 'Sichtbarkeit',
+    'document_category'         => 'Kategorie',
+    'document_notes'            => 'Notizen',
+    'existing_documents'        => 'Hinterlegte Dokumente',
+    'no_documents'              => 'Keine Dokumente hochgeladen.',
+    'download'                  => 'Herunterladen',
 ];

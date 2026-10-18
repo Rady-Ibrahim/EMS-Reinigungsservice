@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExtraExecutionStatusEnum;
+use App\Enums\FileVisibilityEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AddFieldNoteRequest;
 use App\Http\Requests\Api\V1\CompleteExtraOrderRequest;
@@ -11,6 +12,7 @@ use App\Http\Requests\Api\V1\EndWorkRequest;
 use App\Http\Requests\Api\V1\PauseExecutionRequest;
 use App\Http\Requests\Api\V1\RecordArrivalRequest;
 use App\Http\Requests\Api\V1\StartTravelRequest;
+use App\Models\Document;
 use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragExecution;
 use App\Services\ExtraAuftragService;
@@ -56,6 +58,7 @@ class ExtraAuftragController extends Controller
             'assignees.user:id,name,role',
             'executions' => fn($q) => $q->where('user_id', $userId),
             'travelTracks' => fn($q) => $q->where('user_id', $userId),
+            'documents',
         ]);
 
         $isLeader = $extraAuftrag->isLeader($userId);
@@ -321,6 +324,8 @@ class ExtraAuftragController extends Controller
     {
         $base = $this->formatOrder($order, $userId);
 
+        $base['documents'] = $this->formatDocuments($order);
+
         // Leader sees team; member sees only themselves
         $base['team'] = $isLeader
             ? $order->assignees->map(fn($a) => [
@@ -339,6 +344,28 @@ class ExtraAuftragController extends Controller
             : null;
 
         return $base;
+    }
+
+    /**
+     * Externally visible documents only — intern documents are admin-only.
+     */
+    private function formatDocuments(ExtraAuftrag $order): array
+    {
+        return $order->documents
+            ->where('visibility', FileVisibilityEnum::Extern)
+            ->map(fn(Document $d) => [
+                'id'             => $d->id,
+                'title'          => $d->displayTitle(),
+                'notes'          => $d->notes,
+                'category'       => $d->category->value,
+                'category_label' => $d->category->label(),
+                'mime_type'      => $d->mime_type,
+                'size_bytes'     => (int) $d->size_bytes,
+                'download_url'   => route('api.v1.extra-orders.documents.download', [$order->id, $d->id]),
+                'uploaded_at'    => $d->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
     }
 
     private function formatExecution(ExtraAuftragExecution $exec): array

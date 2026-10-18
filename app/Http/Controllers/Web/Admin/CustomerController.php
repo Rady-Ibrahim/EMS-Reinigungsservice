@@ -42,6 +42,7 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer): View
     {
+        $customer->load('locations');
         return view('admin.customers.edit', compact('customer'));
     }
 

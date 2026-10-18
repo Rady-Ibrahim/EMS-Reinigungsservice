@@ -32,4 +32,5 @@ return [
     'locations_count'   => 'Standorte (:count)',
     'details'           => 'Details',
     'no_locations'      => 'Noch keine Standorte.',
+    'location'          => 'Standort',
 ];
