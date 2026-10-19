@@ -3,34 +3,21 @@
 @section('title', __('messages.dashboard'))
 @section('content')
     @php
-        $activeCustomers = \App\Models\Customer::active()->count();
-        $employeeRoles   = [\App\Enums\RoleEnum::Vorarbeiter, \App\Enums\RoleEnum::Mitarbeiter];
-        $activeEmployees = \App\Models\User::where('is_active', true)->whereIn('role', $employeeRoles)->count();
-        $activeFixObjects = \App\Models\FixObject::where('is_active', true)->count();
-
-        $monthHours = \App\Models\MonthlyReport::where('year', now()->year)
-            ->where('month', now()->month)
-            ->sum('total_paid_hours');
-
-        $todayEvents = collect();
-        try {
-            $todayEvents = app(\App\Services\CalendarEngineService::class)
-                ->forDay(\Carbon\CarbonImmutable::today(), ['fix', 'extra', 'shifts', 'internal', 'personal'])
-                ->sortBy(fn($e) => $e->startAt->timestamp)
-                ->take(8);
-        } catch (\Throwable $e) {
-            $todayEvents = collect();
-        }
-
         $recentNotifications = \App\Models\AdminNotification::latest()->limit(5)->get();
         $unreadNotifications = \App\Models\AdminNotification::unread()->count()
                              + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
         $kpis = [
-            ['label' => __('messages.dash.kpi_customers'),    'value' => $activeCustomers,    'ico' => '👥', 'accent' => '#3B82F6', 'hint' => __('messages.dash.kpi_customers_hint')],
-            ['label' => __('messages.dash.kpi_employees'),    'value' => $activeEmployees,    'ico' => '🧑‍🔧', 'accent' => '#10B981', 'hint' => __('messages.dash.kpi_employees_hint')],
-            ['label' => __('messages.dash.kpi_fix'),          'value' => $activeFixObjects,   'ico' => '🏢', 'accent' => '#D97706', 'hint' => __('messages.dash.kpi_fix_hint')],
-            ['label' => __('messages.dash.kpi_hours'),        'value' => number_format((float) $monthHours, 1, ',', '.'), 'ico' => '🕒', 'accent' => '#D4AF37', 'hint' => __('messages.dash.kpi_hours_hint'), 'unit' => 'h'],
+            ['label' => __('messages.dash.kpi_customers'), 'value' => $activeCustomers, 'ico' => '👥', 'accent' => '#3B82F6', 'hint' => __('messages.dash.kpi_customers_hint')],
+            ['label' => __('messages.dash.kpi_employees'), 'value' => $activeEmployees, 'ico' => '🧑‍🔧', 'accent' => '#10B981', 'hint' => __('messages.dash.kpi_employees_hint')],
+            ['label' => __('messages.dash.kpi_fix'), 'value' => $activeFixObjects, 'ico' => '🏢', 'accent' => '#D97706', 'hint' => __('messages.dash.kpi_fix_hint')],
+            ['label' => __('messages.dash.kpi_hours'), 'value' => number_format((float) $monthHours, 1, ',', '.'), 'ico' => '🕒', 'accent' => '#D4AF37', 'hint' => __('messages.dash.kpi_hours_hint'), 'unit' => 'h'],
+            ['label' => __('messages.dash.kpi_today_jobs'), 'value' => $todayJobCount, 'ico' => '🗓️', 'accent' => '#8B5CF6', 'hint' => __('messages.dash.kpi_today_jobs_hint')],
+            ['label' => __('messages.dash.kpi_pending_adjustments'), 'value' => $pendingAdjustments, 'ico' => '⏱️', 'accent' => '#EF4444', 'hint' => __('messages.dash.kpi_pending_adjustments_hint')],
         ];
+        if ($isAdministrator && $financialOverview !== null) {
+            $kpis[] = ['label' => __('messages.dash.kpi_revenue'), 'value' => number_format($financialOverview['revenue'], 2, ',', '.'), 'ico' => '💶', 'accent' => '#10B981', 'hint' => __('messages.dash.admin_only'), 'unit' => '€'];
+            $kpis[] = ['label' => __('messages.dash.kpi_profit'), 'value' => number_format($financialOverview['profit'], 2, ',', '.'), 'ico' => '📈', 'accent' => '#D4AF37', 'hint' => __('messages.dash.admin_only'), 'unit' => '€'];
+        }
     @endphp
 
     {{-- ── Welcome hero ─────────────────────────────────────────────── --}}
@@ -63,36 +50,77 @@
         @endforeach
     </div>
 
-    {{-- ── Two-column: Today's schedule + Monitoring ───────────────── --}}
+    {{-- ── Two-column: Today's operations + Monitoring ──────────────── --}}
     <div class="dash-cols">
         <div class="card" style="flex: 1.4;">
             <div class="card-header">
-                <span class="card-title">{{ __('messages.dash.todays') }} <span class="mini-pill">{{ __('messages.dash.pill_calendar') }}</span></span>
+                <span class="card-title">{{ __('messages.dash.todays') }} <span class="mini-pill">{{ $todayJobCount }}</span></span>
                 <a href="{{ route('admin.calendar.index') }}" class="btn btn-secondary btn-sm">{{ __('messages.dash.show_all') }}</a>
             </div>
-            @if($todayEvents->isEmpty())
+            @if($todayJobs->isEmpty())
                 <div class="empty-state">
                     <div class="empty-ico">📅</div>
                     <p>{{ __('messages.dash.no_today') }}</p>
                 </div>
             @else
-                <div class="dash-timeline">
-                    @foreach($todayEvents as $event)
-                        <div class="tl-item">
-                            <span class="tl-time">{{ $event->startAt->format('H:i') }}–{{ $event->endAt->format('H:i') }}</span>
-                            <span class="tl-dot" style="background: {{ $event->color }}; box-shadow: 0 0 10px {{ $event->color }};"></span>
-                            <div class="tl-body">
-                                <div class="tl-title">
-                                    {{ $event->title }}
-                                    <span class="badge {{ $event->layer === 'jobs' ? 'badge-blue' : 'badge-purple' }}" style="margin-inline-start:.3rem;font-size:.62rem">
-                                        {{ __('messages.cal.types.' . $event->type->value) }}
-                                    </span>
-                                </div>
-                                <div class="tl-loc">{{ $event->location ?: '—' }}</div>
-                            </div>
-                            <span class="tl-status" style="color: {{ $event->color }}">{{ $event->statusLabel }}</span>
-                        </div>
-                    @endforeach
+                <div class="operations-table-wrap">
+                    <table class="operations-table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('messages.dash.job') }}</th>
+                                <th>{{ __('messages.dash.team') }}</th>
+                                <th>{{ __('messages.dash.documentation') }}</th>
+                                <th>{{ __('messages.dash.security') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($todayJobs as $job)
+                                <tr>
+                                    <td>
+                                        <a class="operation-title" href="{{ $job['url'] }}">{{ $job['title'] }}</a>
+                                        <div class="operation-meta">{{ $job['customer'] ?: '—' }} · {{ $job['location_name'] ?: '—' }}</div>
+                                        @if($job['address'])
+                                            <div class="operation-meta">{{ $job['address'] }}</div>
+                                        @endif
+                                        @if($job['coordinates'])
+                                            <div class="operation-meta">{{ __('messages.dash.coordinates') }}: {{ $job['coordinates'] }}</div>
+                                        @endif
+                                        <div class="operation-meta">
+                                            {{ $job['start'] ? \Illuminate\Support\Carbon::parse($job['start'])->format('H:i') : __('messages.cal.all_day') }}
+                                            @if($job['end']) – {{ \Illuminate\Support\Carbon::parse($job['end'])->format('H:i') }} @endif
+                                            · {{ $job['status'] }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @forelse($job['team'] as $member)
+                                            <div class="operation-team">
+                                                @if($member['is_leader']) <span class="leader-star" title="{{ __('messages.dash.supervisor') }}">★</span> @endif
+                                                <span>{{ $member['name'] }}</span>
+                                                @if($member['role'])
+                                                    <span class="role-chip">{{ __('messages.roles.' . $member['role']->value) }}</span>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <span class="operation-meta">—</span>
+                                        @endforelse
+                                    </td>
+                                    <td>
+                                        <div class="operation-meta">📷 {{ $job['photo_count'] }} {{ __('messages.dash.photos') }}</div>
+                                        <div class="operation-meta">
+                                            ✓ {{ $job['checklist'] === null
+                                                ? __('messages.dash.checklist_not_tracked')
+                                                : $job['checklist']['done'].'/'.$job['checklist']['total'].' '.__('messages.dash.checklist_done') }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if($job['has_key_safe']) <span class="security-chip">🔑 {{ __('messages.dash.key_safe') }}</span> @endif
+                                        @if($job['has_alarm_code']) <span class="security-chip">🔒 {{ __('messages.dash.alarm_configured') }}</span> @endif
+                                        @if(!$job['has_key_safe'] && !$job['has_alarm_code']) <span class="operation-meta">—</span> @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             @endif
         </div>
@@ -123,6 +151,40 @@
             @endif
         </div>
     </div>
+
+    @if($isAdministrator && $financialOverview !== null)
+        <div class="card company-financial-card">
+            <div class="card-header">
+                <span class="card-title">🏢 {{ __('messages.dash.companies_financial') }}</span>
+                <span class="mini-pill">{{ __('messages.dash.admin_only') }}</span>
+            </div>
+            <div class="company-financial-summary">
+                <div>
+                    <div class="financial-value">{{ number_format($financialOverview['company_payout'], 2, ',', '.') }} €</div>
+                    <div class="operation-meta">{{ __('messages.dash.company_payout_month') }}</div>
+                </div>
+                <div>
+                    <div class="financial-value">{{ $financialOverview['active_company_employees'] }}</div>
+                    <div class="operation-meta">{{ __('messages.dash.active_company_employees') }}</div>
+                </div>
+                <div>
+                    <div class="financial-value">{{ number_format($financialOverview['labor_cost'], 2, ',', '.') }} €</div>
+                    <div class="operation-meta">{{ __('messages.dash.labor_cost_month') }}</div>
+                </div>
+            </div>
+            @if($financialOverview['companies']->isNotEmpty())
+                <div class="company-payout-list">
+                    @foreach($financialOverview['companies'] as $company)
+                        <div class="company-payout-item">
+                            <strong>{{ $company['name'] }}</strong>
+                            <span>{{ $company['active_employees'] }} {{ __('messages.dash.employees_short') }}</span>
+                            <span>{{ number_format($company['payout'], 2, ',', '.') }} €</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    @endif
 
     <style>
         .dash-hero {
@@ -156,8 +218,10 @@
             padding: .35rem .85rem; font-size: .78rem; font-weight: 700; border-radius: 999px;
         }
 
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.35rem; }
-        @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.35rem; }
+        @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 560px) { .kpi-grid { grid-template-columns: 1fr; } }
 
         .kpi-card {
             display: flex; align-items: center; gap: .9rem;
@@ -201,18 +265,23 @@
         }
         .empty-ico { font-size: 2rem; opacity: .6; }
 
-        .dash-timeline { display: flex; flex-direction: column; }
-        .tl-item {
-            display: flex; align-items: center; gap: .85rem;
-            padding: .7rem .2rem; border-bottom: 1px dashed rgba(42,46,57,.55);
-        }
-        .tl-item:last-child { border-bottom: none; }
-        .tl-time { font-size: .72rem; color: var(--text-faint); white-space: nowrap; min-width: 76px; font-variant-numeric: tabular-nums; }
-        .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; }
-        .tl-body { flex: 1; min-width: 0; }
-        .tl-title { font-size: .86rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tl-loc { font-size: .74rem; color: var(--text-muted); margin-top: .1rem; }
-        .tl-status { font-size: .72rem; font-weight: 600; white-space: nowrap; }
+        .operations-table-wrap { overflow-x: auto; }
+        .operations-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+        .operations-table th, .operations-table td { padding: .75rem .65rem; text-align: start; vertical-align: top; border-bottom: 1px dashed rgba(42,46,57,.7); }
+        .operations-table th { color: var(--text-faint); font-size: .67rem; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+        .operation-title { font-size: .85rem; font-weight: 700; color: var(--text); }
+        .operation-title:hover { color: var(--gold-light); }
+        .operation-meta { color: var(--text-muted); font-size: .7rem; margin-top: .2rem; }
+        .operation-team { display: flex; align-items: center; gap: .3rem; margin: .2rem 0; font-size: .74rem; }
+        .leader-star { color: var(--gold-bright); }
+        .role-chip, .security-chip { display: inline-block; border-radius: 999px; padding: .12rem .4rem; background: rgba(212,175,55,.1); color: var(--gold-light); font-size: .63rem; white-space: nowrap; }
+        .security-chip { margin: .1rem; background: rgba(59,130,246,.12); color: #93C5FD; }
+        .company-financial-card { margin-top: 1.25rem; }
+        .company-financial-summary { display: flex; flex-wrap: wrap; gap: 2rem; padding: .3rem 0 1rem; }
+        .financial-value { font-size: 1.25rem; font-weight: 800; color: var(--gold-light); }
+        .company-payout-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .5rem; }
+        .company-payout-item { display: flex; justify-content: space-between; gap: .5rem; padding: .6rem; border: 1px solid var(--border); border-radius: 9px; color: var(--text-muted); font-size: .72rem; }
+        .company-payout-item strong { color: var(--text); }
 
         .notif-list { display: flex; flex-direction: column; }
         .notif-item {
