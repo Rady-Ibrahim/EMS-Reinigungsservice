@@ -24,8 +24,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
+        'company_id',
         'locale',
         'is_active',
         'last_login_at',
@@ -135,6 +137,11 @@ class User extends Authenticatable
      *
      * @return array<int, string>
      */
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function routeNotificationForOneSignal(): array
     {
         return $this->deviceTokens()

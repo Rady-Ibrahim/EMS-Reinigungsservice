@@ -595,6 +595,8 @@
                         <div class="sp-section-title">${T.details}</div>
                         <div class="sp-row"><span class="sp-ico">🏷️</span><span class="sp-k">${T.type}</span><span class="sp-v">${escapeHtml(m.type_label || layer)} ${statusBadge}</span></div>
                         ${meta.customer_name ? '<div class="sp-row"><span class="sp-ico">🏢</span><span class="sp-k">' + T.customer + '</span><span class="sp-v">' + escapeHtml(meta.customer_name) + '</span></div>' : ''}
+                        ${meta.company_name ? '<div class="sp-row"><span class="sp-ico">🏭</span><span class="sp-k">' + T.company + '</span><span class="sp-v">' + escapeHtml(meta.company_name) + '</span></div>' : ''}
+                        ${meta.company_payout ? '<div class="sp-row"><span class="sp-ico">💰</span><span class="sp-k">' + T.payout + '</span><span class="sp-v">' + escapeHtml(parseFloat(meta.company_payout).toFixed(2).replace('.', ',')) + ' €</span></div>' : ''}
                         <div class="sp-row"><span class="sp-ico">📍</span><span class="sp-k">${T.location}</span><span class="sp-v">${escapeHtml(m.location || '—')}</span></div>
                         <div class="sp-row"><span class="sp-ico">👤</span><span class="sp-k">${T.staff}</span><span class="sp-v">${escapeHtml(empList)}</span></div>
                         <div class="sp-duo">

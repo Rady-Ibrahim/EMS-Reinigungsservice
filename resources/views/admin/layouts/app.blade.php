@@ -541,6 +541,9 @@
                 <a href="{{ route('admin.extra-auftraege.index') }}" class="nav-link {{ request()->routeIs('admin.extra-auftraege*') ? 'active' : '' }}">
                     <span class="nav-ico">📋</span> {{ __('messages.nav.extra_orders') }}
                 </a>
+                <a href="{{ route('admin.companies.index') }}" class="nav-link {{ request()->routeIs('admin.companies*') ? 'active' : '' }}">
+                    <span class="nav-ico">🏭</span> {{ __('company.company') }}
+                </a>
             </div>
 
             <div class="nav-section">

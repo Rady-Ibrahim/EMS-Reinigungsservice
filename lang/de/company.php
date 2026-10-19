@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title'          => 'Unternehmen',
+    'company'        => 'Unternehmen',
+    'none'           => 'Kein Unternehmen',
+    'name'           => 'Name',
+    'contact_person' => 'Kontaktperson',
+    'phone'          => 'Telefon',
+    'notes'          => 'Notizen',
+    'employees'      => 'Mitarbeiter',
+    'new'            => 'Unternehmen hinzufügen',
+    'edit'           => 'Unternehmen bearbeiten',
+    'actions'        => 'Aktionen',
+    'save'           => 'Speichern',
+    'cancel'         => 'Abbrechen',
+    'delete'         => 'Löschen',
+    'confirm_delete' => 'Unternehmen wirklich löschen?',
+    'no_companies'   => 'Keine Unternehmen gefunden.',
+    'details'        => 'Details',
+    'back'           => 'Zurück',
+    'payout'         => 'Unternehmensvergütung (€)',
+    'payout_hint'    => 'Betrag, den das Unternehmen für diese Leistung erhält.',
+    'no_employees'   => 'Keine Mitarbeiter zugeordnet',
+    'select'         => 'Unternehmen wählen',
+];

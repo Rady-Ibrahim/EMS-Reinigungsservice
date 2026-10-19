@@ -24,8 +24,9 @@ class UpdateEmployeeRequest extends FormRequest
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', Password::min(8)->mixedCase()->numbers()],
-            'role'     => ['required', Rule::in([RoleEnum::Vorarbeiter->value, RoleEnum::Mitarbeiter->value])],
-            'locale'   => ['required', 'in:de,ar,en'],
+            'role'       => ['required', Rule::in([RoleEnum::Vorarbeiter->value, RoleEnum::Mitarbeiter->value])],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'locale'     => ['required', 'in:de,ar,en'],
             'is_active'=> ['boolean'],
 
             // Profile fields

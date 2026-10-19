@@ -22,7 +22,7 @@ class ExtraAuftrag extends Model
 
     protected $table = 'extra_auftraege';
 
-    protected array $auditExclude = ['price', 'internal_cost', 'price_per_hour', 'profit_margin'];
+    protected array $auditExclude = ['price', 'internal_cost', 'price_per_hour', 'profit_margin', 'company_payout'];
 
     protected $fillable = [
         'customer_id',
@@ -43,10 +43,12 @@ class ExtraAuftrag extends Model
         'has_alarm_system',
         'has_key_safe',
         'price',
+        'company_id',
         'price_per_hour',
         'profit_margin',
         'profit_margin_type',
         'internal_cost',
+        'company_payout',
         'attachment_path',
         'attachment_name',
         'attachment_mime',
@@ -86,6 +88,7 @@ class ExtraAuftrag extends Model
             'price_per_hour'       => 'encrypted',
             'profit_margin'        => 'encrypted',
             'internal_cost'        => 'encrypted',
+            'company_payout'       => 'encrypted',
         ];
     }
 
@@ -99,6 +102,11 @@ class ExtraAuftrag extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(CustomerLocation::class, 'location_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function creator(): BelongsTo

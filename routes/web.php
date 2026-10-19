@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragDocumentController;
+use App\Http\Controllers\Web\Admin\CompanyController;
 use App\Http\Controllers\Web\Admin\FixObjectController;
 use App\Http\Controllers\Web\Admin\FixObjectDocumentController;
 use App\Http\Controllers\Web\Admin\InternalEventController;
@@ -89,6 +90,9 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
     Route::get('complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
     Route::patch('complaints/{complaint}/status', [ComplaintController::class, 'updateStatus'])->name('complaints.status.update');
     Route::patch('complaints/{complaint}/assign', [ComplaintController::class, 'assign'])->name('complaints.assign');
+
+    // ── Companies ─────────────────────────────────────────────────────────
+    Route::resource('companies', CompanyController::class);
 
     // ── Employees ─────────────────────────────────────────────────────────
     Route::resource('employees', EmployeeController::class);

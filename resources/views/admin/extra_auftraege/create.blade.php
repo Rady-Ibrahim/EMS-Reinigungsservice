@@ -52,6 +52,24 @@
 
         <div class="form-row">
             <div class="form-group">
+                <label>{{ __('company.company') }}</label>
+                <select name="company_id" id="companySelect">
+                    <option value="">{{ __('company.none') }}</option>
+                    @foreach($companies as $company)
+                    <option value="{{ $company->id }}" {{ (string) old('company_id') === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="form-group">
+                <label>{{ __('company.payout') }}</label>
+                <input type="number" name="company_payout" step="0.01" min="0" value="{{ old('company_payout') }}">
+                <small style="color:var(--text-faint)">{{ __('company.payout_hint') }}</small>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
                 <label>{{ __('extra_order.label_date') }}</label>
                 <input type="date" name="scheduled_date" value="{{ old('scheduled_date') }}" required>
             </div>
@@ -81,10 +99,10 @@
 
         <div id="assigneeList">
             <div class="form-row assignee-row" style="margin-bottom:.5rem">
-                <select name="assignees[0][user_id]" style="flex:2" required>
+                <select name="assignees[0][user_id]" class="assignee-user" style="flex:2" required>
                     <option value="">{{ __('extra_order.select_employee_placeholder') }}</option>
                     @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $emp->role->label() }})</option>
+                    <option value="{{ $emp->id }}" data-company="{{ $emp->company_id }}">{{ $emp->name }} ({{ $emp->role->label() }})</option>
                     @endforeach
                 </select>
                 <select name="assignees[0][role_in_order]" style="flex:1" required>
@@ -206,7 +224,28 @@
 <script>
 let assigneeCount = 1;
 let checklistCount = 1;
-const employees = @json($employees->map(fn($e) => ['id' => $e->id, 'name' => $e->name . ' (' . $e->role->label() . ')']));
+const employees = @json($employees->map(fn($e) => ['id' => $e->id, 'name' => $e->name . ' (' . $e->role->label() . ')', 'company' => $e->company_id]));
+const allEmployeeOptions = `<option value="">{{ __('extra_order.select_employee_placeholder') }}</option>` +
+    employees.map(e => `<option value="${e.id}" data-company="${e.company ?? ''}">${e.name}</option>`).join('');
+
+function filteredEmployeeOptions(companyId) {
+    if (!companyId) { return allEmployeeOptions; }
+    const list = employees.filter(e => String(e.company) === String(companyId));
+    return `<option value="">{{ __('extra_order.select_employee_placeholder') }}</option>` +
+        list.map(e => `<option value="${e.id}" data-company="${e.company ?? ''}">${e.name}</option>`).join('');
+}
+
+function applyCompanyFilter() {
+    const companyId = document.getElementById('companySelect').value;
+    document.querySelectorAll('.assignee-user').forEach(sel => {
+        const current = sel.value;
+        sel.innerHTML = filteredEmployeeOptions(companyId);
+        sel.value = current;
+    });
+}
+
+document.getElementById('companySelect').addEventListener('change', applyCompanyFilter);
+document.addEventListener('DOMContentLoaded', applyCompanyFilter);
 
 document.getElementById('customerSelect').addEventListener('change', function () {
     const customerId = this.value;
@@ -227,13 +266,13 @@ document.getElementById('customerSelect').addEventListener('change', function ()
 
 function addAssignee() {
     const list = document.getElementById('assigneeList');
+    const companyId = document.getElementById('companySelect').value;
     const row = document.createElement('div');
     row.className = 'form-row assignee-row';
     row.style.marginBottom = '.5rem';
-    let opts = employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     row.innerHTML = `
-        <select name="assignees[${assigneeCount}][user_id]" style="flex:2" required>
-            <option value="">{{ __('extra_order.select_employee_placeholder') }}</option>${opts}
+        <select name="assignees[${assigneeCount}][user_id]" class="assignee-user" style="flex:2" required>
+            ${filteredEmployeeOptions(companyId)}
         </select>
         <select name="assignees[${assigneeCount}][role_in_order]" style="flex:1">
             <option value="leader">{{ __('extra_order.role_leader') }}</option>

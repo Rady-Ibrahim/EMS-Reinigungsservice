@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title'          => 'Companies',
+    'company'        => 'Company',
+    'none'           => 'No company',
+    'name'           => 'Name',
+    'contact_person' => 'Contact person',
+    'phone'          => 'Phone',
+    'notes'          => 'Notes',
+    'employees'      => 'Employees',
+    'new'            => 'Add company',
+    'edit'           => 'Edit company',
+    'actions'        => 'Actions',
+    'save'           => 'Save',
+    'cancel'         => 'Cancel',
+    'delete'         => 'Delete',
+    'confirm_delete' => 'Really delete this company?',
+    'no_companies'   => 'No companies found.',
+    'details'        => 'Details',
+    'back'           => 'Back',
+    'payout'         => 'Company payout (€)',
+    'payout_hint'    => 'Amount the company receives for this job.',
+    'no_employees'   => 'No employees assigned',
+    'select'         => 'Select company',
+];

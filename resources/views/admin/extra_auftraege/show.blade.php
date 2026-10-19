@@ -65,17 +65,23 @@
                 @endif
             </td></tr>
             <tr><td style="color:#64748b">{{ __('extra_order.created_by') }}</td><td>{{ $extraAuftrag->creator->name }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('company.company') }}</td><td>{{ $extraAuftrag->company?->name ?? '—' }}</td></tr>
         </table>
         @if($extraAuftrag->description)
         <div style="margin-top:.75rem;padding:.65rem;background:#f8fafc;border-radius:6px;font-size:.85rem">
             {{ $extraAuftrag->description }}
         </div>
         @endif
-        @if($extraAuftrag->price)
+        @if($extraAuftrag->price || $extraAuftrag->company_payout)
         <div style="margin-top:.75rem;padding:.65rem;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.85rem">
+            @if($extraAuftrag->price)
             💰 {{ __('extra_order.price_label') }}: <strong>{{ number_format((float)$extraAuftrag->price, 2) }} €</strong>
+            @endif
             @if($extraAuftrag->internal_cost)
             | {{ __('extra_order.cost_label') }}: {{ number_format((float)$extraAuftrag->internal_cost, 2) }} €
+            @endif
+            @if($extraAuftrag->company_payout)
+            <br>{{ __('company.payout') }}: <strong>{{ number_format((float)$extraAuftrag->company_payout, 2) }} €</strong>
             @endif
         </div>
         @endif

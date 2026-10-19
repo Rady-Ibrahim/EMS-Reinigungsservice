@@ -7,13 +7,14 @@ use App\Enums\FileVisibilityEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\FixObject\StoreFixObjectRequest;
 use App\Http\Requests\Admin\FixObject\UpdateFixObjectRequest;
+use App\Models\Company;
 use App\Models\Customer;
 use App\Models\FixObject;
 use App\Models\FixObjectAssignment;
-use App\Models\User;
 use App\Services\ContractHoursCalculator;
 use App\Services\DocumentService;
 use App\Services\FixObjectService;
+use App\Services\ScheduleGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,22 +27,24 @@ class FixObjectController extends Controller
     ];
 
     public function __construct(
-        private readonly FixObjectService        $service,
+        private readonly FixObjectService $service,
         private readonly ContractHoursCalculator $calculator,
-        private readonly DocumentService         $documents
-    ) {
-    }
+        private readonly DocumentService $documents
+    ) {}
 
     public function index(): View
     {
         $fixObjects = $this->service->paginate();
+
         return view('admin.fix_objects.index', compact('fixObjects'));
     }
 
     public function create(): View
     {
         $customers = Customer::active()->orderBy('name')->get(['id', 'name']);
-        return view('admin.fix_objects.create', compact('customers'));
+        $companies = Company::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.fix_objects.create', compact('customers', 'companies'));
     }
 
     public function store(StoreFixObjectRequest $request): RedirectResponse
@@ -52,14 +55,14 @@ class FixObjectController extends Controller
         $this->storeDocument($request, $fixObject);
 
         return redirect()->route('admin.fix-objects.show', $fixObject)
-                         ->with('success', __('messages.success'));
+            ->with('success', __('messages.success'));
     }
 
     public function show(FixObject $fixObject): View
     {
-        $fixObject->load(['customer', 'location', 'assignments.user', 'documents.uploader']);
+        $fixObject->load(['customer', 'location', 'company', 'assignments.user', 'documents.uploader']);
 
-        $now           = Carbon::now();
+        $now = Carbon::now();
         $contractHours = $this->calculator->monthlyHours($fixObject, $now->year, $now->month);
 
         $schedules = $fixObject->schedules()
@@ -74,8 +77,10 @@ class FixObjectController extends Controller
     public function edit(FixObject $fixObject): View
     {
         $customers = Customer::active()->orderBy('name')->get(['id', 'name']);
+        $companies = Company::orderBy('name')->get(['id', 'name']);
         $fixObject->load(['customer', 'location', 'documents']);
-        return view('admin.fix_objects.edit', compact('fixObject', 'customers'));
+
+        return view('admin.fix_objects.edit', compact('fixObject', 'customers', 'companies'));
     }
 
     public function update(UpdateFixObjectRequest $request, FixObject $fixObject): RedirectResponse
@@ -86,14 +91,15 @@ class FixObjectController extends Controller
         $this->storeDocument($request, $fixObject);
 
         return redirect()->route('admin.fix-objects.show', $fixObject)
-                         ->with('success', __('messages.success'));
+            ->with('success', __('messages.success'));
     }
 
     public function destroy(FixObject $fixObject): RedirectResponse
     {
         $this->service->delete($fixObject);
+
         return redirect()->route('admin.fix-objects.index')
-                         ->with('success', __('messages.success'));
+            ->with('success', __('messages.success'));
     }
 
     // ── Assignments ────────────────────────────────────────────────────────
@@ -101,9 +107,9 @@ class FixObjectController extends Controller
     public function storeAssignment(Request $request, FixObject $fixObject): RedirectResponse
     {
         $request->validate([
-            'user_id'       => ['required', 'exists:users,id'],
+            'user_id' => ['required', 'exists:users,id'],
             'assigned_from' => ['required', 'date'],
-            'assigned_until'=> ['nullable', 'date', 'after_or_equal:assigned_from'],
+            'assigned_until' => ['nullable', 'date', 'after_or_equal:assigned_from'],
         ]);
 
         $this->service->assignEmployee(
@@ -119,6 +125,7 @@ class FixObjectController extends Controller
     public function destroyAssignment(FixObject $fixObject, FixObjectAssignment $assignment): RedirectResponse
     {
         $this->service->removeAssignment($assignment);
+
         return back()->with('success', __('messages.success'));
     }
 
@@ -127,11 +134,11 @@ class FixObjectController extends Controller
     public function generateSchedules(Request $request, FixObject $fixObject): RedirectResponse
     {
         $request->validate([
-            'year'  => ['required', 'integer', 'min:2020', 'max:2099'],
+            'year' => ['required', 'integer', 'min:2020', 'max:2099'],
             'month' => ['required', 'integer', 'min:1', 'max:12'],
         ]);
 
-        $count = app(\App\Services\ScheduleGeneratorService::class)
+        $count = app(ScheduleGeneratorService::class)
             ->generateForMonth($fixObject, $request->integer('year'), $request->integer('month'));
 
         return back()->with('success', "✓ {$count} Termine wurden erstellt.");
@@ -164,11 +171,12 @@ class FixObjectController extends Controller
      */
     private function prepareFinancialData(array $data): array
     {
-        foreach (['price_per_month', 'price_per_hour', 'internal_cost', 'profit_margin'] as $field) {
+        foreach (['price_per_month', 'price_per_hour', 'internal_cost', 'profit_margin', 'company_payout'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = (string) $data[$field];
             }
         }
+
         return $data;
     }
 }

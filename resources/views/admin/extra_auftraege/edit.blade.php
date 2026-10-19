@@ -87,6 +87,25 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ __('company.company') }}</label>
+                <select name="company_id">
+                    <option value="">{{ __('company.none') }}</option>
+                    @foreach($companies as $company)
+                    <option value="{{ $company->id }}" {{ (string) old('company_id', $extraAuftrag->company_id) === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="form-group">
+                <label>{{ __('company.payout') }}</label>
+                <input type="number" name="company_payout" step="0.01" min="0"
+                       value="{{ old('company_payout', $extraAuftrag->company_payout) }}">
+                <small style="color:var(--text-faint)">{{ __('company.payout_hint') }}</small>
+            </div>
+        </div>
+
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">
         <h2 style="font-size:1rem;margin-bottom:.5rem;color:#475569">🔒 {{ __('extra_order.section_documents_intern') }}</h2>
         <div class="form-row">

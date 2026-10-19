@@ -7,6 +7,7 @@ use App\Enums\FileVisibilityEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ExtraAuftrag\StoreExtraAuftragRequest;
 use App\Http\Requests\Admin\ExtraAuftrag\UpdateExtraAuftragRequest;
+use App\Models\Company;
 use App\Models\Customer;
 use App\Models\ExtraAuftrag;
 use App\Models\User;
@@ -28,13 +29,13 @@ class ExtraAuftragController extends Controller
 
     public function __construct(
         private readonly ExtraAuftragService $service,
-        private readonly DocumentService     $documents
-    ) {
-    }
+        private readonly DocumentService $documents
+    ) {}
 
     public function index(): View
     {
         $orders = $this->service->paginate();
+
         return view('admin.extra_auftraege.index', compact('orders'));
     }
 
@@ -42,19 +43,21 @@ class ExtraAuftragController extends Controller
     {
         $customers = Customer::active()->orderBy('name')->get(['id', 'name']);
         $employees = User::whereIn('role', ['vorarbeiter', 'mitarbeiter'])
-                         ->where('is_active', true)
-                         ->orderBy('name')
-                         ->with('employeeProfile:user_id,calendar_color')
-                         ->get(['id', 'name', 'role']);
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->with('employeeProfile:user_id,calendar_color')
+            ->get(['id', 'name', 'role', 'company_id']);
 
-        return view('admin.extra_auftraege.create', compact('customers', 'employees'));
+        $companies = Company::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.extra_auftraege.create', compact('customers', 'employees', 'companies'));
     }
 
     public function store(StoreExtraAuftragRequest $request): RedirectResponse
     {
-        $validated  = $request->validated();
-        $assignees  = $validated['assignees'];
-        $orderData  = $this->prepareOrderData(collect($validated)->except(array_merge(['assignees', 'attachment'], self::DOCUMENT_FIELDS))->all());
+        $validated = $request->validated();
+        $assignees = $validated['assignees'];
+        $orderData = $this->prepareOrderData(collect($validated)->except(array_merge(['assignees', 'attachment'], self::DOCUMENT_FIELDS))->all());
 
         $order = $this->service->create($orderData, $assignees);
 
@@ -65,13 +68,13 @@ class ExtraAuftragController extends Controller
         $this->storeDocuments($request, $order);
 
         return redirect()->route('admin.extra-auftraege.show', $order)
-                         ->with('success', __('messages.success'));
+            ->with('success', __('messages.success'));
     }
 
     public function show(ExtraAuftrag $extraAuftrag): View
     {
         $extraAuftrag->load([
-            'customer', 'location', 'creator',
+            'customer', 'location', 'company', 'creator',
             'assignees.user.employeeProfile',
             'executions.employee',
             'travelTracks.employee',
@@ -85,19 +88,22 @@ class ExtraAuftragController extends Controller
     {
         $customers = Customer::active()->orderBy('name')->get(['id', 'name']);
         $employees = User::whereIn('role', ['vorarbeiter', 'mitarbeiter'])
-                         ->where('is_active', true)
-                         ->orderBy('name')
-                         ->get(['id', 'name', 'role']);
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'role', 'company_id']);
+
+        $companies = Company::orderBy('name')->get(['id', 'name']);
 
         $extraAuftrag->load(['assignees', 'documents']);
-        return view('admin.extra_auftraege.edit', compact('extraAuftrag', 'customers', 'employees'));
+
+        return view('admin.extra_auftraege.edit', compact('extraAuftrag', 'customers', 'employees', 'companies'));
     }
 
     public function update(UpdateExtraAuftragRequest $request, ExtraAuftrag $extraAuftrag): RedirectResponse
     {
-        $validated  = $request->validated();
-        $assignees  = $validated['assignees'] ?? null;
-        $orderData  = $this->prepareOrderData(collect($validated)->except(array_merge(['assignees', 'attachment'], self::DOCUMENT_FIELDS))->all());
+        $validated = $request->validated();
+        $assignees = $validated['assignees'] ?? null;
+        $orderData = $this->prepareOrderData(collect($validated)->except(array_merge(['assignees', 'attachment'], self::DOCUMENT_FIELDS))->all());
 
         $this->service->update($extraAuftrag, $orderData, $assignees);
 
@@ -109,7 +115,7 @@ class ExtraAuftragController extends Controller
         $this->storeDocuments($request, $extraAuftrag);
 
         return redirect()->route('admin.extra-auftraege.show', $extraAuftrag)
-                         ->with('success', __('messages.success'));
+            ->with('success', __('messages.success'));
     }
 
     /**
@@ -170,7 +176,7 @@ class ExtraAuftragController extends Controller
     {
         $data['created_by'] = Auth::id();
 
-        foreach (['price', 'price_per_hour', 'profit_margin', 'internal_cost'] as $field) {
+        foreach (['price', 'price_per_hour', 'profit_margin', 'internal_cost', 'company_payout'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = (string) $data[$field];
             }
@@ -178,8 +184,8 @@ class ExtraAuftragController extends Controller
 
         // Build checklist template from submitted tasks
         if (isset($data['checklist_template']) && is_array($data['checklist_template'])) {
-            $data['checklist_template'] = array_map(fn($item) => [
-                'task'      => is_array($item) ? ($item['task'] ?? null) : $item,
+            $data['checklist_template'] = array_map(fn ($item) => [
+                'task' => is_array($item) ? ($item['task'] ?? null) : $item,
                 'completed' => false,
             ], $data['checklist_template']);
         }

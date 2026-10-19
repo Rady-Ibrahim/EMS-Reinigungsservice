@@ -14,8 +14,7 @@ class CalendarController extends Controller
     public function __construct(
         private readonly CalendarEngineService $engine,
         private readonly ConflictCheckerService $conflicts
-    ) {
-    }
+    ) {}
 
     /**
      * GET /api/v1/calendar?from=&to=&layers=
@@ -28,10 +27,10 @@ class CalendarController extends Controller
     public function index(Request $request): JsonResponse
     {
         $request->validate([
-            'from'          => ['nullable', 'date'],
-            'to'            => ['nullable', 'date', 'after_or_equal:from'],
-            'layers'        => ['nullable'],
-            'employee'      => ['nullable', 'integer'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'layers' => ['nullable'],
+            'employee' => ['nullable', 'integer'],
             // Deliberately NOT `boolean`: that rule only accepts 1/0/true/false
             // after PHP casts them, and rejects the literal string "true" the
             // mobile client puts in the query string. Accepted values are
@@ -44,7 +43,7 @@ class CalendarController extends Controller
         // The mobile home screen calls this without a range to render "today".
         // Defaulting to a 7-day window keeps the "range required" contract
         // intact for everyone else while letting the app fire a bare call.
-        $to   = Carbon::parse($request->input('to') ?: now())->endOfDay();
+        $to = Carbon::parse($request->input('to') ?: now())->endOfDay();
         $from = Carbon::parse($request->input('from') ?: now()->subDays(6))->startOfDay();
 
         $layers = $this->parseLayers($request->input('layers'));
@@ -71,15 +70,26 @@ class CalendarController extends Controller
         );
 
         return response()->json([
-            'data'    => $events->map(fn($e) => $e->toArray())->values(),
-            'layers'  => $this->engine->layerDefinitions(),
-            'meta'    => [
-                'conflict_count' => $events->filter(fn($e) => $e->hasConflicts())->count(),
-                'from'           => $from->toDateString(),
-                'to'             => $to->toDateString(),
-                'personal'       => $showPersonal,
+            'data' => $events->map(fn ($e) => $this->mobileSafe($e->toArray()))->values(),
+            'layers' => $this->engine->layerDefinitions(),
+            'meta' => [
+                'conflict_count' => $events->filter(fn ($e) => $e->hasConflicts())->count(),
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'personal' => $showPersonal,
             ],
         ]);
+    }
+
+    /**
+     * Company name and the company payout are internal planning data and must
+     * never reach the mobile app (admin-only, see the Companies feature).
+     */
+    private function mobileSafe(array $event): array
+    {
+        unset($event['metadata']['company_name'], $event['metadata']['company_payout']);
+
+        return $event;
     }
 
     /**
@@ -109,9 +119,9 @@ class CalendarController extends Controller
         }
 
         if (is_array($value)) {
-            return array_values(array_filter($value, fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
+            return array_values(array_filter($value, fn ($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
         }
 
-        return array_values(array_filter(explode(',', (string) $value), fn($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
+        return array_values(array_filter(explode(',', (string) $value), fn ($v) => in_array($v, ['fix', 'extra', 'shifts', 'personal', 'internal'], true)));
     }
 }

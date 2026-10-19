@@ -128,6 +128,8 @@ return [
         'customer'         => 'Kunde',
         'location'         => 'Ort',
         'staff'            => 'Personal',
+        'company'          => 'Firma',
+        'payout'           => 'Firmenauszahlung',
         'start'            => 'Beginn',
         'end'              => 'Ende',
         'nav'              => 'Navigation starten',

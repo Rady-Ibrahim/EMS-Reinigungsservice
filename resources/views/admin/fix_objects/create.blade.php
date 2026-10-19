@@ -31,6 +31,19 @@
 
         <div class="form-row">
             <div class="form-group">
+                <label>{{ __('company.company') }}</label>
+                <select name="company_id" id="companySelect">
+                    <option value="">{{ __('company.none') }}</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}" {{ (string) old('company_id') === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
                 <label>{{ __('fix_object.title_label') }}</label>
                 <input type="text" name="title" value="{{ old('title') }}" required placeholder="{{ __('fix_object.title_placeholder') }}">
             </div>
@@ -116,6 +129,13 @@
             <div class="form-group">
                 <label>{{ __('fix_object.profit_margin_pct') }}</label>
                 <input type="number" name="profit_margin" step="0.01" value="{{ old('profit_margin') }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ __('company.payout') }}</label>
+                <input type="number" name="company_payout" step="0.01" min="0" value="{{ old('company_payout') }}">
+                <small style="color:var(--text-faint)">{{ __('company.payout_hint') }}</small>
             </div>
         </div>
         <div class="form-group">

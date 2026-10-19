@@ -27,12 +27,13 @@ class EmployeeService
     {
         return DB::transaction(function () use ($data) {
             $user = User::create([
-                'name'      => $data['name'],
-                'email'     => $data['email'],
-                'password'  => Hash::make($data['password']),
-                'role'      => $data['role'],
-                'locale'    => $data['locale'] ?? 'de',
-                'is_active' => true,
+                'name'       => $data['name'],
+                'email'      => $data['email'],
+                'password'   => Hash::make($data['password']),
+                'role'       => $data['role'],
+                'company_id' => $data['company_id'] ?? null,
+                'locale'     => $data['locale'] ?? 'de',
+                'is_active'  => true,
             ]);
 
             // Observer already created the profile — now update with provided fields
@@ -69,6 +70,11 @@ class EmployeeService
 
             if (! empty($data['password'])) {
                 $userFields['password'] = Hash::make($data['password']);
+            }
+
+            // Allow explicitly clearing the company assignment
+            if (array_key_exists('company_id', $data)) {
+                $userFields['company_id'] = $data['company_id'] ?: null;
             }
 
             $user->update($userFields);

@@ -28,6 +28,7 @@ class StoreExtraAuftragRequest extends FormRequest
             'scheduled_time_start' => ['nullable', 'date_format:H:i'],
             'estimated_hours'      => ['nullable', 'numeric', 'min:0.25', 'max:24'],
             'is_travel_time_paid'  => ['boolean'],
+            'company_id'           => ['nullable', 'integer', 'exists:companies,id'],
             'checklist_template'   => ['nullable', 'array'],
             'checklist_template.*.task' => ['required_with:checklist_template', 'string', 'max:255'],
             'price'                => ['nullable', 'numeric', 'min:0'],
@@ -35,6 +36,7 @@ class StoreExtraAuftragRequest extends FormRequest
             'profit_margin'        => ['nullable', 'numeric'],
             'profit_margin_type'   => ['nullable', 'in:eur,pct'],
             'internal_cost'        => ['nullable', 'numeric', 'min:0'],
+            'company_payout'       => ['nullable', 'numeric', 'min:0'],
             'internal_notes'       => ['nullable', 'string'],
             'attachment'           => ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,webp,heic,doc,docx'],
             // Intern (admin-only) document section

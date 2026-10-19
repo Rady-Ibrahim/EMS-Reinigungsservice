@@ -24,7 +24,9 @@ class EmployeeController extends Controller
 
     public function create(): View
     {
-        return view('admin.employees.create');
+        $companies = \App\Models\Company::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.employees.create', compact('companies'));
     }
 
     public function store(StoreEmployeeRequest $request): RedirectResponse
@@ -46,7 +48,8 @@ class EmployeeController extends Controller
     {
         abort_if($employee->isAdministrator(), 404);
         $employee->load('employeeProfile');
-        return view('admin.employees.edit', compact('employee'));
+        $companies = \App\Models\Company::orderBy('name')->get(['id', 'name']);
+        return view('admin.employees.edit', compact('employee', 'companies'));
     }
 
     public function update(UpdateEmployeeRequest $request, User $employee): RedirectResponse

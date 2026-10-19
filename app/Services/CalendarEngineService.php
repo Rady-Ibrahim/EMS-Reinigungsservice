@@ -9,6 +9,7 @@ use App\Models\ExtraAuftrag;
 use App\Models\FixObjectSchedule;
 use App\Models\InternalEvent;
 use App\Models\PersonalAppointment;
+use App\Models\PersonalEvent;
 use App\ValueObjects\CalendarEvent;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Route;
  * Layer keys: fix | extra | shifts | personal | internal
  *
  * The `personal` and `internal` layers are two views onto the same
- * `personal_events` table (see {@see \App\Models\PersonalEvent}); `personal`
+ * `personal_events` table (see {@see PersonalEvent}); `personal`
  * holds a user's private entries and can be switched off with the
  * `show_personal` option without affecting company events.
  */
@@ -31,9 +32,9 @@ class CalendarEngineService
 {
     /** Default layer color per layer key. */
     public const COLORS = [
-        'fix'      => '#D4AF37',   // Fixobjekte — the signature EMS gold
-        'extra'    => '#3b82f6',
-        'shifts'   => '#10b981',
+        'fix' => '#D4AF37',   // Fixobjekte — the signature EMS gold
+        'extra' => '#3b82f6',
+        'shifts' => '#10b981',
         'personal' => '#8b5cf6',
         'internal' => '#f59e0b',
     ];
@@ -59,9 +60,9 @@ class CalendarEngineService
      * @param  array<string>  $layers  layer keys; empty = all layers
      * @param  int|null  $employeeId  only events booking this employee
      * @param  array{show_personal?: bool, viewer_id?: int|null}  $options
-     *        show_personal — include a user's private entries (default true).
-     *        viewer_id     — whose private entries may be shown at all;
-     *                        null means "no restriction" (admin planning view).
+     *                                                                      show_personal — include a user's private entries (default true).
+     *                                                                      viewer_id     — whose private entries may be shown at all;
+     *                                                                      null means "no restriction" (admin planning view).
      */
     public function forRange(
         CarbonInterface $from,
@@ -73,12 +74,12 @@ class CalendarEngineService
         $layers = empty($layers) ? array_column($this->layerDefinitions(), 'key') : array_values($layers);
 
         $showPersonal = (bool) ($options['show_personal'] ?? true);
-        $viewerId     = array_key_exists('viewer_id', $options) ? $options['viewer_id'] : $employeeId;
+        $viewerId = array_key_exists('viewer_id', $options) ? $options['viewer_id'] : $employeeId;
 
         $dateFrom = $from->toDateString();
-        $dateTo   = $to->toDateString();
-        $tzFrom   = $from->copy()->startOfDay();
-        $tzTo     = $to->copy()->endOfDay();
+        $dateTo = $to->toDateString();
+        $tzFrom = $from->copy()->startOfDay();
+        $tzTo = $to->copy()->endOfDay();
 
         $events = collect();
 
@@ -99,7 +100,7 @@ class CalendarEngineService
         }
 
         return $events
-            ->sortBy(fn(CalendarEvent $e) => $e->startAt->timestamp)
+            ->sortBy(fn (CalendarEvent $e) => $e->startAt->timestamp)
             ->values();
     }
 
@@ -111,12 +112,14 @@ class CalendarEngineService
     public function forWeek(CarbonInterface $dayInWeek, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
         $start = $dayInWeek->copy()->startOfWeek();
+
         return $this->forRange($start, $start->copy()->endOfWeek(), $layers, $employeeId, $options);
     }
 
     public function forMonth(CarbonInterface $dayInMonth, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
         $start = $dayInMonth->copy()->startOfMonth();
+
         return $this->forRange($start, $start->copy()->endOfMonth(), $layers, $employeeId, $options);
     }
 
@@ -128,7 +131,7 @@ class CalendarEngineService
     public function agenda(CarbonInterface $from, CarbonInterface $to, array $layers = [], ?int $employeeId = null, array $options = []): Collection
     {
         return $this->forRange($from, $to, $layers, $employeeId, $options)
-            ->sortBy(fn(CalendarEvent $e) => [$e->startAt->timestamp, $e->endAt->timestamp])
+            ->sortBy(fn (CalendarEvent $e) => [$e->startAt->timestamp, $e->endAt->timestamp])
             ->values();
     }
 
@@ -140,12 +143,12 @@ class CalendarEngineService
     public function eventForSource(Model $model): ?CalendarEvent
     {
         return match (true) {
-            $model instanceof FixObjectSchedule  => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location:id,name,city', 'fixObject.documents'])),
-            $model instanceof ExtraAuftrag       => $this->normalizeExtra($model->loadMissing(['customer:id,name', 'location:id,name,city', 'assignees', 'documents'])),
-            $model instanceof EmployeeShift      => $this->normalizeShift($model->loadMissing(['user.employeeProfile'])),
+            $model instanceof FixObjectSchedule => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location:id,name,city', 'fixObject.documents'])),
+            $model instanceof ExtraAuftrag => $this->normalizeExtra($model->loadMissing(['customer:id,name', 'location:id,name,city', 'assignees', 'documents'])),
+            $model instanceof EmployeeShift => $this->normalizeShift($model->loadMissing(['user.employeeProfile'])),
             $model instanceof PersonalAppointment => $this->normalizePersonal($model),
-            $model instanceof InternalEvent      => $this->normalizeInternal($model->loadMissing(['assignees'])),
-            default                              => null,
+            $model instanceof InternalEvent => $this->normalizeInternal($model->loadMissing(['assignees'])),
+            default => null,
         };
     }
 
@@ -158,6 +161,7 @@ class CalendarEngineService
                 'fixObject.customer:id,name',
                 'fixObject.location:id,name,city,street,house_number',
                 'fixObject.assignments',
+                'fixObject.company',
                 'fixObject.documents',
                 'scheduleAssignments',
             ])
@@ -182,7 +186,7 @@ class CalendarEngineService
     private function extraEvents(string $from, string $to, ?int $employeeId): Collection
     {
         $orders = ExtraAuftrag::whereBetween('scheduled_date', [$from, $to])
-            ->with(['customer:id,name', 'location:id,name,city,street,house_number', 'assignees', 'documents'])
+            ->with(['customer:id,name', 'location:id,name,city,street,house_number', 'company', 'assignees', 'documents'])
             ->get();
 
         $output = collect();
@@ -202,10 +206,10 @@ class CalendarEngineService
     {
         $shifts = EmployeeShift::forDateRange($from, $to)
             ->with(['user.employeeProfile'])
-            ->when($employeeId !== null, fn($q) => $q->where('user_id', $employeeId))
+            ->when($employeeId !== null, fn ($q) => $q->where('user_id', $employeeId))
             ->get();
 
-        return $shifts->map(fn($shift) => $this->normalizeShift($shift));
+        return $shifts->map(fn ($shift) => $this->normalizeShift($shift));
     }
 
     private function personalEvents(CarbonInterface $from, CarbonInterface $to, ?int $employeeId, ?int $viewerId = null): Collection
@@ -213,20 +217,20 @@ class CalendarEngineService
         $appointments = PersonalAppointment::forDateRange($from, $to)
             ->visibleTo($viewerId)
             ->with(['user:id,name'])
-            ->when($employeeId !== null, fn($q) => $q->where('user_id', $employeeId))
+            ->when($employeeId !== null, fn ($q) => $q->where('user_id', $employeeId))
             ->get();
 
-        return $appointments->map(fn($appt) => $this->normalizePersonal($appt));
+        return $appointments->map(fn ($appt) => $this->normalizePersonal($appt));
     }
 
     private function internalEvents(CarbonInterface $from, CarbonInterface $to, ?int $employeeId): Collection
     {
         $events = InternalEvent::forDateRange($from, $to)
             ->with(['user:id,name', 'assignees.user:id,name'])
-            ->when($employeeId !== null, fn($q) => $q->forUser($employeeId))
+            ->when($employeeId !== null, fn ($q) => $q->forUser($employeeId))
             ->get();
 
-        return $events->map(fn($event) => $this->normalizeInternal($event));
+        return $events->map(fn ($event) => $this->normalizeInternal($event));
     }
 
     // ── Normalizers ────────────────────────────────────────────────────────
@@ -268,12 +272,14 @@ class CalendarEngineService
             location: $location,
             sourceId: $schedule->id,
             metadata: [
-                'customer_id'   => $fixObject->customer_id,
+                'customer_id' => $fixObject->customer_id,
                 'customer_name' => $fixObject->customer?->name,
                 'fix_object_id' => $fixObject->id,
-                'contract_hours'=> $fixObject->contract_hours,
-                'detail_url'    => $this->routeTo('admin.fix-objects.show', $fixObject->id),
-                'documents'     => $this->documentsMeta($fixObject->documents, 'admin.fix-objects.documents.download'),
+                'contract_hours' => $fixObject->contract_hours,
+                'company_name' => $fixObject->company?->name,
+                'company_payout' => $fixObject->company_payout,
+                'detail_url' => $this->routeTo('admin.fix-objects.show', $fixObject->id),
+                'documents' => $this->documentsMeta($fixObject->documents, 'admin.fix-objects.documents.download'),
             ],
         );
     }
@@ -285,12 +291,12 @@ class CalendarEngineService
 
         if ($allDay) {
             $start = $date->copy()->startOfDay();
-            $end   = $date->copy()->endOfDay();
+            $end = $date->copy()->endOfDay();
         } else {
-            $time  = $order->scheduled_time_start; // 'HH:MM:SS'
+            $time = $order->scheduled_time_start; // 'HH:MM:SS'
             $start = Carbon::parse($date->toDateString().' '.$time);
             $hours = (float) ($order->estimated_hours ?: 1);
-            $end   = $start->copy()->addHours(max($hours, 0.25));
+            $end = $start->copy()->addHours(max($hours, 0.25));
         }
 
         $location = $order->location?->name;
@@ -315,11 +321,13 @@ class CalendarEngineService
             location: $location,
             sourceId: $order->id,
             metadata: [
-                'customer_id'       => $order->customer_id,
-                'customer_name'     => $order->customer?->name,
-                'estimated_hours'   => $order->estimated_hours,
-                'detail_url'        => $this->routeTo('admin.extra-auftraege.show', $order->id),
-                'documents'         => $this->documentsMeta($order->documents, 'admin.extra-auftraege.documents.download'),
+                'customer_id' => $order->customer_id,
+                'customer_name' => $order->customer?->name,
+                'estimated_hours' => $order->estimated_hours,
+                'company_name' => $order->company?->name,
+                'company_payout' => $order->company_payout,
+                'detail_url' => $this->routeTo('admin.extra-auftraege.show', $order->id),
+                'documents' => $this->documentsMeta($order->documents, 'admin.extra-auftraege.documents.download'),
             ],
         );
     }
@@ -361,10 +369,10 @@ class CalendarEngineService
             location: $appointment->location,
             sourceId: $appointment->id,
             metadata: [
-                'owner_name'   => $appointment->user?->name,
-                'is_private'   => (bool) $appointment->is_private,
-                'description'  => $appointment->description,
-                'detail_url'   => $this->routeTo('admin.appointments.edit', $appointment->id),
+                'owner_name' => $appointment->user?->name,
+                'is_private' => (bool) $appointment->is_private,
+                'description' => $appointment->description,
+                'detail_url' => $this->routeTo('admin.appointments.edit', $appointment->id),
             ],
         );
     }
@@ -387,11 +395,11 @@ class CalendarEngineService
             location: $event->location,
             sourceId: $event->id,
             metadata: [
-                'event_type'   => $event->event_type->value,
+                'event_type' => $event->event_type->value,
                 'creator_name' => $event->user?->name,
-                'attendees'    => $event->attendeeIds(),
-                'description'  => $event->description,
-                'detail_url'   => $this->routeTo('admin.calendar.internal-events.index', null),
+                'attendees' => $event->attendeeIds(),
+                'description' => $event->description,
+                'detail_url' => $this->routeTo('admin.calendar.internal-events.index', null),
             ],
         );
     }
@@ -415,7 +423,7 @@ class CalendarEngineService
         }
 
         $start = Carbon::parse($dateStr.' '.$startTime);
-        $end   = Carbon::parse($dateStr.' '.$endTime);
+        $end = Carbon::parse($dateStr.' '.$endTime);
 
         // Times crossing midnight (e.g. 22:00 → 02:00)
         if ($end->lte($start)) {
@@ -438,22 +446,22 @@ class CalendarEngineService
      * Flatten the documents of an owner into lightweight metadata entries for
      * the admin calendar slide-over (title + download link).
      *
-     * @param  \Illuminate\Support\Collection<int, Document>|iterable  $documents
+     * @param  Collection<int, Document>|iterable  $documents
      * @return array<int, array<string, mixed>>
      */
     private function documentsMeta(iterable $documents, string $routeName): array
     {
         $routeExists = Route::has($routeName);
 
-        return collect($documents)->map(fn(Document $document) => [
-            'id'         => $document->id,
-            'title'      => $document->displayTitle(),
-            'notes'      => $document->notes,
-            'category'   => $document->category->value,
+        return collect($documents)->map(fn (Document $document) => [
+            'id' => $document->id,
+            'title' => $document->displayTitle(),
+            'notes' => $document->notes,
+            'category' => $document->category->value,
             'visibility' => $document->visibility->value,
-            'mime_type'  => $document->mime_type,
+            'mime_type' => $document->mime_type,
             'size_bytes' => (int) $document->size_bytes,
-            'url'        => $routeExists
+            'url' => $routeExists
                 ? route($routeName, [$document->documentable_id, $document->id])
                 : null,
         ])->all();

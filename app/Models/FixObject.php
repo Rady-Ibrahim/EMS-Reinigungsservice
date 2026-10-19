@@ -18,7 +18,7 @@ class FixObject extends Model
 
     // Financial fields never included in audit old_values (encrypted, no plaintext in logs)
     protected array $auditExclude = [
-        'price_per_month', 'price_per_hour', 'internal_cost', 'profit_margin',
+        'price_per_month', 'price_per_hour', 'internal_cost', 'profit_margin', 'company_payout',
     ];
 
     protected $fillable = [
@@ -34,10 +34,12 @@ class FixObject extends Model
         'valid_until',
         'is_active',
         'calendar_color',
+        'company_id',
         'price_per_month',
         'price_per_hour',
         'internal_cost',
         'profit_margin',
+        'company_payout',
         'internal_notes',
     ];
 
@@ -55,6 +57,7 @@ class FixObject extends Model
             'price_per_hour'  => 'encrypted',
             'internal_cost'   => 'encrypted',
             'profit_margin'   => 'encrypted',
+            'company_payout'  => 'encrypted',
         ];
     }
 
@@ -68,6 +71,11 @@ class FixObject extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(CustomerLocation::class, 'location_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function assignments(): HasMany

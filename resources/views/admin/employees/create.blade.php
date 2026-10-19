@@ -45,6 +45,16 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>{{ __('company.company') }}</label>
+                <select name="company_id">
+                    <option value="">{{ __('employee.no_company') }}</option>
+                    @foreach($companies as $company)
+                    <option value="{{ $company->id }}" {{ (string) old('company_id') === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="form-group">
                 <label>{{ __('employee.calendar_color') }}</label>
                 @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', '#3b82f6')])
                 @error('calendar_color')<p class="field-error">{{ $message }}</p>@enderror

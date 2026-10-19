@@ -15,6 +15,7 @@ return [
     'role_vorarbeiter'          => 'Vorarbeiter',
     'role_mitarbeiter'          => 'Mitarbeiter',
     'locale'                    => 'Sprache',
+    'no_company'                => 'Kein Unternehmen',
     'calendar_color'            => 'Kalenderfarbe',
     'account_data'              => 'Account-Daten',
     'profile_data'              => 'Profil-Daten',

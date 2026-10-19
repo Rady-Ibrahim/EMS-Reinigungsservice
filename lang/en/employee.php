@@ -15,6 +15,7 @@ return [
     'role_vorarbeiter'          => 'Team Lead',
     'role_mitarbeiter'          => 'Employee',
     'locale'                    => 'Language',
+    'no_company'                => 'No company',
     'calendar_color'            => 'Calendar Colour',
     'account_data'              => 'Account Data',
     'profile_data'              => 'Profile Data',

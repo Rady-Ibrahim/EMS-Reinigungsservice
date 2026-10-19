@@ -18,6 +18,7 @@
         <table>
             <tr><td style="color:#64748b;width:140px">{{ __('fix_object.customer_short') }}</td><td>{{ $fixObject->customer->name }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.location_short') }}</td><td>{{ $fixObject->location->name }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('company.company') }}</td><td>{{ $fixObject->company?->name ?? '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.frequency') }}</td><td>{{ $fixObject->frequency->label() }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.weekdays') }}</td><td>{{ implode(', ', $fixObject->frequency_days ?? []) ?: '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.times') }}</td>
@@ -29,12 +30,13 @@
                 <td>{{ $fixObject->valid_from->format('d.m.Y') }} – {{ $fixObject->valid_until?->format('d.m.Y') ?? '∞' }}</td>
             </tr>
         </table>
-        @if($fixObject->price_per_month || $fixObject->internal_cost)
+        @if($fixObject->price_per_month || $fixObject->internal_cost || $fixObject->company_payout)
         <div style="margin-top:1rem;padding:.75rem;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.85rem">
             <strong>{{ __('fix_object.financial_data') }}</strong><br>
             @if($fixObject->price_per_month) {{ __('fix_object.price_month') }} <strong>{{ number_format((float)$fixObject->price_per_month, 2) }} €</strong><br>@endif
             @if($fixObject->internal_cost) {{ __('fix_object.internal_cost_short') }} {{ number_format((float)$fixObject->internal_cost, 2) }} €<br>@endif
-            @if($fixObject->profit_margin) {{ __('fix_object.margin') }} {{ $fixObject->profit_margin }} €@endif
+            @if($fixObject->profit_margin) {{ __('fix_object.margin') }} {{ $fixObject->profit_margin }} €<br>@endif
+            @if($fixObject->company_payout) {{ __('company.payout') }} <strong>{{ number_format((float)$fixObject->company_payout, 2) }} €</strong>@endif
         </div>
         @endif
     </div>
@@ -69,7 +71,7 @@
             <form action="{{ route('admin.fix-objects.assignments.store', $fixObject) }}" method="POST" style="margin-top:.5rem">
                 @csrf
                 <select name="user_id" style="width:100%;margin-bottom:.5rem;padding:.4rem">
-                    @foreach(\App\Models\User::whereIn('role',['vorarbeiter','mitarbeiter'])->orderBy('name')->get() as $emp)
+                    @foreach(\App\Models\User::whereIn('role',['vorarbeiter','mitarbeiter'])->when($fixObject->company_id, fn($q) => $q->where('company_id', $fixObject->company_id))->orderBy('name')->get() as $emp)
                     <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $emp->role->label() }})</option>
                     @endforeach
                 </select>

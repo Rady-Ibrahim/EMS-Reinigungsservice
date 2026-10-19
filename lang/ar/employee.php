@@ -15,6 +15,7 @@ return [
     'role_vorarbeiter'          => 'رئيس فرقة',
     'role_mitarbeiter'          => 'موظف',
     'locale'                    => 'اللغة',
+    'no_company'                => 'بدون شركة',
     'calendar_color'            => 'لون التقويم',
     'account_data'              => 'بيانات الحساب',
     'profile_data'              => 'بيانات الملف الشخصي',

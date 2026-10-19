@@ -33,10 +33,12 @@ class StoreFixObjectRequest extends FormRequest
             'is_active'       => ['boolean'],
             'calendar_color'  => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             // Financial — Admin only, optional
+            'company_id'      => ['nullable', 'integer', 'exists:companies,id'],
             'price_per_month' => ['nullable', 'numeric', 'min:0'],
             'price_per_hour'  => ['nullable', 'numeric', 'min:0'],
             'internal_cost'   => ['nullable', 'numeric', 'min:0'],
             'profit_margin'   => ['nullable', 'numeric'],
+            'company_payout'  => ['nullable', 'numeric', 'min:0'],
             'internal_notes'  => ['nullable', 'string'],
             // Contract / attachment upload (optional)
             'document'            => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],

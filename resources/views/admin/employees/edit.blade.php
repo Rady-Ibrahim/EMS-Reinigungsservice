@@ -48,6 +48,16 @@
                     <option value="0" {{ ! old('is_active', $employee->is_active) ? 'selected' : '' }}>{{ __('employee.status_inactive') }}</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>{{ __('company.company') }}</label>
+                <select name="company_id">
+                    <option value="">{{ __('employee.no_company') }}</option>
+                    @foreach($companies as $company)
+                    <option value="{{ $company->id }}" {{ (string) old('company_id', $employee->company_id) === (string) $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
         </div>
 
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">
