@@ -46,6 +46,7 @@ class MonthlyReportController extends Controller
             'extra_travel_hours'   => (float) $report->extra_travel_hours,
             'extra_paid_hours'     => (float) $report->extra_paid_hours,
             'extra_actual_hours'   => (float) $report->extra_actual_hours,
+            'shift_paid_hours'     => (float) $report->shift_paid_hours,
             'total_paid_hours'     => (float) $report->total_paid_hours,
             'is_approved'          => $report->isApproved(),
             'approved_by'          => $report->approver?->name,
@@ -98,6 +99,9 @@ class MonthlyReportController extends Controller
                 'paid_hours'    => $item['paid_hours'],
                 'travel_hours'  => $item['travel_hours'],
                 'contract_hours'=> $item['contract_hours'],
+                'approved_extra_hours' => $item['job_type'] === 'employee_shift'
+                    ? max(0, (float) $item['paid_hours'] - (float) $item['contract_hours'])
+                    : 0.0,
             ]),
         ]);
     }

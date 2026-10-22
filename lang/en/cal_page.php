@@ -22,6 +22,8 @@
     'empty_personal_appointments' => 'No personal appointments.',
     'empty_shifts' => 'No shifts.',
     'end' => 'End',
+    'work_hours' => 'Work hours',
+    'mark_complete' => 'Mark as completed',
     'force_conflict' => 'Force conflict anyway (overrides double booking)',
     'force_conflict_hint' => 'Administrators only — a notification is logged whenever a conflict is forced.',
     'from_date' => 'From (date)',

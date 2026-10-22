@@ -34,6 +34,9 @@ class TimeAdjustmentController extends Controller
     public function show(TimeAdjustmentRequest $timeAdjustment): View
     {
         $timeAdjustment->load(['employee', 'reviewer']);
+        if ($timeAdjustment->job_type === 'employee_shift') {
+            $timeAdjustment->load('shift');
+        }
         return view('admin.time_adjustments.show', compact('timeAdjustment'));
     }
 

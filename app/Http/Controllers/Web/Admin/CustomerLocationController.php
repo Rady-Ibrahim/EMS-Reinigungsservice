@@ -48,7 +48,7 @@ class CustomerLocationController extends Controller
     public function update(UpdateLocationRequest $request, CustomerLocation $location): RedirectResponse
     {
         $location->update($request->validated());
-        return redirect()->route('locations.show', $location)
+        return redirect()->route('admin.locations.show', $location)
                          ->with('success', __('messages.success'));
     }
 

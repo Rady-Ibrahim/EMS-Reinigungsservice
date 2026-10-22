@@ -48,7 +48,20 @@ class MonthlyReportController extends Controller
     {
         $monthlyReport->load(['employee', 'approver']);
 
-        $lineItems = collect($monthlyReport->snapshot['line_items'] ?? []);
+        if ($monthlyReport->isApproved()) {
+            $lineItems = collect($monthlyReport->snapshot['line_items'] ?? []);
+        } else {
+            $monthlyReport = $this->engine->buildReport(
+                $monthlyReport->employee,
+                $monthlyReport->year,
+                $monthlyReport->month
+            )->load(['employee', 'approver']);
+            $lineItems = $this->engine->lineItemsFor(
+                $monthlyReport->employee,
+                $monthlyReport->year,
+                $monthlyReport->month
+            );
+        }
 
         return view('admin.monthly_reports.show', compact('monthlyReport', 'lineItems'));
     }

@@ -206,6 +206,7 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
         Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
         Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
         Route::post('/shifts/{shift}/cancel', [ShiftController::class, 'cancel'])->name('shifts.cancel');
+        Route::post('/shifts/{shift}/complete', [ShiftController::class, 'complete'])->name('shifts.complete');
 
         // Personal appointments
         Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');

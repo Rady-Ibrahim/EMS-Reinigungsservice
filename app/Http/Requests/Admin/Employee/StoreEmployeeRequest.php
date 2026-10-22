@@ -27,7 +27,6 @@ class StoreEmployeeRequest extends FormRequest
             'locale'     => ['required', 'in:de,ar,en'],
 
             // Profile fields
-            'calendar_color'  => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'employee_number' => ['nullable', 'string', 'max:20', 'unique:employee_profiles,employee_number'],
             'phone'           => ['nullable', 'string', 'max:30'],
             'address'         => ['nullable', 'string', 'max:500'],

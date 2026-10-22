@@ -44,7 +44,7 @@
                 <small style="color:#64748b">{{ $loc->fullAddress() }}</small>
             </div>
             <div class="actions">
-                <a href="{{ route('locations.show', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.details') }}</a>
+                <a href="{{ route('admin.locations.show', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.details') }}</a>
             </div>
         </div>
         @empty

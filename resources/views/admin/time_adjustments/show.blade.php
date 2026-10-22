@@ -13,7 +13,7 @@
         <table>
             <tr><td style="color:#64748b;width:160px">{{ __('time_page.employee') }}</td><td><strong>{{ $timeAdjustment->employee->name }}</strong></td></tr>
             <tr><td style="color:#64748b">{{ __('time_page.job_type') }}</td>
-                <td><span class="badge badge-gray">{{ $timeAdjustment->job_type === 'fix_object' ? __('time_page.fix_object') : __('time_page.extra_assignment') }}</span></td>
+                <td><span class="badge badge-gray">{{ $timeAdjustment->job_type === 'fix_object' ? __('time_page.fix_object') : ($timeAdjustment->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra_assignment')) }}</span></td>
             </tr>
             <tr><td style="color:#64748b">{{ __('time_page.job_id') }}</td><td>#{{ $timeAdjustment->job_id }}</td></tr>
             <tr><td style="color:#64748b">{{ __('time_page.status') }}</td>
@@ -37,6 +37,18 @@
                 <th style="text-align:left;font-weight:600;color:#374151;padding-bottom:.5rem">{{ __('time_page.original_immutable') }}</th>
                 <th style="text-align:left;font-weight:600;color:#374151;padding-bottom:.5rem">{{ __('time_page.requested') }}</th>
             </tr>
+            @if($timeAdjustment->job_type === 'employee_shift')
+                <tr>
+                    <td style="color:#64748b">{{ __('time_page.requested_extra_hours') }}</td>
+                    <td><strong>+{{ number_format((float) $timeAdjustment->requested_extra_hours, 2, ',', '.') }} h</strong></td>
+                </tr>
+                @if($timeAdjustment->shift)
+                    <tr>
+                        <td style="color:#64748b">{{ __('time_page.shift') }}</td>
+                        <td>{{ $timeAdjustment->shift->title }} ({{ number_format($timeAdjustment->shift->scheduledWorkHours(), 2, ',', '.') }} h)</td>
+                    </tr>
+                @endif
+            @endif
             <tr>
                 <td style="color:#94a3b8;font-size:.875rem">
                     {{ __('time_page.start') }} {{ $timeAdjustment->original_start?->format('d.m.Y H:i') ?? '—' }}<br>

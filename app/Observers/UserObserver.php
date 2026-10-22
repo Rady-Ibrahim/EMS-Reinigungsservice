@@ -44,7 +44,7 @@ class UserObserver
 
     /**
      * Pick a color from the palette that is not yet used by another employee.
-     * Falls back to a random hex if all palette colors are taken.
+     * Falls back to an unused random hex if all palette colors are taken.
      */
     private function generateUniqueColor(): string
     {
@@ -55,15 +55,21 @@ class UserObserver
             '#7c3aed', '#0284c7', '#16a34a', '#b45309',
         ];
 
-        $usedColors = EmployeeProfile::pluck('calendar_color')->toArray();
+        $usedColors = EmployeeProfile::query()
+            ->pluck('calendar_color')
+            ->map(fn (string $color) => strtolower($color))
+            ->all();
 
         foreach ($palette as $color) {
-            if (! in_array($color, $usedColors)) {
+            if (! in_array(strtolower($color), $usedColors, true)) {
                 return $color;
             }
         }
 
-        // All palette colors used — generate a random one
-        return sprintf('#%06x', mt_rand(0, 0xFFFFFF));
+        do {
+            $color = sprintf('#%06x', random_int(0, 0xFFFFFF));
+        } while (in_array(strtolower($color), $usedColors, true));
+
+        return $color;
     }
 }

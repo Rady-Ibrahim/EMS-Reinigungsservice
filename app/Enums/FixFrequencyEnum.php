@@ -36,6 +36,16 @@ enum FixFrequencyEnum: string
         };
     }
 
+    public function requiredWeekdayCount(): ?int
+    {
+        return match ($this) {
+            self::Weekly => 1,
+            self::Biweekly => 2,
+            self::Triweekly => 3,
+            default => null,
+        };
+    }
+
     public static function values(): array
     {
         return array_column(self::cases(), 'value');

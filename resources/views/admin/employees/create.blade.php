@@ -54,11 +54,6 @@
                 </select>
                 @error('company_id')<p class="field-error">{{ $message }}</p>@enderror
             </div>
-            <div class="form-group">
-                <label>{{ __('employee.calendar_color') }}</label>
-                @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', '#3b82f6')])
-                @error('calendar_color')<p class="field-error">{{ $message }}</p>@enderror
-            </div>
         </div>
 
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">

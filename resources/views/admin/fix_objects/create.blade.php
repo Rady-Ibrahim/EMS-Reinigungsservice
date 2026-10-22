@@ -76,6 +76,7 @@
 
         <div class="form-group">
             <label>{{ __('fix_object.weekdays') }}</label>
+            <small style="display:block;color:#94a3b8;margin-bottom:.4rem">{{ __('fix_object.weekdays_help') }}</small>
             <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem">
                 @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)
                 <label style="display:flex;align-items:center;gap:.3rem;font-weight:normal;cursor:pointer">

@@ -77,6 +77,7 @@ class MonthlyReportEngineService
             'extra_travel_hours'  => $aggregate['extra_travel_hours'],
             'extra_paid_hours'    => $aggregate['extra_paid_hours'],
             'extra_actual_hours'  => $aggregate['extra_actual_hours'],
+            'shift_paid_hours'    => $aggregate['shift_paid_hours'],
             'total_paid_hours'    => $aggregate['total_paid_hours'],
             'revenue'             => $profitability['revenue'],
             'employee_cost'       => $profitability['employee_cost'],
@@ -164,13 +165,35 @@ class MonthlyReportEngineService
                 $items->push($this->extraItem($exec));
             });
 
+        \App\Models\EmployeeShift::query()
+            ->where('user_id', $employee->id)
+            ->where('status', \App\Enums\ShiftStatusEnum::Completed)
+            ->whereYear('start_at', $year)
+            ->whereMonth('start_at', $month)
+            ->get()
+            ->each(function (\App\Models\EmployeeShift $shift) use ($items) {
+                $hours = $shift->reportableHours();
+                $items->push([
+                    'job_type' => 'employee_shift',
+                    'job_id' => $shift->id,
+                    'date' => $shift->start_at->toDateString(),
+                    'label' => $shift->title,
+                    'customer' => '—',
+                    'actual_hours' => $hours,
+                    'paid_hours' => $hours,
+                    'travel_hours' => 0.0,
+                    'contract_hours' => $shift->scheduledWorkHours(),
+                    'travel_is_paid' => false,
+                ]);
+            });
+
         return $items->sortBy('date')->values();
     }
 
     /**
      * Aggregate monthly hours for one employee.
      *
-     * @return array{fix_paid_hours: float, fix_actual_hours: float, extra_work_hours: float, extra_travel_hours: float, extra_paid_hours: float, extra_actual_hours: float, total_paid_hours: float, fix_count: int, extra_count: int}
+     * @return array{fix_paid_hours: float, fix_actual_hours: float, extra_work_hours: float, extra_travel_hours: float, extra_paid_hours: float, extra_actual_hours: float, shift_paid_hours: float, total_paid_hours: float, fix_count: int, extra_count: int}
      */
     public function aggregateFor(User $employee, int $year, int $month): array
     {
@@ -195,9 +218,11 @@ class MonthlyReportEngineService
             'extra_travel_hours' => round($extraTravelHours, 2),
             'extra_paid_hours'   => $totals['extra_paid_hours'],
             'extra_actual_hours' => $totals['extra_actual_hours'],
+            'shift_paid_hours'   => $totals['shift_paid_hours'],
             'total_paid_hours'   => $totals['total_paid_hours'],
             'fix_count'          => $totals['fix_count'],
             'extra_count'        => $totals['extra_count'],
+            'shift_count'        => $totals['shift_count'],
         ];
     }
 

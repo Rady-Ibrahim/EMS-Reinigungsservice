@@ -22,6 +22,7 @@ class EmployeeShiftFactory extends Factory
             'title'      => fake()->randomElement(['Frühschicht', 'Spätschicht', 'Büro', 'Dienst']),
             'start_at'   => $start,
             'end_at'     => (clone $start)->modify('+8 hours'),
+            'work_hours' => 8,
             'all_day'    => false,
             'color'      => '#10b981',
             'notes'      => null,

@@ -30,7 +30,6 @@ class UpdateEmployeeRequest extends FormRequest
             'is_active'=> ['boolean'],
 
             // Profile fields
-            'calendar_color'  => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'employee_number' => [
                 'nullable', 'string', 'max:20',
                 Rule::unique('employee_profiles', 'employee_number')

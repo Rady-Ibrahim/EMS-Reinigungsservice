@@ -17,6 +17,7 @@ class TimeAdjustmentRequest extends Model
         'job_id',
         'requested_start',
         'requested_end',
+        'requested_extra_hours',
         'original_start',
         'original_end',
         'reason',
@@ -33,6 +34,7 @@ class TimeAdjustmentRequest extends Model
         return [
             'requested_start'     => 'datetime',
             'requested_end'       => 'datetime',
+            'requested_extra_hours' => 'decimal:2',
             'original_start'      => 'datetime',
             'original_end'        => 'datetime',
             'status'              => AdjustmentStatusEnum::class,
@@ -51,6 +53,11 @@ class TimeAdjustmentRequest extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeShift::class, 'job_id');
     }
 
     // ── Scopes ─────────────────────────────────────────────────────────────

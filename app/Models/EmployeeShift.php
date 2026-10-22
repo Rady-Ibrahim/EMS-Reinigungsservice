@@ -18,6 +18,8 @@ class EmployeeShift extends Model
         'title',
         'start_at',
         'end_at',
+        'work_hours',
+        'approved_extra_hours',
         'all_day',
         'color',
         'notes',
@@ -29,6 +31,8 @@ class EmployeeShift extends Model
         return [
             'start_at' => 'datetime',
             'end_at'   => 'datetime',
+            'work_hours' => 'decimal:2',
+            'approved_extra_hours' => 'decimal:2',
             'all_day'  => 'boolean',
             'status'   => ShiftStatusEnum::class,
         ];
@@ -64,5 +68,19 @@ class EmployeeShift extends Model
     public function overlaps(\Carbon\CarbonInterface $start, \Carbon\CarbonInterface $end): bool
     {
         return $start->lt($this->end_at) && $this->start_at->lt($end);
+    }
+
+    public function scheduledWorkHours(): float
+    {
+        if ($this->work_hours !== null) {
+            return (float) $this->work_hours;
+        }
+
+        return round($this->start_at->diffInMinutes($this->end_at) / 60, 2);
+    }
+
+    public function reportableHours(): float
+    {
+        return round($this->scheduledWorkHours() + (float) $this->approved_extra_hours, 2);
     }
 }

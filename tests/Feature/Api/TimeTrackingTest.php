@@ -7,6 +7,7 @@ use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExecutionStatusEnum;
 use App\Enums\ExtraExecutionStatusEnum;
 use App\Models\ExtraAuftrag;
+use App\Models\EmployeeShift;
 use App\Models\ExtraAuftragAssignee;
 use App\Models\ExtraAuftragExecution;
 use App\Models\FixObject;
@@ -60,6 +61,42 @@ class TimeTrackingTest extends TestCase
             'travel_track_id' => $track->id,
             'user_id'         => $user->id,
         ]);
+    }
+
+    public function test_employee_can_complete_shift_request_overtime_and_admin_approval_adds_report_hours(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $admin = User::factory()->administrator()->create();
+        $shift = EmployeeShift::factory()->create([
+            'user_id' => $employee->id,
+            'start_at' => '2026-10-21 08:00:00',
+            'end_at' => '2026-10-21 16:00:00',
+            'work_hours' => 7,
+        ]);
+
+        Sanctum::actingAs($employee);
+        $this->postJson("/api/v1/shifts/{$shift->id}/complete")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed');
+
+        $request = $this->postJson("/api/v1/shifts/{$shift->id}/overtime-request", [
+            'extra_hours' => 2,
+            'reason' => 'The site took longer than the planned shift.',
+        ])->assertCreated()
+            ->assertJsonPath('data.requested_extra_hours', 2)
+            ->assertJsonPath('data.status', 'pending');
+
+        $adjustmentId = $request->json('data.id');
+        $this->actingAs($admin)
+            ->post(route('admin.time-adjustments.approve', $adjustmentId))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertSame(2.0, (float) $shift->fresh()->approved_extra_hours);
+        $totals = app(\App\Services\TimeTrackingEngine::class)
+            ->monthlyTotalsForEmployee($employee, 2026, 10);
+        $this->assertSame(9.0, $totals['shift_paid_hours']);
+        $this->assertSame(9.0, $totals['total_paid_hours']);
     }
 
     public function test_gps_point_rejected_after_arrival(): void

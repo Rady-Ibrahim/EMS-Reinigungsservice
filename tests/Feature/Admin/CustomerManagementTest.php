@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\CustomerStatusEnum;
 use App\Models\Customer;
+use App\Models\CustomerLocation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -56,6 +57,43 @@ class CustomerManagementTest extends TestCase
             'status' => 'active',
         ]);
         $response->assertSessionHasErrors('name');
+    }
+
+    public function test_customer_and_location_pages_render_with_shallow_admin_routes(): void
+    {
+        $customer = Customer::factory()->create();
+        $location = CustomerLocation::factory()->create(['customer_id' => $customer->id]);
+        $this->actingAs($this->admin);
+
+        $this->get(route('admin.customers.show', $customer))
+            ->assertOk()
+            ->assertSee(route('admin.locations.show', $location), false);
+
+        $this->get(route('admin.locations.show', $location))
+            ->assertOk()
+            ->assertSee(route('admin.locations.edit', $location), false);
+
+        $this->get(route('admin.locations.edit', $location))->assertOk();
+    }
+
+    public function test_location_update_redirects_to_its_admin_show_route(): void
+    {
+        $location = CustomerLocation::factory()->create();
+
+        $response = $this->actingAs($this->admin)
+            ->put(route('admin.locations.update', $location), [
+                'name' => 'Updated site',
+                'street' => 'Main Street',
+                'house_number' => '10',
+                'postal_code' => '10115',
+                'city' => 'Berlin',
+            ]);
+
+        $response->assertRedirect(route('admin.locations.show', $location));
+        $this->assertDatabaseHas('customer_locations', [
+            'id' => $location->id,
+            'name' => 'Updated site',
+        ]);
     }
 
     // ── Update ─────────────────────────────────────────────────────────────

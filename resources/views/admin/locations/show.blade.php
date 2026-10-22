@@ -5,7 +5,7 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
     <h1>{{ $location->name }}</h1>
     <div class="actions">
-        <a href="{{ route('locations.edit', $location) }}" class="btn btn-secondary">{{ __('customer.edit') }}</a>
+        <a href="{{ route('admin.locations.edit', $location) }}" class="btn btn-secondary">{{ __('customer.edit') }}</a>
         <a href="{{ route('admin.customers.locations.index', $customer) }}" class="btn btn-secondary">{{ __('customer.locations') }}</a>
     </div>
 </div>

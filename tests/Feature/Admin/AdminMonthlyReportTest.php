@@ -9,6 +9,7 @@ use App\Models\ExtraAuftragExecution;
 use App\Models\FixObject;
 use App\Models\FixObjectExecution;
 use App\Models\FixObjectSchedule;
+use App\Models\EmployeeShift;
 use App\Models\MonthlyReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,7 +73,54 @@ class AdminMonthlyReportTest extends TestCase
         $this->get(route('admin.monthly-reports.show', $report))
              ->assertOk()
              ->assertSee('Fixobjekte')
+             ->assertSee(__('messages.report.line_items'))
              ->assertSee('3,00'); // 2.0 fix + 1.0 extra
+    }
+
+    public function test_show_refreshes_draft_after_new_work_is_completed(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $report = app(\App\Services\MonthlyReportEngineService::class)
+            ->buildReport($employee, 2026, 10);
+
+        $fix = FixObject::factory()->withContractHours(2.0)->create(['title' => 'Freshly completed work']);
+        $schedule = FixObjectSchedule::factory()->create(['fix_object_id' => $fix->id]);
+        FixObjectExecution::create([
+            'schedule_id' => $schedule->id,
+            'user_id' => $employee->id,
+            'actual_start' => now()->setYear(2026)->setMonth(10)->setDay(5)->setHour(8),
+            'actual_end' => now()->setYear(2026)->setMonth(10)->setDay(5)->setHour(9),
+            'status' => ExecutionStatusEnum::Completed,
+            'contract_hours_applied' => 2.0,
+        ]);
+
+        $this->get(route('admin.monthly-reports.show', $report))
+            ->assertOk()
+            ->assertSee('Freshly completed work')
+            ->assertSee('2,00');
+
+        $this->assertSame(2.0, (float) $report->fresh()->total_paid_hours);
+    }
+
+    public function test_completed_shift_hours_and_approved_overtime_are_in_monthly_report(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $shift = EmployeeShift::factory()->create([
+            'user_id' => $employee->id,
+            'start_at' => '2026-10-12 08:00:00',
+            'end_at' => '2026-10-12 16:00:00',
+            'work_hours' => 7,
+            'approved_extra_hours' => 1.5,
+            'status' => \App\Enums\ShiftStatusEnum::Completed,
+        ]);
+
+        $report = app(\App\Services\MonthlyReportEngineService::class)
+            ->buildReport($employee, 2026, 10);
+
+        $this->assertSame(8.5, (float) $report->shift_paid_hours);
+        $this->assertSame(8.5, (float) $report->total_paid_hours);
+        $this->assertSame('employee_shift', app(\App\Services\MonthlyReportEngineService::class)
+            ->lineItemsFor($employee, 2026, 10)->first()['job_type']);
     }
 
     public function test_admin_can_approve_and_freeze_report(): void

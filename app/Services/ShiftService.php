@@ -100,6 +100,19 @@ class ShiftService
         return $shift->fresh();
     }
 
+    public function complete(EmployeeShift $shift): EmployeeShift
+    {
+        if ($shift->status === \App\Enums\ShiftStatusEnum::Cancelled) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'shift' => __('time_page.cancelled_shift_cannot_complete'),
+            ]);
+        }
+
+        $shift->update(['status' => \App\Enums\ShiftStatusEnum::Completed]);
+
+        return $shift->fresh();
+    }
+
     private function notifyUser(int $userId, \App\Enums\NotificationTypeEnum $type, string $title, string $message, array $payload): void
     {
         $user = \App\Models\User::find($userId);

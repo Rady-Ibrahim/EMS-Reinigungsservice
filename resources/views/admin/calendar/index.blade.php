@@ -4,7 +4,7 @@
 @section('content')
     @php
         $activeLayers = old('layers', ['fix', 'extra', 'shifts', 'personal', 'internal']);
-        $employeeMap   = \App\Models\User::pluck('name', 'id')->map(fn($n) => (string) $n)->all();
+        $employeeMap   = $employees->mapWithKeys(fn($employee) => [$employee->id => (string) $employee->name])->all();
         $cal = __('messages.cal');
     @endphp
 
@@ -21,10 +21,21 @@
                     </label>
                 @endforeach
             </div>
+            <div id="employee-filters" class="employee-filters" aria-label="{{ $cal['employee_filter'] }}">
+                <strong class="employee-filter-title">{{ $cal['employee_filter'] }}:</strong>
+                @foreach($employees as $employee)
+                    <label class="employee-pill" style="--employee-color:{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}">
+                        <input type="checkbox" class="employee-toggle" value="{{ $employee->id }}" checked>
+                        <span class="color-dot" style="background:{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}"></span>
+                        {{ $employee->role->value === 'vorarbeiter' ? '⭐ ' : '' }}{{ $employee->name }}
+                        <small>{{ $employee->role->value === 'vorarbeiter' ? __('employee.role_vorarbeiter') : __('employee.role_mitarbeiter') }}</small>
+                    </label>
+                @endforeach
+            </div>
             <div class="cal-actions">
                 <div class="cal-viewtoggle">
-                    <button type="button" class="vt-btn is-active" data-view="agenda">🗓 {{ $cal['day_agenda'] }}</button>
-                    <button type="button" class="vt-btn" data-view="calendar">▦ {{ $cal['month_overview'] }}</button>
+                    <button type="button" class="vt-btn is-active" data-view="calendar">▦ {{ $cal['week'] }}</button>
+                    <button type="button" class="vt-btn" data-view="agenda">🗓 {{ $cal['day_agenda'] }}</button>
                 </div>
                 <button type="button" class="btn-gold-outline btn-sm js-add" data-add="ask">{{ $cal['new_appointment'] }}</button>
             </div>
@@ -32,7 +43,7 @@
     </div>
 
     {{-- ═══ Agenda view: mini-month + day list (TeamUp style) ═══ --}}
-    <div class="cal-split" id="cal-split">
+    <div class="cal-split" id="cal-split" style="display:none;">
         <div class="card mini-cal-card">
             <div class="mini-head">
                 <button type="button" class="mc-nav" id="mini-prev" aria-label="prev">‹</button>
@@ -61,7 +72,7 @@
     </div>
 
     {{-- ═══ Full month / week calendar view ═══ --}}
-    <div class="card" id="full-cal-card" style="padding:1rem;display:none;">
+    <div class="card" id="full-cal-card" style="padding:1rem;">
         <div id="calendar" style="min-height:620px;"></div>
     </div>
 
@@ -109,6 +120,16 @@
         /* ── Toolbar ───────────────────────────────────────────── */
         .cal-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
         .layer-filters { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .employee-filters { display: flex; gap: .45rem; flex-wrap: wrap; width: 100%; padding-top: .65rem; border-top: 1px solid var(--border); }
+        .employee-filter-title { align-self: center; color: var(--text-faint); font-size: .75rem; }
+        .employee-pill {
+            display: inline-flex; align-items: center; gap: .4rem; padding: .32rem .65rem;
+            border-radius: 999px; cursor: pointer; background: var(--panel-2); border: 1px solid var(--border);
+            color: var(--text-muted); font-size: .75rem; user-select: none;
+        }
+        .employee-pill:has(input:checked) { border-color: var(--employee-color); color: var(--text); }
+        .employee-pill input { display: none; }
+        .employee-pill small { color: var(--text-faint); }
         .layer-pill {
             display: inline-flex; align-items: center; gap: .45rem;
             padding: .4rem .85rem; border-radius: 999px; cursor: pointer;
@@ -214,6 +235,9 @@
             box-shadow: 0 3px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
             cursor: pointer; font-weight: 600; padding: 2px 4px;
         }
+        .calendar-event-content { display: flex; flex-direction: column; gap: 2px; overflow: hidden; white-space: normal; line-height: 1.25; }
+        .calendar-event-content strong, .calendar-event-content small { overflow: hidden; text-overflow: ellipsis; }
+        .calendar-event-content small { font-size: .68rem; font-weight: 500; opacity: .9; }
         .fc .fc-event:hover { filter: brightness(1.15); box-shadow: 0 6px 18px rgba(0,0,0,.55); }
         .fc .fc-list-event:hover td { background: rgba(212,175,55,.06); }
         .fc .fc-list-day-cushion { background: #15171E; }
@@ -234,7 +258,7 @@
             transform: translateX(105%); transition: transform .28s ease; z-index: 90;
             display: flex; flex-direction: column;
         }
-        html[dir="rtl"] .slide-panel { transform: translateX(-105%); }
+        html[dir="rtl"] .slide-panel:not(.open) { transform: translateX(-105%); }
         .slide-panel.open { transform: translateX(0); }
         .sp-head { padding: 1.2rem 1.3rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
         .sp-kicker { font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-light); font-weight: 700; }
@@ -313,6 +337,7 @@
             const layerLabels = {!! json_encode(collect($layers)->pluck('label', 'key')) !!};
             const layerColors = {!! json_encode(collect($layers)->pluck('color', 'key')) !!};
             const T = {!! json_encode($cal) !!};
+            const CSRF_TOKEN = {!! json_encode(csrf_token()) !!};
             const FEED_URL = '{{ route('admin.calendar.events') }}';
             const CREATE_URL = {
                 personal: '{{ route('admin.calendar.appointments.create') }}',
@@ -325,6 +350,15 @@
             const ymd = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
             const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
             const activeLayers = () => [...document.querySelectorAll('.layer-toggle:checked')].map(c => c.value);
+            const activeEmployees = () => [...document.querySelectorAll('.employee-toggle:checked')].map(c => c.value);
+
+            function addEmployeeFilters(params) {
+                const allEmployees = document.querySelectorAll('.employee-toggle').length;
+                if (activeEmployees().length === allEmployees) return;
+
+                params.set('employee_filter', '1');
+                activeEmployees().forEach(id => params.append('employees[]', id));
+            }
 
             function parseDate(iso, allDay) {
                 if (allDay || /^\d{4}-\d{2}-\d{2}$/.test(String(iso).slice(0, 10)) && String(iso).length <= 10) {
@@ -340,16 +374,25 @@
             let selected = new Date();
             let monthEvents = [];
             let calendar = null;
+            let feedError = false;
 
             // ── Data fetch ────────────────────────────────────────
             function fetchMonth() {
                 const start = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
                 const end = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
                 const params = new URLSearchParams({ from: ymd(start), to: ymd(end), layers: activeLayers().join(',') });
+                addEmployeeFilters(params);
                 return fetch(FEED_URL + '?' + params.toString(), { headers: { 'Accept': 'application/json' } })
                     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                    .then(data => { monthEvents = Array.isArray(data) ? data : (data.events || []); })
-                    .catch(err => { console.error(err); monthEvents = []; });
+                    .then(data => {
+                        monthEvents = Array.isArray(data) ? data : (data.events || []);
+                        feedError = false;
+                    })
+                    .catch(err => {
+                        console.error('Calendar events could not be loaded.', err);
+                        monthEvents = [];
+                        feedError = true;
+                    });
             }
 
             function startOf(event) {
@@ -448,6 +491,13 @@
             function renderAgenda() {
                 agendaDate.textContent = fullDateFmt.format(selected);
                 agendaList.innerHTML = '';
+                if (feedError) {
+                    const error = document.createElement('p');
+                    error.className = 'operation-meta';
+                    error.textContent = T.events_load_error;
+                    agendaList.appendChild(error);
+                    return;
+                }
                 const evs = eventsOnDay(selected);
 
                 if (!evs.length) {
@@ -469,6 +519,7 @@
                     const time = ev.all_day ? T.all_day : timeFmt.format(startOf(ev)) + ' – ' + timeFmt.format(endOf(ev));
                     const layer = layerLabels[ev.layer] || ev.type_label || ev.layer;
                     const emp = (ev.employee_ids || []).map(id => employeeMap[id]).filter(Boolean).join(', ');
+                    const meta = ev.metadata || {};
 
                     card.innerHTML =
                         '<div class="ai-time">' + escapeHtml(time) + '</div>' +
@@ -477,6 +528,7 @@
                             '<div class="ai-meta">' +
                                 '<span class="ai-layer">' + escapeHtml(layer) + '</span>' +
                                 (ev.location ? '<span>📍 ' + escapeHtml(ev.location) + '</span>' : '') +
+                                (meta.work_hours ? '<span>⏱ ' + escapeHtml(meta.work_hours) + ' h</span>' : '') +
                                 (emp ? '<span>👤 ' + escapeHtml(emp) + '</span>' : '') +
                                 (ev.has_conflict ? '<span style="color:#ef4444">⚠ ' + escapeHtml(T.conflict) + '</span>' : '') +
                             '</div>' +
@@ -537,7 +589,7 @@
                 });
             }
 
-            window.openPanel = function (ev) {
+            function openPanel(ev) {
                 document.getElementById('sp-title').textContent = ev.title || T.appointment;
                 document.getElementById('sp-body').innerHTML = panelContent(ev);
                 panel.classList.add('open');
@@ -546,12 +598,12 @@
                 panel.querySelectorAll('.check-item input').forEach(cb => {
                     cb.addEventListener('change', () => cb.closest('.check-item').classList.toggle('done', cb.checked));
                 });
-            };
-            window.closePanel = function () {
+            }
+            function closePanel() {
                 panel.classList.remove('open');
                 backdrop.classList.remove('open');
                 panel.setAttribute('aria-hidden', 'true');
-            };
+            }
             document.getElementById('sp-close').addEventListener('click', closePanel);
             backdrop.addEventListener('click', closePanel);
             document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); closeChooser(); } });
@@ -583,7 +635,9 @@
                 const estimated = meta.estimated_hours ? parseFloat(meta.estimated_hours).toFixed(2).replace('.', ',') : null;
 
                 const done = /abgeschlossen|completed|erledigt/.test((m.status_label || '').toLowerCase());
-                const checklist = T.checklist_items;
+                const checklist = Array.isArray(meta.service_checklist) && meta.service_checklist.length
+                    ? meta.service_checklist
+                    : T.checklist_items;
                 const docs = Array.isArray(meta.documents) ? meta.documents : [];
 
                 const statusBadge = m.status_label
@@ -595,9 +649,16 @@
                         <div class="sp-section-title">${T.details}</div>
                         <div class="sp-row"><span class="sp-ico">🏷️</span><span class="sp-k">${T.type}</span><span class="sp-v">${escapeHtml(m.type_label || layer)} ${statusBadge}</span></div>
                         ${meta.customer_name ? '<div class="sp-row"><span class="sp-ico">🏢</span><span class="sp-k">' + T.customer + '</span><span class="sp-v">' + escapeHtml(meta.customer_name) + '</span></div>' : ''}
+                        ${meta.location_address ? '<div class="sp-row"><span class="sp-ico">🏠</span><span class="sp-k">' + T.site_address + '</span><span class="sp-v">' + escapeHtml(meta.location_address) + '</span></div>' : ''}
+                        ${meta.contract_frequency ? '<div class="sp-row"><span class="sp-ico">🔁</span><span class="sp-k">' + T.frequency + '</span><span class="sp-v">' + escapeHtml(meta.contract_frequency) + '</span></div>' : ''}
+                        ${meta.contract_time_start ? '<div class="sp-row"><span class="sp-ico">🕒</span><span class="sp-k">' + T.contract_plan + '</span><span class="sp-v">' + escapeHtml(meta.contract_time_start) + (meta.contract_time_end ? ' – ' + escapeHtml(meta.contract_time_end) : '') + '</span></div>' : ''}
                         ${meta.company_name ? '<div class="sp-row"><span class="sp-ico">🏭</span><span class="sp-k">' + T.company + '</span><span class="sp-v">' + escapeHtml(meta.company_name) + '</span></div>' : ''}
                         ${meta.company_payout ? '<div class="sp-row"><span class="sp-ico">💰</span><span class="sp-k">' + T.payout + '</span><span class="sp-v">' + escapeHtml(parseFloat(meta.company_payout).toFixed(2).replace('.', ',')) + ' €</span></div>' : ''}
-                        <div class="sp-row"><span class="sp-ico">📍</span><span class="sp-k">${T.location}</span><span class="sp-v">${escapeHtml(m.location || '—')}</span></div>
+                        <div class="sp-row"><span class="sp-ico">📍</span><span class="sp-k">${T.location}</span><span class="sp-v">${escapeHtml(meta.location_address || m.location || '—')}</span></div>
+                        ${meta.latitude && meta.longitude ? '<div class="sp-row"><span class="sp-ico">🗺️</span><span class="sp-k">' + T.coordinates + '</span><span class="sp-v">' + escapeHtml(meta.latitude) + ', ' + escapeHtml(meta.longitude) + '</span></div>' : ''}
+                        ${meta.access_instructions ? '<div class="sp-row"><span class="sp-ico">🔑</span><span class="sp-k">' + T.access_instructions + '</span><span class="sp-v">' + escapeHtml(meta.access_instructions) + '</span></div>' : ''}
+                        ${meta.security_code ? '<div class="sp-row"><span class="sp-ico">🔐</span><span class="sp-k">' + T.alarm_code + '</span><span class="sp-v">' + escapeHtml(meta.security_code) + '</span></div>' : ''}
+                        ${meta.location_contact_person ? '<div class="sp-row"><span class="sp-ico">☎️</span><span class="sp-k">' + T.site_contact + '</span><span class="sp-v">' + escapeHtml(meta.location_contact_person) + (meta.location_contact_phone ? ' · ' + escapeHtml(meta.location_contact_phone) : '') + '</span></div>' : ''}
                         <div class="sp-row"><span class="sp-ico">👤</span><span class="sp-k">${T.staff}</span><span class="sp-v">${escapeHtml(empList)}</span></div>
                         <div class="sp-duo">
                             <div class="sp-tile"><div class="t-lbl">${T.start}</div><div class="t-val">${escapeHtml(startTxt)}</div></div>
@@ -615,7 +676,7 @@
                             ${checklist.map((c) => `
                                 <label class="check-item ${done ? 'done' : ''}">
                                     <input type="checkbox" ${done ? 'checked' : ''}>
-                                    <span class="ci-label">${c}</span>
+                                    <span class="ci-label">${escapeHtml(c)}</span>
                                 </label>`).join('')}
                         </div>
                     </div>
@@ -634,6 +695,9 @@
                             <div class="sp-tile"><div class="t-lbl">${T.work_time}</div><div class="t-val">${escapeHtml(hours)}</div></div>
                             <div class="sp-tile"><div class="t-lbl">${T.contract_plan}</div><div class="t-val">${escapeHtml(contract ? contract + ' h' : (estimated ? estimated + ' h' : '—'))}</div></div>
                         </div>
+
+                        ${meta.work_hours ? '<div class="sp-row"><span class="sp-ico">⏱</span><span class="sp-k">' + T.shift_hours + '</span><span class="sp-v">' + escapeHtml(meta.work_hours) + ' h' + (meta.approved_extra_hours ? ' (' + escapeHtml(T.approved_overtime) + ': +' + escapeHtml(meta.approved_extra_hours) + ' h)' : '') + '</span></div>' : ''}
+                        ${meta.complete_url ? '<form method="POST" action="' + escapeHtml(meta.complete_url) + '" style="margin:1rem 0"><input type="hidden" name="_token" value="' + escapeHtml(CSRF_TOKEN) + '"><button type="submit" class="btn-nav-gold">✓ ' + escapeHtml(T.mark_complete) + '</button></form>' : ''}
                         <div style="margin-top:.8rem;background:rgba(10,11,13,.55);border:1px solid var(--border);border-radius:12px;padding:.4rem .8rem;">
                             <div class="gps-row"><span class="gps-ico">🛰️</span><span class="gps-t">07:00</span><span class="gps-v">${T.check_in}</span><span class="gps-ok">✓ GPS</span></div>
                             <div class="gps-row"><span class="gps-ico">🕒</span><span class="gps-t">live</span><span class="gps-v">${T.clock_update}</span><span class="gps-ok">✓</span></div>
@@ -672,7 +736,7 @@
                     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
             }
 
-            // ── FullCalendar (month/week view) ────────────────────
+            // ── FullCalendar ──────────────────────────────────────
             let calendarBuilt = false;
             function buildCalendar() {
                 if (calendarBuilt) return;
@@ -684,15 +748,42 @@
                     direction: locale === 'ar' ? 'rtl' : 'ltr',
                     firstDay: 1,
                     height: 'auto',
+                    eventDisplay: 'block',
                     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
                     buttonText: { today: T.today, dayGridMonth: T.month, timeGridWeek: T.week, timeGridDay: T.day, listWeek: T.agenda },
+                    eventContent(info) {
+                        const event = info.event;
+                        const props = event.extendedProps;
+                        const metadata = props.metadata || {};
+                        const content = document.createElement('div');
+                        content.className = 'calendar-event-content';
+
+                        const title = document.createElement('strong');
+                        title.textContent = (props.type_label ? props.type_label + ': ' : '') + event.title;
+                        content.appendChild(title);
+
+                        const details = [
+                            metadata.location_address || event.extendedProps.location,
+                            (props.employee_ids || []).map(id => employeeMap[id]).filter(Boolean).join(', '),
+                            metadata.work_hours ? metadata.work_hours + ' h' : null,
+                        ].filter(Boolean);
+                        details.forEach(detail => {
+                            const line = document.createElement('small');
+                            line.textContent = detail;
+                            content.appendChild(line);
+                        });
+                        return { domNodes: [content] };
+                    },
                     dateClick(info) { openChooser(info.date); },
                     events(fetchInfo, successCallback, failureCallback) {
+                        const lastVisibleDay = new Date(fetchInfo.end);
+                        lastVisibleDay.setDate(lastVisibleDay.getDate() - 1);
                         const params = new URLSearchParams({
-                            from: fetchInfo.start.toISOString(),
-                            to: fetchInfo.end.toISOString(),
+                            from: ymd(fetchInfo.start),
+                            to: ymd(lastVisibleDay),
                             layers: activeLayers().join(','),
                         });
+                        addEmployeeFilters(params);
                         fetch(FEED_URL + '?' + params.toString(), { headers: { 'Accept': 'application/json' } })
                             .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
                             .then(data => successCallback(Array.isArray(data) ? data : (data.events || [])))
@@ -700,9 +791,14 @@
                     },
                     eventClick(info) {
                         info.jsEvent.preventDefault();
-                        const p = info.event.toPlainObject();
-                        p.extendedProps = Object.assign({}, p.extendedProps, info.event.toPlainObject().extendedProps);
-                        openPanel(p);
+                        const event = info.event;
+                        openPanel({
+                            title: event.title,
+                            start: event.start,
+                            end: event.end || event.start,
+                            allDay: event.allDay,
+                            extendedProps: event.extendedProps,
+                        });
                     }
                 });
                 calendar.render();
@@ -734,6 +830,12 @@
                     if (calendarBuilt && calendar) { calendar.refetchEvents(); }
                 });
             });
+            document.querySelectorAll('.employee-toggle').forEach(input => {
+                input.addEventListener('change', () => {
+                    fetchMonth().then(() => { renderMini(); renderAgenda(); });
+                    if (calendarBuilt && calendar) { calendar.refetchEvents(); }
+                });
+            });
 
             // ── Mini nav ──────────────────────────────────────────
             document.getElementById('mini-prev').addEventListener('click', () => {
@@ -752,6 +854,7 @@
             });
 
             // ── Boot ──────────────────────────────────────────────
+            buildCalendar();
             fetchMonth().then(() => { renderMini(); renderAgenda(); });
         });
     </script>

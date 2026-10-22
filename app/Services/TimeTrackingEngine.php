@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ExtraAuftragExecution;
+use App\Models\EmployeeShift;
 use App\Models\FixObjectExecution;
 use App\Models\TravelTrack;
 use App\Models\User;
@@ -13,9 +14,10 @@ use Illuminate\Support\Collection;
 /**
  * Central time tracking engine.
  *
- * Unifies time calculation across both job types:
- *  - Fixobjekte   → paid hours = contract_hours_applied (frozen)
- *  - Extra-Aufträge → paid hours = work + (travel if is_paid)
+ * Unifies time calculation across fix objects, extra orders, and shifts:
+ *  - Fixobjekte      → paid hours = contract_hours_applied (frozen)
+ *  - Extra-Aufträge  → paid hours = work + (travel if is_paid)
+ *  - Employee shifts → configured work hours + approved overtime
  *
  * This engine is read-only — it computes and returns summaries.
  * Write operations are handled by FixObjectService / ExtraAuftragService.
@@ -99,6 +101,8 @@ class TimeTrackingEngine
      *     extra_actual_hours: float,
      *     fix_count: int,
      *     extra_count: int,
+     *     shift_paid_hours: float,
+     *     shift_count: int,
      * }
      */
     public function monthlyTotalsForEmployee(User $user, int $year, int $month): array
@@ -135,14 +139,24 @@ class TimeTrackingEngine
             $extraActualHours  += $summary->actualHours;
         }
 
+        $shifts = EmployeeShift::query()
+            ->where('user_id', $user->id)
+            ->where('status', \App\Enums\ShiftStatusEnum::Completed)
+            ->whereYear('start_at', $year)
+            ->whereMonth('start_at', $month)
+            ->get();
+        $shiftPaidHours = $shifts->sum(fn (EmployeeShift $shift) => $shift->reportableHours());
+
         return [
             'fix_paid_hours'    => round($fixPaidHours, 2),
             'fix_actual_hours'  => round($fixActualHours, 2),
             'extra_paid_hours'  => round($extraPaidHours, 2),
             'extra_actual_hours'=> round($extraActualHours, 2),
-            'total_paid_hours'  => round($fixPaidHours + $extraPaidHours, 2),
+            'shift_paid_hours'  => round($shiftPaidHours, 2),
+            'total_paid_hours'  => round($fixPaidHours + $extraPaidHours + $shiftPaidHours, 2),
             'fix_count'         => $fixExecutions->count(),
             'extra_count'       => $extraExecutions->count(),
+            'shift_count'       => $shifts->count(),
         ];
     }
 
@@ -169,6 +183,27 @@ class TimeTrackingEngine
             ->whereBetween('work_start', [$from, $to])
             ->get()
             ->each(fn($exec) => $summaries->push($this->summarizeExtraExecution($exec)));
+
+        EmployeeShift::query()
+            ->where('user_id', $user->id)
+            ->where('status', \App\Enums\ShiftStatusEnum::Completed)
+            ->whereBetween('start_at', [$from, $to])
+            ->get()
+            ->each(function (EmployeeShift $shift) use ($summaries, $user) {
+                $hours = $shift->reportableHours();
+                $summaries->push(new TimeTrackingSummary(
+                    jobType: 'employee_shift',
+                    jobId: $shift->id,
+                    userId: $user->id,
+                    date: $shift->start_at->toDateString(),
+                    actualHours: $hours,
+                    paidHours: $hours,
+                    travelHours: 0.0,
+                    contractHours: $shift->scheduledWorkHours(),
+                    hasTravelTime: false,
+                    travelIsPaid: false,
+                ));
+            });
 
         return $summaries->sortBy('date')->values();
     }

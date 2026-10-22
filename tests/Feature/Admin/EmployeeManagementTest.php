@@ -42,9 +42,24 @@ class EmployeeManagementTest extends TestCase
 
     public function test_each_employee_gets_unique_calendar_color(): void
     {
-        $users = User::factory()->mitarbeiter()->count(5)->create();
+        $users = User::factory()->mitarbeiter()->count(24)->create();
         $colors = EmployeeProfile::whereIn('user_id', $users->pluck('id'))->pluck('calendar_color');
         $this->assertEquals($colors->count(), $colors->unique()->count(), 'All calendar colors should be unique');
+    }
+
+    public function test_employee_calendar_color_cannot_be_changed_after_creation(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $originalColor = $employee->employeeProfile->calendar_color;
+
+        app(\App\Services\EmployeeService::class)->update($employee, [
+            'name' => $employee->name,
+            'email' => $employee->email,
+            'role' => $employee->role->value,
+            'calendar_color' => '#000000',
+        ]);
+
+        $this->assertSame($originalColor, $employee->employeeProfile->fresh()->calendar_color);
     }
 
     // ── Admin CRUD ─────────────────────────────────────────────────────────

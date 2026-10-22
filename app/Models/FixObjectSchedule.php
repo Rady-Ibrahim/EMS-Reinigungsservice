@@ -119,8 +119,9 @@ class FixObjectSchedule extends Model
         $date  = $this->scheduled_date;
         $fixId = $this->fix_object_id;
 
-        $rows = ($this->relationLoaded('fixObject') && $this->fixObject->relationLoaded('assignments'))
-            ? $this->fixObject->assignments->whereStrict('fix_object_id', $fixId)
+        $fixObject = $this->relationLoaded('fixObject') ? $this->getRelation('fixObject') : null;
+        $rows = $fixObject && $fixObject->relationLoaded('assignments')
+            ? $fixObject->assignments->whereStrict('fix_object_id', $fixId)
             : FixObjectAssignment::where('fix_object_id', $fixId)->get();
 
         return $rows

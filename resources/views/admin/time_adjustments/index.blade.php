@@ -34,12 +34,15 @@
                 <td><strong>{{ $req->employee->name }}</strong></td>
                 <td>
                     <span class="badge badge-gray" style="font-size:.75rem">
-                        {{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : __('time_page.extra_assignment') }}
+                        {{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : ($req->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra_assignment')) }}
                     </span>
                 </td>
                 <td style="font-size:.8rem">
                     {{ $req->requested_start->format('d.m H:i') }} –
                     {{ $req->requested_end->format('H:i') }}
+                    @if($req->requested_extra_hours)
+                        <span class="badge badge-yellow">+{{ number_format((float) $req->requested_extra_hours, 2, ',', '.') }} h</span>
+                    @endif
                 </td>
                 <td style="font-size:.8rem;color:#94a3b8">
                     {{ $req->original_start?->format('d.m H:i') ?? '—' }} –
@@ -93,7 +96,7 @@
             @forelse($all as $req)
             <tr>
                 <td>{{ $req->employee->name }}</td>
-                <td><span class="badge badge-gray" style="font-size:.75rem">{{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : __('time_page.extra') }}</span></td>
+                <td><span class="badge badge-gray" style="font-size:.75rem">{{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : ($req->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra')) }}</span></td>
                 <td>
                     @php $s = $req->status->value @endphp
                     <span class="badge {{ $s === 'approved' ? 'badge-green' : ($s === 'rejected' ? 'badge-red' : 'badge-gray') }}">

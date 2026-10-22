@@ -143,7 +143,7 @@ class CalendarEngineService
     public function eventForSource(Model $model): ?CalendarEvent
     {
         return match (true) {
-            $model instanceof FixObjectSchedule => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location:id,name,city', 'fixObject.documents'])),
+            $model instanceof FixObjectSchedule => $this->normalizeFix($model->loadMissing(['fixObject.customer:id,name', 'fixObject.location', 'fixObject.documents'])),
             $model instanceof ExtraAuftrag => $this->normalizeExtra($model->loadMissing(['customer:id,name', 'location:id,name,city', 'assignees', 'documents'])),
             $model instanceof EmployeeShift => $this->normalizeShift($model->loadMissing(['user.employeeProfile'])),
             $model instanceof PersonalAppointment => $this->normalizePersonal($model),
@@ -159,7 +159,7 @@ class CalendarEngineService
         $schedules = FixObjectSchedule::forDateRange($from, $to)
             ->with([
                 'fixObject.customer:id,name',
-                'fixObject.location:id,name,city,street,house_number',
+                'fixObject.location',
                 'fixObject.assignments',
                 'fixObject.company',
                 'fixObject.documents',
@@ -186,7 +186,13 @@ class CalendarEngineService
     private function extraEvents(string $from, string $to, ?int $employeeId): Collection
     {
         $orders = ExtraAuftrag::whereBetween('scheduled_date', [$from, $to])
-            ->with(['customer:id,name', 'location:id,name,city,street,house_number', 'company', 'assignees', 'documents'])
+            ->with([
+                'customer:id,name',
+                'location:id,name,city,street,house_number',
+                'company',
+                'assignees.user.employeeProfile:id,user_id,calendar_color',
+                'documents',
+            ])
             ->get();
 
         $output = collect();
@@ -216,7 +222,7 @@ class CalendarEngineService
     {
         $appointments = PersonalAppointment::forDateRange($from, $to)
             ->visibleTo($viewerId)
-            ->with(['user:id,name'])
+            ->with(['user:id,name', 'user.employeeProfile:id,user_id,calendar_color'])
             ->when($employeeId !== null, fn ($q) => $q->where('user_id', $employeeId))
             ->get();
 
@@ -275,10 +281,21 @@ class CalendarEngineService
                 'customer_id' => $fixObject->customer_id,
                 'customer_name' => $fixObject->customer?->name,
                 'fix_object_id' => $fixObject->id,
+                'location_address' => $fixObject->location?->fullAddress(),
+                'latitude' => $fixObject->location?->latitude,
+                'longitude' => $fixObject->location?->longitude,
+                'access_instructions' => $fixObject->location?->access_instructions,
+                'security_code' => $fixObject->location?->security_code,
+                'location_contact_person' => $fixObject->location?->contact_person,
+                'location_contact_phone' => $fixObject->location?->contact_phone,
+                'service_checklist' => $fixObject->location?->service_checklist ?? [],
                 'contract_hours' => $fixObject->contract_hours,
+                'contract_frequency' => $fixObject->frequency->label(),
+                'contract_time_start' => $fixObject->time_start,
+                'contract_time_end' => $fixObject->time_end,
                 'company_name' => $fixObject->company?->name,
                 'company_payout' => $fixObject->company_payout,
-                'detail_url' => $this->routeTo('admin.fix-objects.show', $fixObject->id),
+                'detail_url' => $this->routeTo('admin.fix-objects.edit', $fixObject->id),
                 'documents' => $this->documentsMeta($fixObject->documents, 'admin.fix-objects.documents.download'),
             ],
         );
@@ -304,6 +321,9 @@ class CalendarEngineService
             $location = $location ? "{$location}, {$order->location->city}" : $order->location->city;
         }
 
+        $leadAssignee = $order->assignees->first(fn ($assignee) => $assignee->isLeader())
+            ?? $order->assignees->first();
+
         return new CalendarEvent(
             id: 'extra_auftrag:'.$order->id,
             type: CalendarEventTypeEnum::ExtraAuftrag,
@@ -314,7 +334,7 @@ class CalendarEngineService
             startAt: $start,
             endAt: $end,
             allDay: $allDay,
-            color: self::COLORS['extra'],
+            color: $leadAssignee?->user?->employeeProfile?->calendar_color ?: self::COLORS['extra'],
             employeeIds: $order->assignees->pluck('user_id')->all(),
             status: $order->status->value,
             statusLabel: $order->status->label(),
@@ -342,14 +362,22 @@ class CalendarEngineService
             startAt: $shift->start_at->copy(),
             endAt: $shift->end_at->copy(),
             allDay: $shift->all_day,
-            color: $shift->color ?: ($shift->user?->employeeProfile?->calendar_color ?: self::COLORS['shifts']),
+            color: $shift->user?->employeeProfile?->calendar_color ?: ($shift->color ?: self::COLORS['shifts']),
             employeeIds: [$shift->user_id],
             ownerId: $shift->user_id,
             status: $shift->status->value,
             statusLabel: $shift->status->label(),
             location: $shift->notes ?: null,
             sourceId: $shift->id,
-            metadata: ['employee_name' => $shift->user?->name, 'detail_url' => $this->routeTo('admin.shifts.edit', $shift->id)],
+            metadata: [
+                'employee_name' => $shift->user?->name,
+                'work_hours' => $shift->scheduledWorkHours(),
+                'approved_extra_hours' => (float) $shift->approved_extra_hours,
+                'detail_url' => $this->routeTo('admin.shifts.edit', $shift->id),
+                'complete_url' => $shift->status === \App\Enums\ShiftStatusEnum::Planned
+                    ? $this->routeTo('admin.calendar.shifts.complete', $shift->id)
+                    : null,
+            ],
         );
     }
 
@@ -363,7 +391,7 @@ class CalendarEngineService
             startAt: $appointment->start_at->copy(),
             endAt: $appointment->end_at->copy(),
             allDay: $appointment->all_day,
-            color: $appointment->displayColor(),
+            color: $appointment->user?->employeeProfile?->calendar_color ?: $appointment->displayColor(),
             employeeIds: [$appointment->user_id],
             ownerId: $appointment->user_id,
             location: $appointment->location,

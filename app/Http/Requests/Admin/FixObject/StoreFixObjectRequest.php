@@ -5,12 +5,15 @@ namespace App\Http\Requests\Admin\FixObject;
 use App\Enums\FileCategoryEnum;
 use App\Enums\FileVisibilityEnum;
 use App\Enums\FixFrequencyEnum;
+use App\Http\Requests\Admin\FixObject\Concerns\HasFrequencyDayValidation;
 use App\Services\DocumentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreFixObjectRequest extends FormRequest
 {
+    use HasFrequencyDayValidation;
+
     public function authorize(): bool
     {
         return true;
@@ -23,7 +26,7 @@ class StoreFixObjectRequest extends FormRequest
             'location_id'     => ['required', 'exists:customer_locations,id'],
             'title'           => ['required', 'string', 'max:255'],
             'frequency'       => ['required', Rule::in(FixFrequencyEnum::values())],
-            'frequency_days'  => ['nullable', 'array'],
+            'frequency_days'  => $this->frequencyDayRules(),
             'frequency_days.*'=> ['string', 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun'],
             'contract_hours'  => ['required', 'numeric', 'min:0.25', 'max:24'],
             'time_start'      => ['nullable', 'date_format:H:i'],

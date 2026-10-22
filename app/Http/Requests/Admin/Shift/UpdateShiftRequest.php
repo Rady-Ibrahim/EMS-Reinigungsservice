@@ -13,6 +13,7 @@ class UpdateShiftRequest extends FormRequest
             'title'    => ['required', 'string', 'max:255'],
             'start_at' => ['required', 'date'],
             'end_at'   => ['required', 'date', 'after:start_at'],
+            'work_hours' => ['required', 'numeric', 'min:0.25', 'max:24'],
             'all_day'  => ['nullable', 'boolean'],
             'color'    => ['nullable', 'string', 'max:15'],
             'notes'    => ['nullable', 'string', 'max:2000'],

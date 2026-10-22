@@ -127,6 +127,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ── Shifts ─────────────────────────────────────────────────────────
         Route::get('/shifts', [ApiShiftController::class, 'index'])->name('shifts.index');
         Route::post('/shifts', [ApiShiftController::class, 'store'])->name('shifts.store');
+        Route::post('/shifts/{shift}/complete', [ApiShiftController::class, 'complete'])->name('shifts.complete');
+        Route::post('/shifts/{shift}/overtime-request', [ApiShiftController::class, 'requestOvertime'])->name('shifts.overtime-request');
         Route::delete('/shifts/{shift}', [ApiShiftController::class, 'destroy'])->name('shifts.destroy');
 
         // ── Dynamic Reassignment (Vorarbeiter) ─────────────────────────────

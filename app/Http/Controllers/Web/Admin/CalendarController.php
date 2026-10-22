@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\CalendarEngineService;
 use App\Services\ConflictCheckerService;
+use App\Services\ScheduleGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,12 @@ class CalendarController extends Controller
     {
         return view('admin.calendar.index', [
             'layers' => $this->engine->layerDefinitions(),
+            'employees' => User::query()
+                ->whereIn('role', ['vorarbeiter', 'mitarbeiter'])
+                ->where('is_active', true)
+                ->with('employeeProfile:id,user_id,calendar_color')
+                ->orderBy('name')
+                ->get(['id', 'name', 'role']),
         ]);
     }
 
@@ -35,6 +43,9 @@ class CalendarController extends Controller
             'to'       => ['required', 'date', 'after_or_equal:from'],
             'layers'   => ['nullable'],
             'employee' => ['nullable', 'exists:users,id'],
+            'employee_filter' => ['nullable', 'boolean'],
+            'employees' => ['nullable', 'array'],
+            'employees.*' => ['integer', 'exists:users,id'],
         ]);
 
         $from = Carbon::parse($request->input('from'))->startOfDay();
@@ -43,9 +54,19 @@ class CalendarController extends Controller
         $layers = $this->parseLayers($request->input('layers'));
         $employeeId = $request->filled('employee') ? (int) $request->integer('employee') : null;
 
-        $events = $this->conflicts->annotate(
-            $this->engine->forRange($from, $to, $layers, $employeeId)
-        );
+        if ($layers === [] || in_array('fix', $layers, true)) {
+            app(ScheduleGeneratorService::class)->generateForRange($from, $to);
+        }
+
+        $events = $this->engine->forRange($from, $to, $layers, $employeeId);
+        if ($request->boolean('employee_filter')) {
+            $selectedEmployees = array_map('intval', $request->input('employees', []));
+            $events = $events->filter(function ($event) use ($selectedEmployees) {
+                return $event->employeeIds === []
+                    || array_intersect($event->employeeIds, $selectedEmployees) !== [];
+            })->values();
+        }
+        $events = $this->conflicts->annotate($events);
 
         return response()->json([
             'events'      => $events->map(fn($e) => $e->toArray())->all(),

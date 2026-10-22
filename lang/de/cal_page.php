@@ -22,6 +22,8 @@
     'empty_personal_appointments' => 'Keine persönlichen Termine vorhanden.',
     'empty_shifts' => 'Keine Schichten vorhanden.',
     'end' => 'Ende',
+    'work_hours' => 'Arbeitsstunden',
+    'mark_complete' => 'Als erledigt markieren',
     'force_conflict' => 'Konflikt trotzdem erzwingen (Überschreibt Doppelbuchung)',
     'force_conflict_hint' => 'Nur für Administratoren verfügbar — bei Konflikten wird eine Benachrichtigung protokolliert.',
     'from_date' => 'Ab (Datum)',

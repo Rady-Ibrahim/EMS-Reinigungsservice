@@ -65,6 +65,46 @@ class ShiftController extends Controller
         return response()->json(['message' => 'Schicht gelöscht.']);
     }
 
+    public function complete(Request $request, EmployeeShift $shift): JsonResponse
+    {
+        abort_unless($shift->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
+
+        $shift = $this->service->complete($shift);
+
+        return response()->json([
+            'message' => 'Schicht als abgeschlossen markiert.',
+            'data' => $this->format($shift),
+        ]);
+    }
+
+    public function requestOvertime(Request $request, EmployeeShift $shift, \App\Services\TimeAdjustmentService $adjustments): JsonResponse
+    {
+        abort_unless($shift->user_id === $request->user()->id, Response::HTTP_FORBIDDEN);
+
+        $data = $request->validate([
+            'extra_hours' => ['required', 'numeric', 'min:0.25', 'max:24'],
+            'reason' => ['required', 'string', 'min:10', 'max:1000'],
+        ]);
+
+        $adjustment = $adjustments->submit([
+            'employee_id' => $request->user()->id,
+            'job_type' => 'employee_shift',
+            'job_id' => $shift->id,
+            'requested_extra_hours' => $data['extra_hours'],
+            'reason' => $data['reason'],
+        ]);
+
+        return response()->json([
+            'message' => 'Überstundenantrag eingereicht.',
+            'data' => [
+                'id' => $adjustment->id,
+                'shift_id' => $shift->id,
+                'requested_extra_hours' => (float) $adjustment->requested_extra_hours,
+                'status' => $adjustment->status->value,
+            ],
+        ], Response::HTTP_CREATED);
+    }
+
     private function format(EmployeeShift $shift): array
     {
         return [
@@ -72,6 +112,9 @@ class ShiftController extends Controller
             'title'    => $shift->title,
             'start_at' => $shift->start_at->toIso8601String(),
             'end_at'   => $shift->end_at->toIso8601String(),
+            'work_hours' => $shift->scheduledWorkHours(),
+            'approved_extra_hours' => (float) $shift->approved_extra_hours,
+            'reportable_hours' => $shift->reportableHours(),
             'all_day'  => $shift->all_day,
             'color'    => $shift->color,
             'status'   => $shift->status->value,

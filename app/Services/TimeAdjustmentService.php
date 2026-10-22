@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AdjustmentStatusEnum;
 use App\Enums\AuditEventEnum;
 use App\Models\ExtraAuftragExecution;
+use App\Models\EmployeeShift;
 use App\Models\FixObjectExecution;
 use App\Models\TimeAdjustmentRequest;
 use App\Models\User;
@@ -27,6 +28,30 @@ class TimeAdjustmentService
      */
     public function submit(array $data): TimeAdjustmentRequest
     {
+        $requestedExtraHours = null;
+        if ($data['job_type'] === 'employee_shift') {
+            $shift = EmployeeShift::query()
+                ->whereKey($data['job_id'])
+                ->where('user_id', $data['employee_id'])
+                ->where('status', \App\Enums\ShiftStatusEnum::Completed)
+                ->firstOrFail();
+
+            if (TimeAdjustmentRequest::query()
+                ->where('job_type', 'employee_shift')
+                ->where('job_id', $shift->id)
+                ->where('employee_id', $data['employee_id'])
+                ->pending()
+                ->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'job_id' => __('time_page.shift_overtime_pending'),
+                ]);
+            }
+
+            $requestedExtraHours = (float) $data['requested_extra_hours'];
+            $data['requested_start'] = $shift->end_at;
+            $data['requested_end'] = $shift->end_at->copy()->addMinutes((int) round($requestedExtraHours * 60));
+        }
+
         [$originalStart, $originalEnd] = $this->fetchOriginalTimes(
             $data['job_type'],
             $data['job_id'],
@@ -39,6 +64,7 @@ class TimeAdjustmentService
             'job_id'              => $data['job_id'],
             'requested_start'     => $data['requested_start'],
             'requested_end'       => $data['requested_end'],
+            'requested_extra_hours' => $requestedExtraHours,
             'original_start'      => $originalStart,   // frozen — never changes
             'original_end'        => $originalEnd,      // frozen — never changes
             'reason'              => $data['reason'],
@@ -126,11 +152,39 @@ class TimeAdjustmentService
      */
     private function applyAdjustment(TimeAdjustmentRequest $request): void
     {
-        if ($request->job_type === 'fix_object') {
+        if ($request->job_type === 'employee_shift') {
+            $this->applyToShift($request);
+        } elseif ($request->job_type === 'fix_object') {
             $this->applyToFixExecution($request);
         } else {
             $this->applyToExtraExecution($request);
         }
+    }
+
+    private function applyToShift(TimeAdjustmentRequest $request): void
+    {
+        $shift = EmployeeShift::query()
+            ->whereKey($request->job_id)
+            ->where('user_id', $request->employee_id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if ($shift->status !== \App\Enums\ShiftStatusEnum::Completed) {
+            throw new \RuntimeException('Overtime can only be approved for a completed shift.');
+        }
+
+        $previousHours = (float) $shift->approved_extra_hours;
+        $newHours = round($previousHours + (float) $request->requested_extra_hours, 2);
+        $shift->update(['approved_extra_hours' => $newHours]);
+
+        $this->audit->record(
+            $shift,
+            AuditEventEnum::HoursAdjusted,
+            oldValues: ['approved_extra_hours' => $previousHours],
+            newValues: ['approved_extra_hours' => $newHours],
+            reason: 'Überstundenantrag genehmigt',
+            actorId: $request->reviewed_by,
+        );
     }
 
     private function applyToFixExecution(TimeAdjustmentRequest $request): void
@@ -222,6 +276,16 @@ class TimeAdjustmentService
                                            ->where('user_id', $employeeId)
                                            ->first();
             return [$execution?->actual_start, $execution?->actual_end];
+        }
+
+        if ($jobType === 'employee_shift') {
+            $shift = EmployeeShift::query()
+                ->whereKey($jobId)
+                ->where('user_id', $employeeId)
+                ->where('status', \App\Enums\ShiftStatusEnum::Completed)
+                ->firstOrFail();
+
+            return [$shift->start_at, $shift->end_at];
         }
 
         $execution = ExtraAuftragExecution::where('extra_auftrag_id', $jobId)

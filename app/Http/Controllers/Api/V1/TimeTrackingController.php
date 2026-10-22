@@ -93,6 +93,7 @@ class TimeTrackingController extends Controller
             'job_id'           => $req->job_id,
             'requested_start'  => $req->requested_start->toIso8601String(),
             'requested_end'    => $req->requested_end->toIso8601String(),
+            'requested_extra_hours' => $req->requested_extra_hours !== null ? (float) $req->requested_extra_hours : null,
             'original_start'   => $req->original_start?->toIso8601String(),
             'original_end'     => $req->original_end?->toIso8601String(),
             'reason'           => $req->reason,

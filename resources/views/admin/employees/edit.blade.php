@@ -65,7 +65,11 @@
         <div class="form-row">
             <div class="form-group">
                 <label>{{ __('employee.calendar_color') }}</label>
-                @include('admin.partials.color_picker', ['name' => 'calendar_color', 'value' => old('calendar_color', $employee->employeeProfile?->calendar_color ?? '#3b82f6')])
+                <div style="display:flex;align-items:center;gap:.65rem">
+                    <span aria-hidden="true" style="width:1.25rem;height:1.25rem;border-radius:50%;background:{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}"></span>
+                    <input type="text" value="{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}" readonly aria-readonly="true">
+                </div>
+                <small>{{ __('employee.calendar_color_locked') }}</small>
             </div>
             <div class="form-group">
                 <label>{{ __('employee.employee_number') }}</label>

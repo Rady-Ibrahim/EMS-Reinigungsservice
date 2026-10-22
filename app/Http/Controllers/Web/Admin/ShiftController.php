@@ -88,6 +88,13 @@ class ShiftController extends Controller
         return back()->with('success', __('messages.success'));
     }
 
+    public function complete(EmployeeShift $shift): RedirectResponse
+    {
+        $this->service->complete($shift);
+
+        return back()->with('success', __('messages.success'));
+    }
+
     private function employees(): \Illuminate\Support\Collection
     {
         return User::whereIn('role', [RoleEnum::Vorarbeiter->value, RoleEnum::Mitarbeiter->value])

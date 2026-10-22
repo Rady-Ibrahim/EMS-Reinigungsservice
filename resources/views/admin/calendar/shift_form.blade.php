@@ -43,6 +43,13 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label>{{ __('cal_page.work_hours') }} *</label>
+                <input type="number" name="work_hours" min="0.25" max="24" step="0.25"
+                       value="{{ old('work_hours', $shift->exists ? $shift->scheduledWorkHours() : 8) }}" required>
+                @error('work_hours') <div class="field-error">{{ $message }}</div> @enderror
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label>{{ __('cal_page.all_day') }}</label>

@@ -39,10 +39,10 @@
                 </td>
                 <td>
                     <div class="actions">
-                        <a href="{{ route('locations.show', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.details') }}</a>
-                        <a href="{{ route('locations.edit', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.edit') }}</a>
+                        <a href="{{ route('admin.locations.show', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.details') }}</a>
+                        <a href="{{ route('admin.locations.edit', $loc) }}" class="btn btn-secondary btn-sm">{{ __('customer.edit') }}</a>
                         @if(! $loc->trashed())
-                        <form method="POST" action="{{ route('locations.destroy', $loc) }}" onsubmit="return confirm('{{ __('customer.confirm_delete') }}')">
+                        <form method="POST" action="{{ route('admin.locations.destroy', $loc) }}" onsubmit="return confirm('{{ __('customer.confirm_delete') }}')">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm">{{ __('customer.delete') }}</button>
                         </form>

@@ -195,6 +195,27 @@ class MonthlyReportProfitabilityTest extends TestCase
         $this->assertSame(0.0, $this->engine()->profitabilityFor($employee, 2026, 10)['revenue']);
     }
 
+    public function test_monthly_report_refresh_includes_completed_employee_work(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+        $date = now();
+        $this->fixVisit(
+            $employee,
+            FixObject::factory()->withContractHours(2.0)->create(),
+            2.0,
+            day: $date->day,
+            year: $date->year,
+            month: $date->month
+        );
+
+        $report = $this->engine()->employeesWithReports($date->year, $date->month)
+            ->firstWhere('user_id', $employee->id);
+
+        $this->assertNotNull($report);
+        $this->assertSame(2.0, (float) $report->total_paid_hours);
+        $this->assertCount(1, $this->engine()->lineItemsFor($employee, $date->year, $date->month));
+    }
+
     // ── Even split between employees ───────────────────────────────────────
 
     public function test_monthly_fee_is_split_evenly_between_two_employees(): void

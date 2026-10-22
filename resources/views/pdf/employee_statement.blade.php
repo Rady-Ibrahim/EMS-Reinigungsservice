@@ -63,6 +63,10 @@
                 <td class="num">{{ number_format((float) $report->fix_paid_hours, 2, ',', '.') }}</td>
             </tr>
             <tr>
+                <td>Schichten · geleistete Stunden (einschließlich genehmigter Überstunden)</td>
+                <td class="num">{{ number_format((float) $report->shift_paid_hours, 2, ',', '.') }}</td>
+            </tr>
+            <tr>
                 <td>Extra-Aufträge · Arbeitszeit</td>
                 <td class="num">{{ number_format((float) $report->extra_work_hours, 2, ',', '.') }}</td>
             </tr>

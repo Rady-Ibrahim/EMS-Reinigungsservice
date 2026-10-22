@@ -44,7 +44,7 @@
         {{ \Carbon\Carbon::create()->month($month)->locale('de')->monthName }} {{ $year }}
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin-bottom:1.5rem">
         {{-- Total paid --}}
         <div style="background:#eff6ff;border-radius:10px;padding:1.25rem;text-align:center">
             <div style="font-size:2rem;font-weight:700;color:#1e40af">{{ $totals['total_paid_hours'] }}h</div>
@@ -64,6 +64,12 @@
             <div style="font-size:.85rem;color:#475569;margin-top:.25rem">
                 {{ __('time_page.extra_orders') }} ({{ $totals['extra_count'] }} {{ __('time_page.assignments') }})<br>
                 <small style="color:#94a3b8">{{ __('time_page.actually') }} {{ $totals['extra_actual_hours'] }}h</small>
+            </div>
+            <div style="background:#ecfeff;border-radius:10px;padding:1.25rem;text-align:center">
+                <div style="font-size:2rem;font-weight:700;color:#0e7490">{{ $totals['shift_paid_hours'] }}h</div>
+                <div style="font-size:.85rem;color:#475569;margin-top:.25rem">
+                    {{ __('time_page.shifts') }} ({{ $totals['shift_count'] }} {{ __('time_page.assignments') }})
+                </div>
             </div>
         </div>
     </div>

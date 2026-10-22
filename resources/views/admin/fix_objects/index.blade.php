@@ -46,6 +46,7 @@
                 </td>
                 <td>
                     <div class="actions">
+                        <a href="{{ route('admin.fix-objects.show', $fo) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.view_action') }}</a>
                         <a href="{{ route('admin.fix-objects.edit', $fo) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.edit_action') }}</a>
                         <form action="{{ route('admin.fix-objects.destroy', $fo) }}" method="POST"
                               onsubmit="return confirm('{{ __('fix_object.confirm_delete') }}')" style="display:inline">

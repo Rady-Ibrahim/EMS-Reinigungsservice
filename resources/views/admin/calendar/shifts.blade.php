@@ -15,6 +15,7 @@
                     <th>{{ __('cal_page.title') }}</th>
                     <th>{{ __('cal_page.start') }}</th>
                     <th>{{ __('cal_page.end') }}</th>
+                    <th>{{ __('cal_page.work_hours') }}</th>
                     <th>{{ __('cal_page.all_day') }}</th>
                     <th>{{ __('cal_page.status') }}</th>
                     <th>{{ __('cal_page.actions') }}</th>
@@ -30,10 +31,13 @@
                         </td>
                         <td>{{ $shift->start_at->format('d.m.Y H:i') }}</td>
                         <td>{{ $shift->end_at->format('d.m.Y H:i') }}</td>
+                        <td>{{ number_format($shift->scheduledWorkHours(), 2, ',', '.') }} h</td>
                         <td>{{ $shift->all_day ? __('cal_page.yes') : __('cal_page.no') }}</td>
                         <td>
                             @if($shift->status->value === 'cancelled')
                                 <span class="badge badge-red">{{ $shift->status->label() }}</span>
+                            @elseif($shift->status->value === 'completed')
+                                <span class="badge badge-green">{{ $shift->status->label() }}</span>
                             @else
                                 <span class="badge badge-green">{{ $shift->status->label() }}</span>
                             @endif
@@ -42,6 +46,12 @@
                             <div class="actions">
                                 <a href="{{ route('admin.calendar.shifts.edit', $shift) }}" class="btn btn-secondary btn-sm">{{ __('cal_page.edit') }}</a>
                                 @if($shift->status->value !== 'cancelled')
+                                    @if($shift->status->value !== 'completed')
+                                        <form action="{{ route('admin.calendar.shifts.complete', $shift) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm">{{ __('cal_page.mark_complete') }}</button>
+                                        </form>
+                                    @endif
                                     <form action="{{ route('admin.calendar.shifts.cancel', $shift) }}" method="POST" onsubmit="return confirm('{{ __('cal_page.confirm_cancel_shift') }}');">
                                         @csrf
                                         <button type="submit" class="btn btn-secondary btn-sm">{{ __('cal_page.cancel_shift') }}</button>
@@ -56,7 +66,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7">{{ __('cal_page.empty_shifts') }}</td></tr>
+                    <tr><td colspan="8">{{ __('cal_page.empty_shifts') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

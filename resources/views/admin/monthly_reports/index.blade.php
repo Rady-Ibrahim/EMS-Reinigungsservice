@@ -36,6 +36,7 @@
                 <tr>
                     <th>{{ __('monthly_index.employee') }}</th>
                     <th class="num">{{ __('monthly_index.fix_paired') }}</th>
+                    <th class="num">{{ __('time_page.shifts') }}</th>
                     <th class="num">{{ __('monthly_index.extra_work') }}</th>
                     <th class="num">{{ __('monthly_index.extra_travel') }}</th>
                     <th class="num">{{ __('monthly_index.total_paired') }}</th>
@@ -54,6 +55,7 @@
                             </a>
                         </td>
                         <td class="num">{{ number_format((float) $report->fix_paid_hours, 2, ',', '.') }}</td>
+                        <td class="num">{{ number_format((float) $report->shift_paid_hours, 2, ',', '.') }}</td>
                         <td class="num">{{ number_format((float) $report->extra_work_hours, 2, ',', '.') }}</td>
                         <td class="num">{{ number_format((float) $report->extra_travel_hours, 2, ',', '.') }}</td>
                         <td class="num">{{ number_format((float) $report->total_paid_hours, 2, ',', '.') }}</td>
@@ -74,7 +76,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9">{{ __('monthly_index.empty') }}</td></tr>
+                    <tr><td colspan="10">{{ __('monthly_index.empty') }}</td></tr>
                 @endforelse
             </tbody>
             @if($reports->isNotEmpty())
@@ -86,7 +88,7 @@
                 <tfoot>
                     <tr class="tot-row">
                         <td><strong>{{ __('monthly_index.sum_month') }}</strong></td>
-                        <td colspan="4"></td>
+                        <td colspan="5"></td>
                         <td class="num"><strong>{{ number_format($sumRevenue, 2, ',', '.') }} €</strong></td>
                         <td class="num"><strong>{{ number_format($sumCost, 2, ',', '.') }} €</strong></td>
                         <td class="num">

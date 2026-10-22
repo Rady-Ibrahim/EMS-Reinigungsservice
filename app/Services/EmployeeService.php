@@ -38,7 +38,6 @@ class EmployeeService
 
             // Observer already created the profile — now update with provided fields
             $profileData = array_filter([
-                'calendar_color'  => $data['calendar_color'] ?? null,
                 'employee_number' => $data['employee_number'] ?? null,
                 'phone'           => $data['phone'] ?? null,
                 'address'         => $data['address'] ?? null,
@@ -80,7 +79,6 @@ class EmployeeService
             $user->update($userFields);
 
             $profileData = array_filter([
-                'calendar_color'  => $data['calendar_color'] ?? null,
                 'employee_number' => $data['employee_number'] ?? null,
                 'phone'           => $data['phone'] ?? null,
                 'address'         => $data['address'] ?? null,

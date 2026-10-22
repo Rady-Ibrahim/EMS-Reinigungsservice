@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\FixObject;
 use App\Models\FixObjectSchedule;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleGeneratorService
@@ -49,6 +49,29 @@ class ScheduleGeneratorService
                 }
             }
         });
+
+        return $created;
+    }
+
+    /**
+     * Ensure recurring schedules exist for every month touched by a calendar
+     * feed request. Generation is idempotent, so saved execution states remain
+     * untouched while missing occurrences become visible in the calendar.
+     */
+    public function generateForRange(CarbonInterface $from, CarbonInterface $to): int
+    {
+        $created = 0;
+        $month = Carbon::instance($from)->startOfMonth();
+        $lastMonth = Carbon::instance($to)->startOfMonth();
+        $objects = FixObject::active()->get();
+
+        while ($month->lte($lastMonth)) {
+            foreach ($objects as $fixObject) {
+                $created += $this->generateForMonth($fixObject, $month->year, $month->month);
+            }
+
+            $month->addMonth();
+        }
 
         return $created;
     }

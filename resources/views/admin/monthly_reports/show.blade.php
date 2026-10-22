@@ -5,14 +5,16 @@
     @php
         $total   = (float) $monthlyReport->total_paid_hours;
         $fix     = (float) $monthlyReport->fix_paid_hours;
+        $shifts  = (float) $monthlyReport->shift_paid_hours;
         $extra   = (float) $monthlyReport->extra_work_hours + (float) $monthlyReport->extra_travel_hours;
         $travel  = (float) $monthlyReport->extra_travel_hours;
-        $actual  = (float) $monthlyReport->fix_actual_hours + (float) $monthlyReport->extra_actual_hours;
+        $actual  = (float) $monthlyReport->fix_actual_hours + (float) $monthlyReport->extra_actual_hours + $shifts;
         $count   = $lineItems->count();
 
         $segments = [];
         if ($total > 0) {
             $segments[] = ['label' => __('messages.cal.layers.fix').' ('.__('messages.report.vertraglich').')', 'value' => $fix,    'color' => '#D4AF37', 'pct' => $fix / $total * 100];
+            $segments[] = ['label' => __('time_page.shifts'), 'value' => $shifts, 'color' => '#06B6D4', 'pct' => $shifts / $total * 100];
             $segments[] = ['label' => __('messages.cal.layers.extra').' · '.__('messages.report.work_time_short'), 'value' => max((float) $monthlyReport->extra_work_hours, 0), 'color' => '#10B981', 'pct' => max((float) $monthlyReport->extra_work_hours, 0) / $total * 100];
             $segments[] = ['label' => __('messages.cal.layers.extra').' · '.__('messages.report.travel_time_short'), 'value' => $travel,  'color' => '#8B5CF6', 'pct' => $travel / $total * 100];
         }
@@ -107,6 +109,7 @@
                 <tbody>
                     <tr><td>{{ __('messages.report.fix_paid') }}</td><td class="num">{{ number_format($fix, 2, ',', '.') }} h</td></tr>
                     <tr><td>{{ __('messages.report.fix_actual') }}</td><td class="num">{{ number_format((float) $monthlyReport->fix_actual_hours, 2, ',', '.') }} h</td></tr>
+                    <tr><td>{{ __('time_page.shifts') }}</td><td class="num">{{ number_format($shifts, 2, ',', '.') }} h</td></tr>
                     <tr><td>{{ __('messages.report.extra_work') }}</td><td class="num">{{ number_format((float) $monthlyReport->extra_work_hours, 2, ',', '.') }} h</td></tr>
                     <tr><td>{{ __('messages.report.extra_travel') }}</td><td class="num">{{ number_format($travel, 2, ',', '.') }} h</td></tr>
                     <tr><td>{{ __('messages.report.extra_actual') }}</td><td class="num">{{ number_format((float) $monthlyReport->extra_actual_hours, 2, ',', '.') }} h</td></tr>
@@ -223,8 +226,15 @@
                             <td>{{ \Carbon\CarbonImmutable::parse($item['date'])->format('d.m.Y') }}</td>
                             <td>
                                 {{ $item['label'] }}
-                                <span class="badge {{ $item['job_type'] === 'fix_object' ? 'badge-blue' : 'badge-yellow' }}" style="margin-inline-start:.3rem;font-size:.62rem">
-                                    {{ $item['job_type'] === 'fix_object' ? __('messages.report.badge_fix') : __('messages.report.badge_extra') }}
+                                @php
+                                    $itemBadge = match ($item['job_type']) {
+                                        'fix_object' => ['badge-blue', __('messages.report.badge_fix')],
+                                        'employee_shift' => ['badge-green', __('time_page.shifts')],
+                                        default => ['badge-yellow', __('messages.report.badge_extra')],
+                                    };
+                                @endphp
+                                <span class="badge {{ $itemBadge[0] }}" style="margin-inline-start:.3rem;font-size:.62rem">
+                                    {{ $itemBadge[1] }}
                                 </span>
                             </td>
                             <td>{{ $item['customer'] }}</td>
