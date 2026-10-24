@@ -5,12 +5,15 @@ namespace App\Http\Requests\Admin\ExtraAuftrag;
 use App\Enums\AssigneeRoleEnum;
 use App\Enums\ExtraOrderTypeEnum;
 use App\Enums\FileCategoryEnum;
+use App\Http\Requests\Admin\ExtraAuftrag\Concerns\HasCompanyAssigneeValidation;
 use App\Services\DocumentService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreExtraAuftragRequest extends FormRequest
 {
+    use HasCompanyAssigneeValidation;
+
     public function authorize(): bool
     {
         return true;
@@ -53,7 +56,7 @@ class StoreExtraAuftragRequest extends FormRequest
             'extern_document_notes'    => ['nullable', 'string', 'max:2000'],
             // Assignees — at least one leader required (enforced in service)
             'assignees'            => ['required', 'array', 'min:1'],
-            'assignees.*.user_id'  => ['required', 'exists:users,id'],
+            'assignees.*.user_id'  => ['required', $this->companyAssigneeRule()],
             'assignees.*.role_in_order' => ['required', Rule::in(AssigneeRoleEnum::values())],
         ];
     }

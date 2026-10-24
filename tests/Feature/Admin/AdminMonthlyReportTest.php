@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\ExecutionStatusEnum;
 use App\Models\AuditLog;
+use App\Models\Company;
 use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragExecution;
 use App\Models\FixObject;
@@ -13,6 +14,7 @@ use App\Models\EmployeeShift;
 use App\Models\MonthlyReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class AdminMonthlyReportTest extends TestCase
@@ -63,6 +65,27 @@ class AdminMonthlyReportTest extends TestCase
              ->assertOk()
              ->assertSee($employee->name)
              ->assertSee('Entwurf');
+    }
+
+    public function test_index_shows_monthly_company_payout_total(): void
+    {
+        $company = Company::factory()->create();
+        FixObject::factory()->create([
+            'company_id' => $company->id,
+            'company_payout' => '50.00',
+            'valid_from' => '2026-10-01',
+            'valid_until' => '2026-10-31',
+        ]);
+        ExtraAuftrag::factory()->create([
+            'company_id' => $company->id,
+            'company_payout' => '75.00',
+            'scheduled_date' => '2026-10-22',
+        ]);
+
+        $this->get(route('admin.monthly-reports.index', ['year' => 2026, 'month' => 10]))
+            ->assertOk()
+            ->assertSee(__('monthly_index.company_payout_total'))
+            ->assertSee('125,00 €');
     }
 
     public function test_show_displays_report_totals(): void
@@ -186,7 +209,7 @@ class AdminMonthlyReportTest extends TestCase
     public function test_guest_is_redirected_to_login(): void
     {
         // Forget the admin session set in setUp()
-        auth()->logout();
+        Auth::logout();
 
         $this->get(route('admin.monthly-reports.index'))
              ->assertRedirect(route('login'));

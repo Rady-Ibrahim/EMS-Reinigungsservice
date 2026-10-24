@@ -97,29 +97,47 @@
         <h2 style="font-size:1rem;margin-bottom:.75rem;color:#475569">{{ __('extra_order.section_assign_team') }}</h2>
         @error('assignees')<p class="field-error">{{ $message }}</p>@enderror
 
+        @php
+            $selectedAssignees = old('assignees');
+            if (!is_array($selectedAssignees) || $selectedAssignees === []) {
+                $selectedAssignees = [[]];
+            }
+            $selectedChecklist = old('checklist_template', [['task' => '']]);
+            $selectedLocationId = (string) old('location_id', '');
+        @endphp
         <div id="assigneeList">
-            <div class="form-row assignee-row" style="margin-bottom:.5rem">
-                <select name="assignees[0][user_id]" class="assignee-user" style="flex:2" required>
-                    <option value="">{{ __('extra_order.select_employee_placeholder') }}</option>
-                    @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" data-company="{{ $emp->company_id }}">{{ $emp->name }} ({{ $emp->role->label() }})</option>
-                    @endforeach
-                </select>
-                <select name="assignees[0][role_in_order]" style="flex:1" required>
-                    <option value="leader">{{ __('extra_order.role_leader') }}</option>
-                    <option value="member">{{ __('extra_order.employee') }}</option>
-                </select>
-            </div>
+            @foreach($selectedAssignees as $index => $selectedAssignee)
+                <div class="form-row assignee-row" style="margin-bottom:.5rem">
+                    <select name="assignees[{{ $index }}][user_id]" class="assignee-user" style="flex:2" required>
+                        <option value="">{{ __('extra_order.select_employee_placeholder') }}</option>
+                        @foreach($employees as $emp)
+                        <option value="{{ $emp->id }}" data-company="{{ $emp->company_id }}"
+                            {{ (string) old("assignees.$index.user_id", $selectedAssignee['user_id'] ?? '') === (string) $emp->id ? 'selected' : '' }}>
+                            {{ $emp->name }} ({{ $emp->role->label() }})
+                        </option>
+                        @endforeach
+                    </select>
+                    <select name="assignees[{{ $index }}][role_in_order]" style="flex:1" required>
+                        <option value="leader" {{ old("assignees.$index.role_in_order", $selectedAssignee['role_in_order'] ?? 'leader') === 'leader' ? 'selected' : '' }}>{{ __('extra_order.role_leader') }}</option>
+                        <option value="member" {{ old("assignees.$index.role_in_order", $selectedAssignee['role_in_order'] ?? '') === 'member' ? 'selected' : '' }}>{{ __('extra_order.employee') }}</option>
+                    </select>
+                    @if($index !== array_key_first($selectedAssignees))
+                        <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger btn-sm">✕</button>
+                    @endif
+                </div>
+            @endforeach
         </div>
         <button type="button" onclick="addAssignee()" class="btn btn-secondary btn-sm" style="margin-top:.5rem">{{ __('extra_order.btn_add_employee') }}</button>
 
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0">
         <h2 style="font-size:1rem;margin-bottom:.75rem;color:#475569">{{ __('extra_order.section_checklist') }}</h2>
         <div id="checklistContainer">
-            <div class="checklist-row" style="display:flex;gap:.5rem;margin-bottom:.5rem">
-                <input type="text" name="checklist_template[0][task]" placeholder="{{ __('extra_order.placeholder_task') }}" style="flex:1">
-                <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger btn-sm">✕</button>
-            </div>
+            @foreach($selectedChecklist as $index => $item)
+                <div class="checklist-row" style="display:flex;gap:.5rem;margin-bottom:.5rem">
+                    <input type="text" name="checklist_template[{{ $index }}][task]" value="{{ old("checklist_template.$index.task", is_array($item) ? ($item['task'] ?? '') : $item) }}" placeholder="{{ __('extra_order.placeholder_task') }}" style="flex:1">
+                    <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger btn-sm">✕</button>
+                </div>
+            @endforeach
         </div>
         <button type="button" onclick="addChecklist()" class="btn btn-secondary btn-sm">{{ __('extra_order.btn_add_task') }}</button>
 
@@ -222,9 +240,11 @@
 </div>
 
 <script>
-let assigneeCount = 1;
-let checklistCount = 1;
+let assigneeCount = {{ empty($selectedAssignees) ? 0 : max(array_keys($selectedAssignees)) + 1 }};
+let checklistCount = {{ empty($selectedChecklist) ? 0 : max(array_keys($selectedChecklist)) + 1 }};
 const employees = @json($employees->map(fn($e) => ['id' => $e->id, 'name' => $e->name . ' (' . $e->role->label() . ')', 'company' => $e->company_id]));
+const locationPlaceholder = @json(__('extra_order.select_location_placeholder'));
+const selectedLocationId = @json($selectedLocationId);
 const allEmployeeOptions = `<option value="">{{ __('extra_order.select_employee_placeholder') }}</option>` +
     employees.map(e => `<option value="${e.id}" data-company="${e.company ?? ''}">${e.name}</option>`).join('');
 
@@ -247,22 +267,47 @@ function applyCompanyFilter() {
 document.getElementById('companySelect').addEventListener('change', applyCompanyFilter);
 document.addEventListener('DOMContentLoaded', applyCompanyFilter);
 
-document.getElementById('customerSelect').addEventListener('change', function () {
-    const customerId = this.value;
+function loadCustomerLocations(customerId, selectedLocationId = '') {
     const locationSelect = document.getElementById('locationSelect');
+    if (!customerId) {
+        setLocationPlaceholder(locationSelect);
+        return;
+    }
     locationSelect.innerHTML = '<option value="">...</option>';
-    if (!customerId) { return; }
 
     fetch('/admin/api/customers/' + customerId + '/locations', { headers: { 'Accept': 'application/json' } })
-        .then(r => r.json())
-        .then(data => {
-            locationSelect.innerHTML = '<option value="">{{ __('extra_order.select_location_placeholder') }}</option>';
-            data.forEach(loc => {
-                locationSelect.innerHTML += '<option value="' + loc.id + '">' + loc.name + ' – ' + (loc.city || '') + '</option>';
-            });
+        .then(r => {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.json();
         })
-        .catch(() => { locationSelect.innerHTML = '<option value="">—</option>'; });
+        .then(data => {
+            setLocationPlaceholder(locationSelect);
+            data.forEach(loc => {
+                const option = document.createElement('option');
+                option.value = loc.id;
+                option.textContent = loc.name + ' – ' + (loc.city || '');
+                locationSelect.appendChild(option);
+            });
+            locationSelect.value = selectedLocationId;
+        })
+        .catch(err => {
+            console.error('Customer locations could not be loaded.', err);
+            setLocationPlaceholder(locationSelect);
+        });
+}
+
+function setLocationPlaceholder(locationSelect) {
+    locationSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = locationPlaceholder;
+    locationSelect.appendChild(placeholder);
+}
+
+document.getElementById('customerSelect').addEventListener('change', function () {
+    loadCustomerLocations(this.value);
 });
+loadCustomerLocations(document.getElementById('customerSelect').value, selectedLocationId);
 
 function addAssignee() {
     const list = document.getElementById('assigneeList');

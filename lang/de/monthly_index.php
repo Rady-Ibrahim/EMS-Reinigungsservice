@@ -15,6 +15,7 @@ return [
     'draft'               => 'Entwurf',
     'empty'               => 'Keine Mitarbeiter gefunden.',
     'sum_month'           => 'Summe Monat',
+    'company_payout_total'=> 'Monatliche Auszahlungen an Fremdfirmen',
     'discrepancy_meta'    => 'Ist-Stunden vs. bezahlte/geplante Stunden',
     'filter'              => 'Filtern',
     'back'                => 'Zurück',

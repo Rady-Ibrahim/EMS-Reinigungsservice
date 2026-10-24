@@ -78,10 +78,8 @@ class AppointmentController extends Controller
 
     private function users(): \Illuminate\Support\Collection
     {
-        return User::whereIn('role', [
-            RoleEnum::Administrator->value,
-            RoleEnum::Vorarbeiter->value,
-            RoleEnum::Mitarbeiter->value,
-        ])->orderBy('name')->get(['id', 'name']);
+        return User::where('role', RoleEnum::Administrator->value)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

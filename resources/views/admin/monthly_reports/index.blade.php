@@ -30,6 +30,13 @@
         </div>
     </form>
 
+    <div class="card" style="max-width:420px;margin-bottom:.75rem;">
+        <div style="color:var(--text-faint);font-size:.8rem;">{{ __('monthly_index.company_payout_total') }}</div>
+        <strong style="display:block;font-size:1.5rem;margin-top:.25rem;">
+            {{ number_format($companyPayout, 2, ',', '.') }} €
+        </strong>
+    </div>
+
     <div class="card">
         <table>
             <thead>

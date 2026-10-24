@@ -29,10 +29,38 @@ class AdminCalendarTest extends TestCase
         $this->get('/admin/calendar')
              ->assertOk()
              ->assertSee('Kalender')
-             ->assertSee("initialView: 'timeGridWeek'", false)
+             ->assertSee("initialView: 'dayGridMonth'", false)
              ->assertSee('html[dir="rtl"] .slide-panel:not(.open)', false)
              ->assertSee('value="fix"')
              ->assertSee('value="extra"');
+    }
+
+    public function test_personal_appointment_form_lists_only_administrators(): void
+    {
+        User::factory()->administrator()->create(['name' => 'Calendar Admin']);
+        $employee = User::factory()->mitarbeiter()->create(['name' => 'Calendar Employee']);
+
+        $this->get(route('admin.calendar.appointments.create'))
+            ->assertOk()
+            ->assertSee('Calendar Admin')
+            ->assertDontSee('Calendar Employee');
+    }
+
+    public function test_personal_appointment_cannot_be_assigned_to_an_employee(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create();
+
+        $this->post(route('admin.calendar.appointments.store'), [
+            'user_id' => $employee->id,
+            'title' => 'Employee personal appointment',
+            'start_at' => now()->addDay()->setTime(9, 0)->format('Y-m-d\TH:i'),
+            'end_at' => now()->addDay()->setTime(10, 0)->format('Y-m-d\TH:i'),
+        ])->assertSessionHasErrors('user_id');
+
+        $this->assertDatabaseMissing('personal_appointments', [
+            'user_id' => $employee->id,
+            'title' => 'Employee personal appointment',
+        ]);
     }
 
     public function test_calendar_page_displays_employee_filter_with_assigned_color(): void

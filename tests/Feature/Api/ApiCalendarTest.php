@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\AssigneeRoleEnum;
+use App\Models\Company;
 use App\Models\ExtraAuftrag;
 use App\Models\ExtraAuftragAssignee;
 use App\Models\FixObjectAssignment;
@@ -61,6 +63,38 @@ class ApiCalendarTest extends TestCase
 
         $ids = collect($response->json('data'))->pluck('id');
         $this->assertNotContains('personal_appointment', $ids->map(fn($id) => explode(':', $id)[0])->all());
+    }
+
+    public function test_extra_order_calendar_event_hides_company_and_financial_data_from_mobile(): void
+    {
+        $company = Company::factory()->create(['name' => 'Private Scenario Company']);
+        $employee = User::factory()->mitarbeiter()->create(['company_id' => $company->id]);
+        $order = ExtraAuftrag::factory()->create([
+            'company_id' => $company->id,
+            'company_payout' => '124.50',
+            'price' => '999.00',
+            'scheduled_date' => now()->addDay()->toDateString(),
+        ]);
+        ExtraAuftragAssignee::create([
+            'extra_auftrag_id' => $order->id,
+            'user_id' => $employee->id,
+            'role_in_order' => AssigneeRoleEnum::Leader,
+        ]);
+
+        $this->actingWithToken($employee);
+        $from = now()->toDateString();
+        $to = now()->addDays(2)->toDateString();
+
+        $response = $this->getJson("/api/v1/calendar?from={$from}&to={$to}&layers=extra")
+            ->assertOk()
+            ->assertDontSee('Private Scenario Company')
+            ->assertDontSee('124.50')
+            ->assertDontSee('999.00');
+
+        $event = collect($response->json('data'))->firstWhere('id', "extra_auftrag:{$order->id}");
+        $this->assertNotNull($event);
+        $this->assertArrayNotHasKey('company_name', $event['metadata'] ?? []);
+        $this->assertArrayNotHasKey('company_payout', $event['metadata'] ?? []);
     }
 
     public function test_employee_creates_own_personal_appointment(): void

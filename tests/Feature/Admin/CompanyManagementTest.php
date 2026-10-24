@@ -3,6 +3,8 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Company;
+use App\Models\Customer;
+use App\Models\CustomerLocation;
 use App\Models\ExtraAuftrag;
 use App\Models\FixObject;
 use App\Models\FixObjectAssignment;
@@ -106,6 +108,59 @@ class CompanyManagementTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('users', ['email' => 'mona@ems.de', 'company_id' => $company->id]);
+    }
+
+    public function test_extra_order_assignees_must_belong_to_the_selected_company(): void
+    {
+        $company = Company::factory()->create();
+        $otherCompany = Company::factory()->create();
+        $employee = User::factory()->mitarbeiter()->create(['company_id' => $otherCompany->id]);
+        $customer = Customer::factory()->create();
+        $location = CustomerLocation::factory()->create(['customer_id' => $customer->id]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.extra-auftraege.store'), [
+                'title' => 'Invalid company assignment',
+                'order_type' => 'other',
+                'customer_id' => $customer->id,
+                'location_id' => $location->id,
+                'company_id' => $company->id,
+                'scheduled_date' => now()->addDay()->toDateString(),
+                'assignees' => [
+                    ['user_id' => $employee->id, 'role_in_order' => 'leader'],
+                ],
+            ])
+            ->assertSessionHasErrors('assignees.0.user_id');
+
+        $this->assertDatabaseMissing('extra_auftraege', ['title' => 'Invalid company assignment']);
+    }
+
+    public function test_extra_order_can_be_assigned_to_an_employee_of_the_selected_company(): void
+    {
+        $company = Company::factory()->create();
+        $employee = User::factory()->mitarbeiter()->create(['company_id' => $company->id]);
+        $customer = Customer::factory()->create();
+        $location = CustomerLocation::factory()->create(['customer_id' => $customer->id]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.extra-auftraege.store'), [
+                'title' => 'Valid company assignment',
+                'order_type' => 'other',
+                'customer_id' => $customer->id,
+                'location_id' => $location->id,
+                'company_id' => $company->id,
+                'company_payout' => '75.00',
+                'scheduled_date' => now()->addDay()->toDateString(),
+                'assignees' => [
+                    ['user_id' => $employee->id, 'role_in_order' => 'leader'],
+                ],
+            ])
+            ->assertRedirect();
+
+        $order = ExtraAuftrag::where('title', 'Valid company assignment')->firstOrFail();
+        $this->assertSame($company->id, $order->company_id);
+        $this->assertSame($employee->id, $order->assignees()->value('user_id'));
+        $this->assertSame('75.00', (string) $order->company_payout);
     }
 
     public function test_company_relationship_lists_its_employees(): void

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Web\Admin;
 
+use App\Enums\ExtraAuftragStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Models\ExtraAuftrag;
+use App\Models\FixObject;
 use App\Models\MonthlyReport;
 use App\Models\User;
 use App\Services\ExportService;
@@ -35,13 +38,30 @@ class MonthlyReportController extends Controller
         $month = $request->integer('month', now()->month);
 
         $reports = $this->engine->employeesWithReports($year, $month)->sortBy('employee.name');
+        $monthStart = \Carbon\CarbonImmutable::create($year, $month, 1)->startOfMonth();
+        $monthEnd = $monthStart->endOfMonth();
+        $companyPayout = FixObject::query()
+            ->where('is_active', true)
+            ->whereNotNull('company_id')
+            ->whereDate('valid_from', '<=', $monthEnd->toDateString())
+            ->where(fn ($query) => $query->whereNull('valid_until')
+                ->orWhereDate('valid_until', '>=', $monthStart->toDateString()))
+            ->get(['company_payout'])
+            ->sum(fn (FixObject $contract) => (float) ($contract->company_payout ?? 0));
+        $companyPayout += ExtraAuftrag::query()
+            ->whereNotNull('company_id')
+            ->where('status', '!=', ExtraAuftragStatusEnum::Cancelled->value)
+            ->whereBetween('scheduled_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get(['company_payout'])
+            ->sum(fn (ExtraAuftrag $order) => (float) ($order->company_payout ?? 0));
+
         $months  = collect(range(1, 12))->map(fn(int $m) => [
             'value' => $m,
             'label' => \Carbon\CarbonImmutable::create($year, $m, 1)->locale('de')->translatedFormat('F'),
         ]);
         $years = collect(range(now()->year - 2, now()->year))->sortDesc();
 
-        return view('admin.monthly_reports.index', compact('reports', 'year', 'month', 'months', 'years'));
+        return view('admin.monthly_reports.index', compact('reports', 'year', 'month', 'months', 'years', 'companyPayout'));
     }
 
     public function show(MonthlyReport $monthlyReport): View

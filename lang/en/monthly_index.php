@@ -15,6 +15,7 @@ return [
     'draft'               => 'Draft',
     'empty'               => 'No employees found.',
     'sum_month'           => 'Month total',
+    'company_payout_total'=> 'Monthly subcontractor payouts',
     'discrepancy_meta'    => 'Actual hours vs. paid/planned hours',
     'filter'              => 'Filter',
     'back'                => 'Back',
