@@ -45,7 +45,7 @@ return [
     'status_inactive'           => 'Inaktiv',
     'edit'                      => 'Bearbeiten',
     'delete'                    => 'Löschen',
-    'delete_confirm'            => 'Wirklich löschen?',
+    'delete_warning'            => 'Warnung: Das Löschen deaktiviert das Konto, verknüpfte Einsatz-, Zeit- und Berichtsdaten bleiben jedoch bestehen. Seiten, die gelöschte Konten nicht berücksichtigen, können dadurch Fehler anzeigen. Deaktiviere das Konto stattdessen, wenn die Historie erhalten bleiben soll. Trotzdem fortfahren?',
     'no_employees'              => 'Keine Mitarbeiter gefunden.',
     'account'                   => 'Account',
     'profile'                   => 'Profil',

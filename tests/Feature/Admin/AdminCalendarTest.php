@@ -9,6 +9,8 @@ use App\Models\FixObjectSchedule;
 use App\Models\Customer;
 use App\Models\CustomerLocation;
 use App\Models\EmployeeShift;
+use App\Models\ExtraAuftrag;
+use App\Models\InternalEvent;
 use App\Models\PersonalAppointment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,7 +152,113 @@ class AdminCalendarTest extends TestCase
         $event = collect($response->json('events'))->firstWhere('id', "fix_schedule:{$schedule->id}");
 
         $this->assertNotNull($event, 'The fixed-object schedule should be included in the requested calendar date.');
-        $this->assertSame(route('admin.fix-objects.edit', $fixObject), $event['detail_url']);
+        $this->assertSame(route('admin.calendar.schedules.edit', $schedule), $event['detail_url']);
+    }
+
+    public function test_admin_can_edit_and_mark_a_single_fixed_object_visit(): void
+    {
+        $schedule = FixObjectSchedule::factory()->forDate('2026-11-02')->create([
+            'scheduled_start' => '08:00:00',
+            'scheduled_end' => '10:00:00',
+        ]);
+
+        $this->get(route('admin.calendar.schedules.edit', $schedule))
+            ->assertOk()
+            ->assertSee('2026-11-02');
+
+        $this->put(route('admin.calendar.schedules.update', $schedule), [
+            'scheduled_date' => '2026-11-03',
+            'scheduled_start' => '09:00',
+            'scheduled_end' => '11:00',
+        ])->assertRedirect(route('admin.calendar.index'));
+
+        $this->assertDatabaseHas('fix_object_schedules', [
+            'id' => $schedule->id,
+            'scheduled_date' => '2026-11-03',
+            'source_date' => '2026-11-02',
+            'scheduled_start' => '09:00:00',
+            'scheduled_end' => '11:00:00',
+            'is_manually_adjusted' => true,
+        ]);
+
+        $this->post(route('admin.calendar.marks.store', [
+            'eventType' => 'fix_schedule',
+            'eventId' => $schedule->id,
+        ]))->assertRedirect();
+
+        $eventResponse = $this->getJson(route('admin.calendar.events', [
+            'from' => '2026-11-03',
+            'to' => '2026-11-03',
+            'layers' => 'fix',
+        ]))->assertOk();
+        $event = collect($eventResponse->json('events'))->firstWhere('id', "fix_schedule:{$schedule->id}");
+
+        $this->assertNotNull($event);
+        $this->assertTrue($event['metadata']['is_marked']);
+        $this->assertStringStartsWith('★ ', $event['title']);
+        $this->assertSame(route('admin.calendar.schedules.edit', $schedule), $event['detail_url']);
+
+        $this->getJson(route('admin.calendar.events', [
+            'from' => '2026-11-02',
+            'to' => '2026-11-02',
+            'layers' => 'fix',
+        ]))->assertOk();
+        $this->assertDatabaseMissing('fix_object_schedules', [
+            'fix_object_id' => $schedule->fix_object_id,
+            'scheduled_date' => '2026-11-02',
+        ]);
+
+        $this->delete(route('admin.calendar.marks.destroy', [
+            'eventType' => 'fix_schedule',
+            'eventId' => $schedule->id,
+        ]))->assertRedirect();
+        $this->assertDatabaseMissing('calendar_event_marks', [
+            'event_type' => 'fix_schedule',
+            'event_id' => $schedule->id,
+        ]);
+    }
+
+    public function test_calendar_feed_provides_edit_links_for_each_other_event_type(): void
+    {
+        $date = '2026-11-12';
+        $extra = ExtraAuftrag::factory()->create(['scheduled_date' => $date]);
+        $shift = EmployeeShift::factory()->create([
+            'start_at' => "{$date} 08:00:00",
+            'end_at' => "{$date} 16:00:00",
+        ]);
+        $appointment = PersonalAppointment::create([
+            'user_id' => auth()->id(),
+            'title' => 'Personal calendar appointment',
+            'start_at' => "{$date} 09:00:00",
+            'end_at' => "{$date} 10:00:00",
+        ]);
+        $internalEvent = InternalEvent::factory()->create([
+            'start_at' => "{$date} 11:00:00",
+            'end_at' => "{$date} 12:00:00",
+        ]);
+
+        $events = $this->getJson(route('admin.calendar.events', [
+            'from' => $date,
+            'to' => $date,
+            'layers' => 'extra,shifts,personal,internal',
+        ]))->assertOk()->json('events');
+
+        $this->assertSame(
+            route('admin.extra-auftraege.edit', $extra),
+            collect($events)->firstWhere('id', "extra_auftrag:{$extra->id}")['detail_url']
+        );
+        $this->assertSame(
+            route('admin.calendar.shifts.edit', $shift),
+            collect($events)->firstWhere('id', "employee_shift:{$shift->id}")['detail_url']
+        );
+        $this->assertSame(
+            route('admin.calendar.appointments.edit', $appointment),
+            collect($events)->firstWhere('id', "personal_appointment:{$appointment->id}")['detail_url']
+        );
+        $this->assertSame(
+            route('admin.calendar.internal-events.edit', $internalEvent),
+            collect($events)->firstWhere('id', "internal_event:{$internalEvent->id}")['detail_url']
+        );
     }
 
     public function test_calendar_week_feed_includes_fixed_object_visit_on_october_twenty_first(): void

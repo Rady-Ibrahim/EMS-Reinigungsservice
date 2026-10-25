@@ -32,12 +32,25 @@ class ScheduleGeneratorService
 
         DB::transaction(function () use ($fixObject, $dates, &$created) {
             foreach ($dates as $date) {
+                $sourceDate = $date->toDateString();
+                $alreadyScheduled = FixObjectSchedule::query()
+                    ->where('fix_object_id', $fixObject->id)
+                    ->where(fn ($query) => $query
+                        ->whereDate('source_date', $sourceDate)
+                        ->orWhereDate('scheduled_date', $sourceDate))
+                    ->exists();
+
+                if ($alreadyScheduled) {
+                    continue;
+                }
+
                 $inserted = FixObjectSchedule::firstOrCreate(
                     [
                         'fix_object_id'  => $fixObject->id,
-                        'scheduled_date' => $date->toDateString(),
+                        'scheduled_date' => $sourceDate,
                     ],
                     [
+                        'source_date' => $sourceDate,
                         'scheduled_start' => $fixObject->time_start,
                         'scheduled_end'   => $fixObject->time_end,
                         'status'          => \App\Enums\ScheduleStatusEnum::Pending,
@@ -103,6 +116,7 @@ class ScheduleGeneratorService
         FixObjectSchedule::where('fix_object_id', $fixObject->id)
             ->forMonth($year, $month)
             ->where('status', \App\Enums\ScheduleStatusEnum::Pending)
+            ->where('is_manually_adjusted', false)
             ->delete();
 
         return $this->generateForMonth($fixObject, $year, $month);

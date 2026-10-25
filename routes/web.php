@@ -5,6 +5,7 @@ use App\Http\Controllers\Web\Admin\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Web\Admin\AppointmentController;
 use App\Http\Controllers\Web\Admin\AuditLogController;
 use App\Http\Controllers\Web\Admin\CalendarController;
+use App\Http\Controllers\Web\Admin\CalendarEventMarkController;
 use App\Http\Controllers\Web\Admin\ComplaintController;
 use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
@@ -197,6 +198,12 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
         Route::get('/', [CalendarController::class, 'index'])->name('index');
         Route::get('/events', [CalendarController::class, 'events'])->name('events');
         Route::get('/layers', [CalendarController::class, 'layers'])->name('layers');
+        Route::post('/marks/{eventType}/{eventId}', [CalendarEventMarkController::class, 'store'])->name('marks.store');
+        Route::delete('/marks/{eventType}/{eventId}', [CalendarEventMarkController::class, 'destroy'])->name('marks.destroy');
+
+        // Individual fixed-object visits
+        Route::get('/schedules/{schedule}/edit', [CalendarController::class, 'editSchedule'])->name('schedules.edit');
+        Route::put('/schedules/{schedule}', [CalendarController::class, 'updateSchedule'])->name('schedules.update');
 
         // Shifts
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');

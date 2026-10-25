@@ -295,7 +295,10 @@ class CalendarEngineService
                 'contract_time_end' => $fixObject->time_end,
                 'company_name' => $fixObject->company?->name,
                 'company_payout' => $fixObject->company_payout,
-                'detail_url' => $this->routeTo('admin.fix-objects.edit', $fixObject->id),
+                'detail_url' => $schedule->isPending()
+                    ? $this->routeTo('admin.calendar.schedules.edit', $schedule->id)
+                    : null,
+                'contract_edit_url' => $this->routeTo('admin.fix-objects.edit', $fixObject->id),
                 'documents' => $this->documentsMeta($fixObject->documents, 'admin.fix-objects.documents.download'),
             ],
         );
@@ -346,7 +349,7 @@ class CalendarEngineService
                 'estimated_hours' => $order->estimated_hours,
                 'company_name' => $order->company?->name,
                 'company_payout' => $order->company_payout,
-                'detail_url' => $this->routeTo('admin.extra-auftraege.show', $order->id),
+                'detail_url' => $this->routeTo('admin.extra-auftraege.edit', $order->id),
                 'documents' => $this->documentsMeta($order->documents, 'admin.extra-auftraege.documents.download'),
             ],
         );
@@ -373,7 +376,7 @@ class CalendarEngineService
                 'employee_name' => $shift->user?->name,
                 'work_hours' => $shift->scheduledWorkHours(),
                 'approved_extra_hours' => (float) $shift->approved_extra_hours,
-                'detail_url' => $this->routeTo('admin.shifts.edit', $shift->id),
+                'detail_url' => $this->routeTo('admin.calendar.shifts.edit', $shift->id),
                 'complete_url' => $shift->status === \App\Enums\ShiftStatusEnum::Planned
                     ? $this->routeTo('admin.calendar.shifts.complete', $shift->id)
                     : null,
@@ -400,7 +403,7 @@ class CalendarEngineService
                 'owner_name' => $appointment->user?->name,
                 'is_private' => (bool) $appointment->is_private,
                 'description' => $appointment->description,
-                'detail_url' => $this->routeTo('admin.appointments.edit', $appointment->id),
+                'detail_url' => $this->routeTo('admin.calendar.appointments.edit', $appointment->id),
             ],
         );
     }
@@ -427,7 +430,7 @@ class CalendarEngineService
                 'creator_name' => $event->user?->name,
                 'attendees' => $event->attendeeIds(),
                 'description' => $event->description,
-                'detail_url' => $this->routeTo('admin.calendar.internal-events.index', null),
+                'detail_url' => $this->routeTo('admin.calendar.internal-events.edit', $event->id),
             ],
         );
     }

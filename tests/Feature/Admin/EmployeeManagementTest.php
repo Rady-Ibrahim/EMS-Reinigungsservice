@@ -100,6 +100,16 @@ class EmployeeManagementTest extends TestCase
         $this->assertSoftDeleted('users', ['id' => $employee->id]);
     }
 
+    public function test_employee_delete_form_warns_about_linked_history(): void
+    {
+        User::factory()->mitarbeiter()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.employees.index'))
+            ->assertOk()
+            ->assertSee(__('employee.delete_warning'));
+    }
+
     public function test_admin_cannot_delete_another_admin(): void
     {
         $otherAdmin = User::factory()->administrator()->create();

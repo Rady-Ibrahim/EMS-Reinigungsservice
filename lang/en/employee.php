@@ -45,7 +45,7 @@ return [
     'status_inactive'           => 'Inactive',
     'edit'                      => 'Edit',
     'delete'                    => 'Delete',
-    'delete_confirm'            => 'Really delete?',
+    'delete_warning'            => 'Warning: Deleting disables the account, but linked work, time, and report records remain. Pages that do not handle deleted accounts may show errors. Deactivate the account instead if you need to preserve its history. Continue?',
     'no_employees'              => 'No employees found.',
     'account'                   => 'Account',
     'profile'                   => 'Profile',

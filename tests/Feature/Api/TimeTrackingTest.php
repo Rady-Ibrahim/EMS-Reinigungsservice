@@ -24,6 +24,31 @@ class TimeTrackingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_can_view_time_adjustment_for_soft_deleted_employee(): void
+    {
+        $employee = User::factory()->mitarbeiter()->create(['name' => 'Former Employee']);
+        $admin = User::factory()->administrator()->create();
+        $adjustment = TimeAdjustmentRequest::create([
+            'employee_id' => $employee->id,
+            'job_type' => 'fix_object',
+            'job_id' => 1,
+            'requested_start' => now()->subHours(2),
+            'requested_end' => now()->subHour(),
+            'reason' => 'Correcting recorded work time.',
+            'status' => AdjustmentStatusEnum::Pending,
+        ]);
+        $employee->delete();
+
+        $this->actingAs($admin)
+            ->get(route('admin.time-adjustments.index'))
+            ->assertOk()
+            ->assertSee('Former Employee');
+
+        $this->get(route('admin.time-adjustments.show', $adjustment))
+            ->assertOk()
+            ->assertSee('Former Employee');
+    }
+
     // ── GPS point recording ────────────────────────────────────────────────
 
     public function test_employee_can_record_gps_point_during_travel(): void

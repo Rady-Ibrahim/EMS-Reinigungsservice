@@ -6,6 +6,9 @@
         $activeLayers = old('layers', ['fix', 'extra', 'shifts', 'personal', 'internal']);
         $employeeMap   = $employees->mapWithKeys(fn($employee) => [$employee->id => (string) $employee->name])->all();
         $cal = __('messages.cal');
+        $cal['edit_contract'] = __('cal_page.edit_contract');
+        $cal['mark_event'] = __('cal_page.mark_event');
+        $cal['unmark_event'] = __('cal_page.unmark_event');
     @endphp
 
     {{-- Toolbar / filters --}}
@@ -720,6 +723,13 @@
                     </div>` : ''}
 
                     ${m.detail_url ? '<a class="detail-link" href="' + m.detail_url + '">✎ ' + escapeHtml(T.edit) + '</a>' : ''}
+                    ${meta.contract_edit_url ? '<a class="detail-link" href="' + meta.contract_edit_url + '">✎ ' + escapeHtml(T.edit_contract) + '</a>' : ''}
+                    ${meta.mark_url && meta.unmark_url ? `
+                    <form method="POST" action="${escapeHtml(meta.is_marked ? meta.unmark_url : meta.mark_url)}" style="margin-top:.75rem">
+                        <input type="hidden" name="_token" value="${escapeHtml(CSRF_TOKEN)}">
+                        ${meta.is_marked ? '<input type="hidden" name="_method" value="DELETE">' : ''}
+                        <button type="submit" class="btn-nav-gold">${meta.is_marked ? '★ ' + escapeHtml(T.unmark_event) : '☆ ' + escapeHtml(T.mark_event)}</button>
+                    </form>` : ''}
                 `;
             }
 

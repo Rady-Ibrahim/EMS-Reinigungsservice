@@ -45,7 +45,7 @@
                     <div class="actions">
                         <a href="{{ route('admin.employees.edit', $employee) }}" class="btn btn-secondary btn-sm">{{ __('employee.edit') }}</a>
                         <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST"
-                              onsubmit="return confirm('{{ __('employee.delete_confirm') }}')" style="display:inline">
+                              onsubmit="return confirm('{{ __('employee.delete_warning') }}')" style="display:inline">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm">{{ __('employee.delete') }}</button>
                         </form>

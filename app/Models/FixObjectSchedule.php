@@ -16,16 +16,20 @@ class FixObjectSchedule extends Model
     protected $fillable = [
         'fix_object_id',
         'scheduled_date',
+        'source_date',
         'scheduled_start',
         'scheduled_end',
         'status',
+        'is_manually_adjusted',
     ];
 
     protected function casts(): array
     {
         return [
             'scheduled_date' => 'date',
+            'source_date' => 'date',
             'status'         => ScheduleStatusEnum::class,
+            'is_manually_adjusted' => 'boolean',
         ];
     }
 
