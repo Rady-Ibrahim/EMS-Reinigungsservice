@@ -13,6 +13,8 @@ use App\Services\AdminAlertEvaluator;
 use App\Services\AuthService;
 use App\Services\ExtraAuftragService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -110,6 +112,107 @@ class FieldExecutionApiTest extends TestCase
             'windows_closed'  => 1,
             'alarm_activated' => 1,
         ]);
+    }
+
+    public function test_regular_employee_can_end_own_work_without_leader_photos_or_checklist(): void
+    {
+        $leader = User::factory()->vorarbeiter()->create();
+        $worker = User::factory()->mitarbeiter()->create();
+        $order  = $this->readyToClose($leader);
+
+        ExtraAuftragAssignee::create([
+            'extra_auftrag_id' => $order->id,
+            'user_id'          => $worker->id,
+            'role_in_order'    => AssigneeRoleEnum::Member,
+        ]);
+
+        $execution = ExtraAuftragExecution::create([
+            'extra_auftrag_id' => $order->id,
+            'user_id'          => $worker->id,
+            'status'           => ExtraExecutionStatusEnum::Working,
+            'work_start'       => now()->subHour(),
+            'checklist_items'  => [['task' => 'Boden reinigen', 'completed' => false]],
+        ]);
+
+        $this->withToken($this->token($worker))
+            ->postJson("/api/v1/extra-orders/{$order->id}/work-end", [
+                'key_returned'    => true,
+                'windows_closed'  => true,
+                'alarm_activated' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', ExtraExecutionStatusEnum::Completed->value);
+
+        $this->assertSame([], $execution->fresh()->before_photos ?? []);
+        $this->assertSame([], $execution->fresh()->after_photos ?? []);
+        $this->assertFalse($execution->fresh()->isChecklistComplete());
+    }
+
+    public function test_leader_can_upload_private_order_photos_for_assigned_employees_to_view(): void
+    {
+        Storage::fake('local');
+
+        $leader = User::factory()->vorarbeiter()->create();
+        $worker = User::factory()->mitarbeiter()->create();
+        $order  = $this->readyToClose($leader);
+
+        ExtraAuftragAssignee::create([
+            'extra_auftrag_id' => $order->id,
+            'user_id'          => $worker->id,
+            'role_in_order'    => AssigneeRoleEnum::Member,
+        ]);
+
+        $response = $this->withToken($this->token($leader))
+            ->withHeader('Accept', 'application/json')
+            ->post("/api/v1/extra-orders/{$order->id}/photos/upload", [
+                'stage'  => 'before',
+                'photos' => [UploadedFile::fake()->image('field-before.png')],
+            ])
+            ->assertCreated();
+
+        $execution = ExtraAuftragExecution::where('extra_auftrag_id', $order->id)
+            ->where('user_id', $leader->id)
+            ->firstOrFail();
+        $photoPath = $execution->before_photos[1];
+        $photoUrl = route('api.v1.extra-orders.photos.download', [$order->id, 'before', 1]);
+
+        Storage::disk('local')->assertExists($photoPath);
+        $response->assertJsonPath('data.before_photos.1', $photoUrl);
+
+        $this->withToken($this->token($worker))
+            ->get($photoUrl)
+            ->assertOk()
+            ->assertHeader('content-type', 'image/png');
+
+        $outsider = User::factory()->mitarbeiter()->create();
+        $this->withToken($this->token($outsider))
+            ->get($photoUrl)
+            ->assertNotFound();
+    }
+
+    public function test_regular_employee_cannot_upload_order_photos(): void
+    {
+        Storage::fake('local');
+
+        $leader = User::factory()->vorarbeiter()->create();
+        $worker = User::factory()->mitarbeiter()->create();
+        $order  = $this->readyToClose($leader);
+
+        ExtraAuftragAssignee::create([
+            'extra_auftrag_id' => $order->id,
+            'user_id'          => $worker->id,
+            'role_in_order'    => AssigneeRoleEnum::Member,
+        ]);
+
+        $this->withToken($this->token($worker))
+            ->withHeader('Accept', 'application/json')
+            ->post("/api/v1/extra-orders/{$order->id}/photos/upload", [
+                'stage'  => 'before',
+                'photos' => [UploadedFile::fake()->image('unauthorized.png')],
+            ])
+            ->assertForbidden();
+
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     public function test_work_end_requires_every_security_confirmation(): void

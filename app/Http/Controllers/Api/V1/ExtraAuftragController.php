@@ -18,6 +18,8 @@ use App\Models\ExtraAuftragExecution;
 use App\Services\ExtraAuftragService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExtraAuftragController extends Controller
@@ -176,6 +178,79 @@ class ExtraAuftragController extends Controller
         return response()->json([
             'message' => $stage === 'after' ? 'Nachher-Fotos gespeichert.' : 'Vorher-Fotos gespeichert.',
             'data'    => $this->formatExecution($execution),
+        ]);
+    }
+
+    /**
+     * POST /api/v1/extra-orders/{id}/photos/upload
+     * Store actual image files privately, then attach their paths to the
+     * Vorarbeiter's execution through the existing photo workflow.
+     */
+    public function uploadOrderPhotoFiles(Request $request, ExtraAuftrag $extraAuftrag): JsonResponse
+    {
+        abort_unless($extraAuftrag->isLeader($request->user()->id), Response::HTTP_FORBIDDEN);
+
+        $validated = $request->validate([
+            'stage'       => ['required', 'in:before,after'],
+            'photos'      => ['required', 'array', 'min:1', 'max:10'],
+            'photos.*'    => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        $execution = $extraAuftrag->executions()
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $directory = "extra-auftrag-photos/{$extraAuftrag->id}/{$validated['stage']}";
+        $paths = collect($validated['photos'])
+            ->map(fn ($photo) => $photo->store($directory, 'local'))
+            ->all();
+
+        $execution = $validated['stage'] === 'after'
+            ? $this->service->uploadAfterPhotos($extraAuftrag, $request->user()->id, $paths)
+            : $this->service->uploadBeforePhotos($extraAuftrag, $request->user()->id, $paths);
+
+        return response()->json([
+            'message' => $validated['stage'] === 'after' ? 'Nachher-Fotos gespeichert.' : 'Vorher-Fotos gespeichert.',
+            'data'    => $this->formatExecution($execution),
+        ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * Stream a stored field photo only to employees assigned to its order.
+     */
+    public function downloadOrderPhoto(
+        Request $request,
+        ExtraAuftrag $extraAuftrag,
+        string $stage,
+        int $photoIndex
+    ): BinaryFileResponse {
+        abort_unless($extraAuftrag->isAssigned($request->user()->id), Response::HTTP_NOT_FOUND);
+        abort_unless(in_array($stage, ['before', 'after'], true), Response::HTTP_NOT_FOUND);
+
+        $leaderId = $extraAuftrag->leader()->value('user_id');
+        abort_if($leaderId === null, Response::HTTP_NOT_FOUND);
+
+        $execution = $extraAuftrag->executions()
+            ->where('user_id', $leaderId)
+            ->first();
+        abort_if($execution === null, Response::HTTP_NOT_FOUND);
+
+        $photos = $execution->getAttribute("{$stage}_photos") ?? [];
+        $path = $photos[$photoIndex] ?? null;
+        $prefix = "extra-auftrag-photos/{$extraAuftrag->id}/{$stage}/";
+
+        abort_unless(is_string($path) && str_starts_with($path, $prefix), Response::HTTP_NOT_FOUND);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($path), Response::HTTP_NOT_FOUND);
+
+        $mimeType = $disk->mimeType($path) ?: 'application/octet-stream';
+        abort_unless(str_starts_with($mimeType, 'image/'), Response::HTTP_NOT_FOUND);
+
+        return response()->file($disk->path($path), [
+            'Content-Type'                => $mimeType,
+            'Cache-Control'               => 'private, no-store',
+            'X-Content-Type-Options'      => 'nosniff',
         ]);
     }
 
@@ -378,8 +453,8 @@ class ExtraAuftragController extends Controller
             'work_end'        => $exec->work_end?->toIso8601String(),
             'work_minutes'    => $exec->work_minutes,
             'paid_minutes'    => $exec->paid_minutes,
-            'before_photos'   => $exec->before_photos ?? [],
-            'after_photos'    => $exec->after_photos ?? [],
+            'before_photos'   => $this->formatPhotoReferences($exec, 'before'),
+            'after_photos'    => $this->formatPhotoReferences($exec, 'after'),
             'checklist_items' => $exec->checklist_items ?? [],
             'allowed_next'    => array_map(fn($s) => $s->value, $exec->status->allowedNextStatuses()),
 
@@ -392,6 +467,24 @@ class ExtraAuftragController extends Controller
             'pause_started_at' => $exec->pause_started_at?->toIso8601String(),
             'pause_minutes'    => $exec->pause_minutes,
         ];
+    }
+
+    private function formatPhotoReferences(ExtraAuftragExecution $execution, string $stage): array
+    {
+        $photos = array_values($execution->getAttribute("{$stage}_photos") ?? []);
+        $prefix = "extra-auftrag-photos/{$execution->extra_auftrag_id}/{$stage}/";
+
+        foreach ($photos as $index => $path) {
+            if (is_string($path) && str_starts_with($path, $prefix)) {
+                $photos[$index] = route('api.v1.extra-orders.photos.download', [
+                    $execution->extra_auftrag_id,
+                    $stage,
+                    $index,
+                ]);
+            }
+        }
+
+        return $photos;
     }
 
     private function formatTravelTrack(\App\Models\TravelTrack $track): array

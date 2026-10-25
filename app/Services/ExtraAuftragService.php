@@ -494,12 +494,14 @@ class ExtraAuftragService
     ): void {
         $reasons = [];
 
-        if (! $execution->isChecklistComplete()) {
-            $reasons[] = 'checklist';
-        }
+        if ($order->isLeader($execution->user_id)) {
+            if (! $execution->isChecklistComplete()) {
+                $reasons[] = 'checklist';
+            }
 
-        if (empty($execution->before_photos) || (empty($execution->after_photos) && empty($data['after_photos']))) {
-            $reasons[] = 'photos';
+            if (empty($execution->before_photos) || (empty($execution->after_photos) && empty($data['after_photos']))) {
+                $reasons[] = 'photos';
+            }
         }
 
         $handOver = [
@@ -580,16 +582,18 @@ class ExtraAuftragService
     ): void {
         $errors = [];
 
-        if (empty($execution->before_photos)) {
-            $errors['before_photos'] = 'Vorher-Fotos sind Pflicht vor dem Abschluss.';
-        }
+        if ($order->isLeader($execution->user_id)) {
+            if (empty($execution->before_photos)) {
+                $errors['before_photos'] = 'Vorher-Fotos sind Pflicht vor dem Abschluss.';
+            }
 
-        if (empty($execution->after_photos) && empty($data['after_photos'])) {
-            $errors['after_photos'] = 'Nachher-Fotos sind Pflicht vor dem Abschluss.';
-        }
+            if (empty($execution->after_photos) && empty($data['after_photos'])) {
+                $errors['after_photos'] = 'Nachher-Fotos sind Pflicht vor dem Abschluss.';
+            }
 
-        if (! $execution->isChecklistComplete()) {
-            $errors['checklist_items'] = 'Alle Checklisten-Punkte müssen abgehakt sein.';
+            if (! $execution->isChecklistComplete()) {
+                $errors['checklist_items'] = 'Alle Checklisten-Punkte müssen abgehakt sein.';
+            }
         }
 
         // Judge the hand-over on the confirmations just submitted, not on the
@@ -821,9 +825,7 @@ class ExtraAuftragService
 
     private function assertLeader(ExtraAuftrag $order, int $userId): void
     {
-        if (! $order->isLeader($userId)) {
-            throw new \RuntimeException('Only the Vorarbeiter (leader) can perform this action.');
-        }
+        abort_unless($order->isLeader($userId), 403);
     }
 
     private function ensureExecution(ExtraAuftrag $order, int $userId): ExtraAuftragExecution

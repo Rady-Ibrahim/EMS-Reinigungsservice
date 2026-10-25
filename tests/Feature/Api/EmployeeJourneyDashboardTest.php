@@ -265,7 +265,7 @@ class EmployeeJourneyDashboardTest extends TestCase
         $this->apiAs($workerToken)->postJson("/api/v1/auftraege/{$orderId}/photos", [
             'stage'  => 'before',
             'photos' => ['uploads/e2e-member-1.jpg'],
-        ])->assertServerError();
+        ])->assertForbidden();
 
         // ── 8. Leader documents + closes own execution ─────────────────────
         $leaderLogin = $this->postJson('/api/v1/auth/login', [

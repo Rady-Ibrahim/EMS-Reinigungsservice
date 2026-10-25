@@ -10,7 +10,8 @@ use Illuminate\Foundation\Http\FormRequest;
  * Closes the employee's own execution of the order. The three site-security
  * confirmations are the point of the closing screen, so they are required as
  * booleans — accepting a missing field as "false" would let a client silently
- * skip the hand-over.
+ * skip the hand-over. Photos and checklist completion are enforced for the
+ * Vorarbeiter's execution only; regular employees cannot update those fields.
  */
 class EndWorkRequest extends FormRequest
 {

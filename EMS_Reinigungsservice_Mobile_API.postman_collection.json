@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "1ae03117-de88-47e4-af92-e0212003c311",
         "name": "EMS Reinigungsservice - Mobile API",
-        "description": "The endpoints the field-crew mobile app calls, in the order it calls them.\n\nHOW TO RUN\n1. Set the `base_url` variable (default http://localhost:8000).\n2. Set `email` / `password` to a Vorarbeiter or Administrator account.\n3. Send any request. The collection pre-request script logs in automatically and\n   stores the Sanctum token in `{{token}}`, so you never paste a token by hand.\n\nMANUAL VARIABLES\n`{{order_id}}`, `{{execution_id}}`, `{{location_id}}` and `{{complaint_id}}`\ndefault to 1. Fill them in from a real response, or let the Collection Runner\nsave the value to the environment after running the request that creates it.\n\nFOLDER ORDER\n1 sign in -> 2 read the day's work -> 3 run the execution workflow -> 4 report\ndamage -> 5 travel, notifications, reports. 3.10 closes the job and will not\nsucceed until the steps before it are done.\n\nCONTRACT NOTES\n- The photo endpoint takes `stage=before|after` and stores PATHS/URLs, not\n  file bodies. The app uploads to storage first and sends the URLs.\n- `key_returned` is only enforced when the site has `has_key_safe`, and\n  `alarm_activated` only when it has `has_alarm_system`.\n- If the shift was started with GPS, the closing call MUST send\n  `gps_work_end_lat` / `gps_work_end_lng` or it returns 422.\n- Financial fields (`price`, `internal_cost`, `profitability`, `revenue`,\n  `hourly_cost`) are never part of a field-crew response.",
+        "description": "Postman reference for the employee mobile app, aligned to the real API and field workflow shown in the mobile flow.\n\nSTART HERE\n1. Set `base_url` and `email` / `password` to an active Mitarbeiter account. The collection logs in automatically and stores its Sanctum token.\n2. For requests marked Vorarbeiter only, change credentials to an active Vorarbeiter account and clear `token` before sending. A normal Mitarbeiter must receive 403 for leader-only actions.\n3. Select real IDs from the employee's assigned work and copy them to the matching variables. Do not assume IDs are 1.\n\nEMPLOYEE FLOWS\n- Fixobjekt: read assigned schedules -> start the scheduled visit -> upload before photos -> cleaning -> upload after photos -> complete. No Vorarbeiter is involved. Contract hours, not elapsed time, count in the report.\n- Extra-Auftrag: each assigned employee records travel, arrival, work start, optional breaks, field notes and their own handover. The Vorarbeiter uploads photos, completes the checklist and closes the order; that final action freezes the team's executions.\n\nIDENTIFIERS\n`{{schedule_id}}` is a Fixobjekt visit; `{{fix_execution_id}}` is its execution; `{{order_id}}` is an assigned Extra-Auftrag; `{{execution_id}}` is an Extra-Auftrag execution; `{{travel_track_id}}` is the separate travel/GPS track. Start requests save execution IDs automatically. Select `{{location_id}}` and `{{complaint_id}}` from real responses.\n\nFIELD RULES\n- Use the multipart `/extra-orders/{id}/photos/upload` endpoint for actual image files. It accepts up to 10 JPEG, PNG or WebP photos (20 MB each); uploaded images are private and returned as authenticated preview URLs.\n- Extra-Auftrag before/after photos, checklist updates and whole-order completion are Vorarbeiter-only. Travel, arrival, work start, breaks, notes and personal work handover are available to assigned employees.\n- `key_returned` and `alarm_activated` must reflect the site setup; `windows_closed` is always required at handover.\n- If work started with GPS, the matching work-end request must include `gps_work_end_lat` / `gps_work_end_lng`.\n- Financial fields such as `price`, `internal_cost`, company payouts and profitability are never exposed to field staff.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -18,32 +18,52 @@
         },
         {
             "key": "email",
-            "value": "ems-1048@ems-reinigungsservice.de",
+            "value": "employee@example.com",
             "type": "string"
         },
         {
             "key": "password",
-            "value": "password",
+            "value": "replace-with-employee-password",
             "type": "string"
         },
         {
             "key": "order_id",
-            "value": "1",
+            "value": "",
             "type": "string"
         },
         {
             "key": "execution_id",
-            "value": "1",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "schedule_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "fix_execution_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "travel_track_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "fix_object_id",
+            "value": "",
             "type": "string"
         },
         {
             "key": "location_id",
-            "value": "1",
+            "value": "",
             "type": "string"
         },
         {
             "key": "complaint_id",
-            "value": "1",
+            "value": "",
             "type": "string"
         },
         {
@@ -613,7 +633,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/fix-objects/1",
+                            "raw": "{{base_url}}/api/v1/fix-objects/{{fix_object_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -621,10 +641,10 @@
                                 "api",
                                 "v1",
                                 "fix-objects",
-                                "1"
+                                "{{fix_object_id}}"
                             ]
                         },
-                        "description": "Employee must be assigned to the object, otherwise 404."
+                        "description": "Employee must be assigned to the object, otherwise 404. Set `fix_object_id` from List Fix Objects."
                     }
                 },
                 {
@@ -638,7 +658,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/fix-objects/1/schedules",
+                            "raw": "{{base_url}}/api/v1/fix-objects/{{fix_object_id}}/schedules",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -646,21 +666,286 @@
                                 "api",
                                 "v1",
                                 "fix-objects",
-                                "1",
+                                "{{fix_object_id}}",
                                 "schedules"
                             ]
                         },
-                        "description": "Own schedules only (executions filtered to the caller). Optional ?from=&to=."
+                        "description": "Own schedules only (executions filtered to the caller). Set `schedule_id` from the returned schedule before starting its visit. Optional ?from=&to=."
                     }
                 }
             ]
         },
         {
-            "name": "3 - Execution Workflow",
-            "description": "The whole field cycle, in order, on one order. 3.1 starts the shift, 3.2/3.3 bracket the break, 3.4-3.8 gather the evidence, then report the damage from folder 4, then 3.10 closes the job. 3.10 will not succeed until everything before it is done - that is by design, not a bug.",
+            "name": "3 - Fixobjekt Workflow (Mitarbeiter)",
+            "description": "A Fixobjekt has no Vorarbeiter. The assigned Mitarbeiter completes the visit independently: start -> before photos -> cleaning -> after photos -> complete. Contract hours are reported, not elapsed work time.",
             "item": [
                 {
-                    "name": "3.1 - Work Start (GPS)",
+                    "name": "3.1 - Start Fixobjekt Visit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_start_lat\": {{gps_lat}},\n  \"gps_start_lng\": {{gps_lng}}\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/schedules/{{schedule_id}}/start",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "schedules", "{{schedule_id}}", "start"]
+                        },
+                        "description": "Assigned Mitarbeiter only. Save the response `data.id` as `fix_execution_id` (captured automatically)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    pm.collectionVariables.set('fix_execution_id', pm.response.json().data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3.2 - Upload Before Photos",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"photos_before\",\n  \"before_photos\": [\"uploads/fix-before-1.jpg\", \"uploads/fix-before-2.jpg\"]\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/executions/{{fix_execution_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "executions", "{{fix_execution_id}}", "status"]
+                        },
+                        "description": "Assigned employee updates only their own execution. Upload the actual images to storage first, then send their paths."
+                    }
+                },
+                {
+                    "name": "3.3 - Cleaning Started",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"cleaning\"\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/executions/{{fix_execution_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "executions", "{{fix_execution_id}}", "status"]
+                        },
+                        "description": "Advance after the before-photo step."
+                    }
+                },
+                {
+                    "name": "3.4 - Upload After Photos",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"photos_after\",\n  \"after_photos\": [\"uploads/fix-after-1.jpg\", \"uploads/fix-after-2.jpg\"]\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/executions/{{fix_execution_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "executions", "{{fix_execution_id}}", "status"]
+                        },
+                        "description": "Assigned employee uploads after photos after cleaning."
+                    }
+                },
+                {
+                    "name": "3.5 - Complete Fixobjekt Visit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {"key": "Accept", "value": "application/json"},
+                            {"key": "Content-Type", "value": "application/json"}
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_end_lat\": {{gps_lat}},\n  \"gps_end_lng\": {{gps_lng}},\n  \"employee_notes\": \"All assigned cleaning completed.\"\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/executions/{{fix_execution_id}}/complete",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "executions", "{{fix_execution_id}}", "complete"]
+                        },
+                        "description": "Completes the employee's own execution and marks the scheduled visit complete. The report counts frozen contract hours, not elapsed start/end time."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4 - Extra-Auftrag Workflow",
+            "description": "Each assigned employee records their own travel, arrival, work, breaks and handover. The Vorarbeiter uploads photos and completes the checklist before closing the order; that final action freezes the team's executions. Leader-only photo/checklist requests must use the leader's own execution ID.",
+            "item": [
+                {
+                    "name": "4.1 - Start Travel",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_departure_lat\": {{gps_lat}},\n  \"gps_departure_lng\": {{gps_lng}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "travel",
+                                "start"
+                            ]
+                        },
+                        "description": "Assigned employee starts the trip. The response data.id is a TravelTrack ID, not an execution ID; it is saved to {{travel_track_id}} for GPS updates."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const body = pm.response.json();",
+                                    "    if (body.data && body.data.id) pm.collectionVariables.set('travel_track_id', body.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.2 - Arrive at Site",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gps_arrival_lat\": {{gps_lat}},\n  \"gps_arrival_lng\": {{gps_lng}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "travel",
+                                "arrive"
+                            ]
+                        },
+                        "description": "Record arrival before starting work. Use the same assigned order and employee that started travel."
+                    }
+                },
+                {
+                    "name": "4.3 - Upload Before Photos (Vorarbeiter)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "stage",
+                                    "value": "before",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photos",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "photos",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/photos/upload",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "extra-orders",
+                                "{{order_id}}",
+                                "photos",
+                                "upload"
+                            ]
+                        },
+                        "description": "Vorarbeiter only. Select up to 10 JPEG, PNG or WebP files (max 20 MB each). Files are stored privately; the response includes authenticated preview URLs."
+                    }
+                },
+                {
+                    "name": "4.4 - Work Start (GPS)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -695,11 +980,25 @@
                                 "work-start"
                             ]
                         },
-                        "description": "Use coordinates within ~150 m of the site, otherwise a geofence alert goes to the admin. Starting with GPS makes the GPS on 3.10 mandatory. The response `data.id` is the `{{execution_id}}` used by 3.6."
-                    }
+                        "description": "After travel and arrival, the assigned employee starts work. The response data.id is the ExtraAuftragExecution ID saved to {{execution_id}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const body = pm.response.json();",
+                                    "    if (body.data && body.data.id) pm.collectionVariables.set('execution_id', body.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "3.2 - Start Break",
+                    "name": "4.5 - Start Break",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -738,7 +1037,7 @@
                     }
                 },
                 {
-                    "name": "3.3 - End Break",
+                    "name": "4.6 - End Break",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -773,50 +1072,11 @@
                                 "pause"
                             ]
                         },
-                        "description": "Freezes `pause_minutes` on the execution. Wait a minute between 3.2 and 3.3 to get a non-zero value."
+                        "description": "Freezes `pause_minutes` on the execution. Wait a minute between 4.5 and 4.6 to get a non-zero value."
                     }
                 },
                 {
-                    "name": "3.4 - Upload Before Photos",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"stage\": \"before\",\n  \"photos\": [\n    \"uploads/before-1.jpg\",\n    \"uploads/before-2.jpg\"\n  ]\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "auftraege",
-                                "{{order_id}}",
-                                "photos"
-                            ]
-                        },
-                        "description": "Vorarbeiter only. Stores PATHS/URLs, not file bodies - upload to storage first. Repeated calls append rather than replace."
-                    }
-                },
-                {
-                    "name": "3.5 - Add Field Note",
+                    "name": "4.7 - Add Field Note",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -855,7 +1115,7 @@
                     }
                 },
                 {
-                    "name": "3.6 - Complete Checklist",
+                    "name": "4.8 - Complete Checklist (Vorarbeiter)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -890,11 +1150,11 @@
                                 "checklist"
                             ]
                         },
-                        "description": "Vorarbeiter only. Every item needs a `completed` flag; an unticked item blocks the close on 3.10."
+                        "description": "Vorarbeiter only. Every item needs a `completed` flag; an unticked item blocks order completion."
                     }
                 },
                 {
-                    "name": "3.7 - Get Site Documents",
+                    "name": "4.9 - Get Site Documents (Optional)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -926,46 +1186,49 @@
                     }
                 },
                 {
-                    "name": "3.8 - Upload After Photos",
+                    "name": "4.10 - Upload After Photos (Vorarbeiter)",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
                                 "key": "Accept",
                                 "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"stage\": \"after\",\n  \"photos\": [\n    \"uploads/after-1.jpg\"\n  ]\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "stage",
+                                    "value": "after",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "photos",
+                                    "type": "file",
+                                    "src": ""
                                 }
-                            }
+                            ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/auftraege/{{order_id}}/photos",
+                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/photos/upload",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
                                 "v1",
-                                "auftraege",
+                                "extra-orders",
                                 "{{order_id}}",
-                                "photos"
+                                "photos",
+                                "upload"
                             ]
                         },
-                        "description": "Same endpoint as 3.4, second call. The before photos from 3.4 must survive it."
+                        "description": "Same multipart endpoint as 4.3 with stage=after. The before photos from 4.3 remain attached."
                     }
                 },
                 {
-                    "name": "3.10 - Close Job (Site Handover)",
+                    "name": "4.11 - Employee Work Handover",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -980,7 +1243,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتعطيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}},\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
+                            "raw": "{\n  \"key_returned\": true,\n  \"windows_closed\": true,\n  \"alarm_activated\": true,\n  \"shift_note\": \"تم التنظيف بالكامل وإغلاق جميع الأبواب وتعطيل جهاز الإنذار.\",\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}}\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1000,11 +1263,11 @@
                                 "work-end"
                             ]
                         },
-                        "description": "The hand-over. `key_returned` and `alarm_activated` are only enforced when the site actually has a key safe / alarm; a site with neither closes with `windows_closed` alone. GPS is mandatory here if 3.1 sent it. `after_photos` is optional because 3.8 may already have stored them. The response freezes `paid_minutes`, which already excludes the break."
+                        "description": "Call this once for each assigned employee using that employee's credentials. Every employee confirms site security and ends their own work. Before/after photos and checklist are validated only against the Vorarbeiter's execution, because regular employees cannot update them. GPS is mandatory if that employee started work with GPS. The Vorarbeiter must finish documentation before the final order close."
                     }
                 },
                 {
-                    "name": "3.11 - Complete Order (Leader)",
+                    "name": "4.12 - Complete Order (Vorarbeiter)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1032,20 +1295,20 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"after_photos\": [\"uploads/after-2.jpg\"]\n}",
+                            "raw": "{\n  \"gps_work_end_lat\": {{gps_lat}},\n  \"gps_work_end_lng\": {{gps_lng}}\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         },
-                        "description": "Leader only: closes the whole order. Requires before/after photos + complete checklist on the leader execution."
+                        "description": "Leader only: closes the whole order. Requires before/after photos + a complete checklist on the leader execution. If 4.4 started with GPS, submit the closing GPS coordinates here too."
                     }
                 }
             ]
         },
         {
-            "name": "4 - Complaints & Reopen",
+            "name": "5 - Complaints & Reopen",
             "description": "Damage reports from the field, and the governance path for reopening a closed job.",
             "item": [
                 {
@@ -1211,88 +1474,9 @@
             ]
         },
         {
-            "name": "5 - Travel, Notifications & Reports",
+            "name": "6 - Travel, Notifications & Reports",
             "description": "Travel, GPS, time, notifications and the self-service report - the rest of what the app calls.",
             "item": [
-                {
-                    "name": "Start Travel",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"gps_departure_lat\": {{gps_lat}},\n  \"gps_departure_lng\": {{gps_lng}}\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/start",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "extra-orders",
-                                "{{order_id}}",
-                                "travel",
-                                "start"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Record Arrival",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"gps_arrival_lat\": {{gps_lat}},\n  \"gps_arrival_lng\": {{gps_lng}}\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/v1/extra-orders/{{order_id}}/travel/arrive",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "extra-orders",
-                                "{{order_id}}",
-                                "travel",
-                                "arrive"
-                            ]
-                        },
-                        "description": "Required before work-start: the shift cannot be started while the order is still pending."
-                    }
-                },
                 {
                     "name": "Send GPS Point",
                     "request": {
@@ -1317,7 +1501,7 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps",
+                            "raw": "{{base_url}}/api/v1/travel-tracks/{{travel_track_id}}/gps",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1325,7 +1509,7 @@
                                 "api",
                                 "v1",
                                 "travel-tracks",
-                                "{{execution_id}}",
+                                "{{travel_track_id}}",
                                 "gps"
                             ]
                         }
@@ -1453,7 +1637,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/v1/travel-tracks/{{execution_id}}/gps/batch",
+                            "raw": "{{base_url}}/api/v1/travel-tracks/{{travel_track_id}}/gps/batch",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1461,7 +1645,7 @@
                                 "api",
                                 "v1",
                                 "travel-tracks",
-                                "{{execution_id}}",
+                                "{{travel_track_id}}",
                                 "gps",
                                 "batch"
                             ]
@@ -1475,7 +1659,7 @@
                                 }
                             }
                         },
-                        "description": "Batch GPS upload for offline sync. Single-point endpoint: POST /api/v1/travel-tracks/{{execution_id}}/gps."
+                        "description": "Batch GPS upload for offline sync. Single-point endpoint: POST /api/v1/travel-tracks/{{travel_track_id}}/gps."
                     }
                 },
                 {
