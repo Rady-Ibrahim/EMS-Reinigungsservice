@@ -8,7 +8,7 @@
         <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">+ {{ __('employee.create_title') }}</a>
     </div>
 
-    <table>
+    <table class="mobile-card-table">
         <thead>
             <tr>
                 <th>{{ __('employee.color') }}</th>
@@ -23,25 +23,25 @@
         <tbody>
             @forelse($employees as $employee)
             <tr>
-                <td>
+                <td class="mobile-card-optional" data-label="{{ __('employee.color') }}">
                     @if($employee->employeeProfile)
                     <span class="color-dot" style="background:{{ $employee->employeeProfile->calendar_color }}"></span>
                     @endif
                 </td>
-                <td>
+                <td data-label="{{ __('employee.name') }}">
                     <a href="{{ route('admin.employees.show', $employee) }}">{{ $employee->name }}</a>
                 </td>
-                <td>{{ $employee->email }}</td>
-                <td><span class="badge badge-gray">{{ $employee->role->label() }}</span></td>
-                <td>{{ $employee->employeeProfile?->contract_type?->label() ?? '—' }}</td>
-                <td>
+                <td data-label="{{ __('employee.email') }}">{{ $employee->email }}</td>
+                <td data-label="{{ __('employee.role') }}"><span class="badge badge-gray">{{ $employee->role->label() }}</span></td>
+                <td data-label="{{ __('employee.contract') }}">{{ $employee->employeeProfile?->contract_type?->label() ?? '—' }}</td>
+                <td data-label="{{ __('employee.status') }}">
                     @if($employee->is_active)
                         <span class="badge badge-green">{{ __('employee.status_active') }}</span>
                     @else
                         <span class="badge badge-red">{{ __('employee.status_inactive') }}</span>
                     @endif
                 </td>
-                <td>
+                <td data-label="{{ __('employee.actions') }}">
                     <div class="actions">
                         <a href="{{ route('admin.employees.edit', $employee) }}" class="btn btn-secondary btn-sm">{{ __('employee.edit') }}</a>
                         <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST"
@@ -53,7 +53,7 @@
                 </td>
             </tr>
             @empty
-            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('employee.no_employees') }}</td></tr>
+            <tr class="mobile-table-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('employee.no_employees') }}</td></tr>
             @endforelse
         </tbody>
     </table>

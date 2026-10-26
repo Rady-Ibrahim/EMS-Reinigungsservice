@@ -67,6 +67,8 @@
             height: 100vh;
             z-index: 40;
         }
+        .sidebar-overlay { display: none; }
+        .sidebar-close, .sidebar-toggle { display: none; }
 
         .sidebar-brand {
             display: flex; align-items: center; gap: .7rem;
@@ -370,13 +372,126 @@
 
         /* ── Responsive ───────────────────────────────────────────── */
         @media (max-width: 1024px) {
-            .sidebar { display: none; }
-            .quick-actions .btn-gold { display: none; }
+            body.sidebar-open { overflow: hidden; }
+            .sidebar {
+                display: flex;
+                position: fixed;
+                inset-block: 0;
+                inset-inline-start: 0;
+                width: min(var(--sidebar-w), 86vw);
+                height: 100vh;
+                height: 100dvh;
+                flex: none;
+                transform: translateX(-105%);
+                visibility: hidden;
+                transition: transform .25s ease, visibility .25s ease;
+                box-shadow: 20px 0 45px rgba(0,0,0,.45);
+            }
+            html[dir="rtl"] .sidebar {
+                transform: translateX(105%);
+                box-shadow: -20px 0 45px rgba(0,0,0,.45);
+            }
+            .sidebar-open .sidebar {
+                transform: translateX(0);
+                visibility: visible;
+            }
+            html[dir="rtl"] body.sidebar-open .sidebar { transform: translateX(0); }
+            .sidebar-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 39;
+                border: 0;
+                background: rgba(0,0,0,.62);
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity .25s ease, visibility .25s ease;
+            }
+            .sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; }
+            .sidebar-close, .sidebar-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex: 0 0 40px;
+                width: 40px;
+                height: 40px;
+                border: 1px solid var(--border);
+                border-radius: 11px;
+                background: var(--panel);
+                color: var(--text);
+                cursor: pointer;
+            }
+            .sidebar-close { margin-inline-start: auto; }
+            .sidebar-close svg, .sidebar-toggle svg { width: 20px; height: 20px; }
+            .sidebar-brand { gap: .6rem; }
+            .topbar { padding-inline: 1rem; gap: .7rem; }
+            .quick-actions { display: none; }
         }
         @media (max-width: 640px) {
             .header-search { display: none; }
             .admin-chip .chip-name, .admin-chip .chip-role { display: none; }
-            .main { padding: 1rem; }
+            .topbar { min-height: var(--topbar-h); height: auto; padding: .55rem .7rem; gap: .55rem; }
+            .topbar-page { min-width: 0; }
+            .topbar-page h1 { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .topbar-page .crumb { display: none; }
+            .topbar-tools { gap: .4rem; }
+            .topbar-tools > .quick-actions { display: none; }
+            .topbar-tools .icon-btn, .topbar-tools form .icon-btn { width: 36px; height: 36px; }
+            .admin-chip { padding: 0; border: 0; background: transparent; }
+            .admin-chip .avatar { width: 32px; height: 32px; }
+            .main { padding: .8rem; }
+            .card { padding: 1rem; border-radius: 12px; }
+            table { font-size: .8rem; }
+            th, td { padding: .55rem .6rem; }
+            .card-header { align-items: stretch; gap: .7rem; }
+            .card-header > .card-title { align-self: center; min-width: 0; }
+            .card-header > .btn { justify-content: center; max-width: 100%; white-space: normal; text-align: center; }
+            table.mobile-card-table { display: block; width: 100%; min-width: 0; border-collapse: separate; }
+            .mobile-card-table thead { display: none; }
+            .mobile-card-table tbody { display: grid; gap: .7rem; width: 100%; }
+            .mobile-card-table tbody tr:not(.mobile-table-empty) {
+                display: block;
+                overflow: hidden;
+                border: 1px solid var(--border);
+                border-radius: 11px;
+                background: linear-gradient(160deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
+            }
+            .mobile-card-table tbody tr:not(.mobile-table-empty) td {
+                display: grid;
+                grid-template-columns: minmax(5.8rem, 35%) minmax(0, 1fr);
+                align-items: start;
+                gap: .65rem;
+                padding: .62rem .7rem;
+                border-bottom: 1px solid rgba(42,46,57,.65);
+                overflow-wrap: anywhere;
+                text-align: start;
+            }
+            .mobile-card-table tbody tr:not(.mobile-table-empty) td:last-child { border-bottom: 0; }
+            .mobile-card-table tbody tr:not(.mobile-table-empty) td.mobile-card-optional { display: none; }
+            .mobile-card-table td[data-label]::before {
+                content: attr(data-label);
+                color: var(--text-faint);
+                font-size: .72rem;
+                font-weight: 700;
+            }
+            .mobile-card-table td[data-label=""]::before { content: none; }
+            .mobile-card-table .actions { justify-content: flex-start; gap: .4rem; }
+            .mobile-card-table .actions form { display: inline-flex !important; }
+            .mobile-card-table .actions .btn { min-height: 34px; }
+            .mobile-card-table .mobile-table-empty { display: block; border: 0; }
+            .mobile-card-table .mobile-table-empty td { display: block; }
+            .pagination { gap: .25rem; }
+            .dropdown-menu { position: fixed; top: calc(var(--topbar-h) + .25rem); inset-inline: .5rem; min-width: 0; max-width: none; max-height: min(70vh, 520px); overflow-y: auto; }
+        }
+        @media (max-width: 380px) {
+            .topbar { gap: .35rem; }
+            .topbar-tools { gap: .25rem; }
+            .topbar-tools .icon-btn, .topbar-tools form .icon-btn { width: 33px; height: 33px; }
+            .admin-chip .avatar { width: 29px; height: 29px; }
+            .main { padding: .6rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar, .sidebar-overlay { transition: none; }
         }
     </style>
 </head>
@@ -536,10 +651,13 @@
 @endphp
 <div class="app-shell">
     {{-- ═══ SIDEBAR ═══ --}}
-    <aside class="sidebar">
+    <aside class="sidebar" id="admin-sidebar">
         <div class="sidebar-brand">
             <img src="{{ asset('images/logo-gold.png') }}" alt="EMS Reinigungsservice">
             <div class="brand-name">EMS<span>Reinigungsservice</span></div>
+            <button type="button" class="sidebar-close js-sidebar-close" aria-label="{{ app()->getLocale() === 'ar' ? 'إغلاق القائمة' : 'Menü schließen' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 6-12 12M6 6l12 12"></path></svg>
+            </button>
         </div>
 
         <div class="sidebar-scroll">
@@ -624,10 +742,15 @@
             @endforelse
         </div>
     </aside>
+    <button type="button" class="sidebar-overlay js-sidebar-close" aria-label="{{ app()->getLocale() === 'ar' ? 'إغلاق القائمة' : 'Menü schließen' }}" tabindex="-1"></button>
 
     {{-- ═══ MAIN ═══ --}}
     <div class="app-main">
         <header class="topbar">
+            <button type="button" class="sidebar-toggle js-sidebar-toggle" aria-controls="admin-sidebar" aria-expanded="false"
+                    aria-label="{{ app()->getLocale() === 'ar' ? 'فتح القائمة' : 'Menü öffnen' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
             <div class="topbar-page">
                 <h1>@yield('title', __('messages.dashboard'))</h1>
                 <div class="crumb">{{ __('messages.topbar.crumb') }}</div>
@@ -721,6 +844,51 @@
 
 <script>
     (function () {
+        // ── Mobile sidebar ────────────────────────────────────
+        var sidebarToggle = document.querySelector('.js-sidebar-toggle');
+        var sidebar = document.getElementById('admin-sidebar');
+        var sidebarCloseButtons = document.querySelectorAll('.js-sidebar-close');
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-open');
+            if (sidebarToggle) {
+                sidebarToggle.setAttribute('aria-expanded', 'false');
+                sidebarToggle.setAttribute('aria-label', '{{ app()->getLocale() === 'ar' ? 'فتح القائمة' : 'Menü öffnen' }}');
+            }
+        }
+
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function () {
+                var isOpen = document.body.classList.toggle('sidebar-open');
+                sidebarToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                sidebarToggle.setAttribute('aria-label', isOpen
+                    ? '{{ app()->getLocale() === 'ar' ? 'إغلاق القائمة' : 'Menü schließen' }}'
+                    : '{{ app()->getLocale() === 'ar' ? 'فتح القائمة' : 'Menü öffnen' }}');
+                if (isOpen) {
+                    var closeButton = sidebar.querySelector('.js-sidebar-close');
+                    if (closeButton) { closeButton.focus(); }
+                }
+            });
+            for (var closeIndex = 0; closeIndex < sidebarCloseButtons.length; closeIndex++) {
+                sidebarCloseButtons[closeIndex].addEventListener('click', function () {
+                    closeSidebar();
+                    sidebarToggle.focus();
+                });
+            }
+            sidebar.querySelectorAll('.nav-link').forEach(function (link) {
+                link.addEventListener('click', closeSidebar);
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+                    closeSidebar();
+                    sidebarToggle.focus();
+                }
+            });
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 1024) { closeSidebar(); }
+            });
+        }
+
         // ── Notification dropdown ──────────────────────────────
         var dropdown = document.getElementById('notification-dropdown');
         if (dropdown) {

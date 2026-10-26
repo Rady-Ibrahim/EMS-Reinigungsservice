@@ -8,7 +8,7 @@
     </div>
 
     <div class="card">
-        <table>
+        <table class="mobile-card-table">
             <thead>
                 <tr>
                     <th>{{ __('cal_page.employee') }}</th>
@@ -24,16 +24,16 @@
             <tbody>
                 @forelse($shifts as $shift)
                     <tr>
-                        <td>{{ $shift->user?->name }}</td>
-                        <td>
+                        <td data-label="{{ __('cal_page.employee') }}">{{ $shift->user?->name ?? '—' }}</td>
+                        <td data-label="{{ __('cal_page.title') }}">
                             <span class="color-dot" style="background:{{ $shift->color ?? '#10b981' }}"></span>
                             {{ $shift->title }}
                         </td>
-                        <td>{{ $shift->start_at->format('d.m.Y H:i') }}</td>
-                        <td>{{ $shift->end_at->format('d.m.Y H:i') }}</td>
-                        <td>{{ number_format($shift->scheduledWorkHours(), 2, ',', '.') }} h</td>
-                        <td>{{ $shift->all_day ? __('cal_page.yes') : __('cal_page.no') }}</td>
-                        <td>
+                        <td data-label="{{ __('cal_page.start') }}">{{ $shift->start_at->format('d.m.Y H:i') }}</td>
+                        <td data-label="{{ __('cal_page.end') }}">{{ $shift->end_at->format('d.m.Y H:i') }}</td>
+                        <td data-label="{{ __('cal_page.work_hours') }}">{{ number_format($shift->scheduledWorkHours(), 2, ',', '.') }} h</td>
+                        <td data-label="{{ __('cal_page.all_day') }}">{{ $shift->all_day ? __('cal_page.yes') : __('cal_page.no') }}</td>
+                        <td data-label="{{ __('cal_page.status') }}">
                             @if($shift->status->value === 'cancelled')
                                 <span class="badge badge-red">{{ $shift->status->label() }}</span>
                             @elseif($shift->status->value === 'completed')
@@ -42,7 +42,7 @@
                                 <span class="badge badge-green">{{ $shift->status->label() }}</span>
                             @endif
                         </td>
-                        <td>
+                        <td data-label="{{ __('cal_page.actions') }}">
                             <div class="actions">
                                 <a href="{{ route('admin.calendar.shifts.edit', $shift) }}" class="btn btn-secondary btn-sm">{{ __('cal_page.edit') }}</a>
                                 @if($shift->status->value !== 'cancelled')
@@ -66,7 +66,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8">{{ __('cal_page.empty_shifts') }}</td></tr>
+                    <tr class="mobile-table-empty"><td colspan="8">{{ __('cal_page.empty_shifts') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -8,7 +8,7 @@
         <a href="{{ route('admin.fix-objects.create') }}" class="btn btn-primary">{{ __('fix_object.new_fix_object') }}</a>
     </div>
 
-    <table>
+    <table class="mobile-card-table">
         <thead>
             <tr>
                 <th>{{ __('fix_object.color') }}</th>
@@ -24,27 +24,27 @@
         <tbody>
             @forelse($fixObjects as $fo)
             <tr>
-                <td>
+                <td class="mobile-card-optional" data-label="{{ __('fix_object.color') }}">
                     <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{{ $fo->calendar_color }};border:1px solid rgba(0,0,0,.15)"></span>
                 </td>
-                <td>
+                <td data-label="{{ __('fix_object.title_col') }}">
                     <a href="{{ route('admin.fix-objects.show', $fo) }}"><strong>{{ $fo->title }}</strong></a>
                 </td>
-                <td>
+                <td data-label="{{ __('fix_object.customer_location') }}">
                     <small style="color:#64748b">{{ $fo->customer->name ?? '—' }}</small><br>
                     <small>{{ $fo->location->name ?? '—' }}</small>
                 </td>
-                <td><span class="badge badge-gray">{{ $fo->frequency->label() }}</span></td>
-                <td>{{ $fo->contract_hours }}h</td>
-                <td>{{ $fo->assignments_count }}</td>
-                <td>
+                <td data-label="{{ __('fix_object.frequency') }}"><span class="badge badge-gray">{{ $fo->frequency->label() }}</span></td>
+                <td data-label="{{ __('fix_object.contract_hours_short') }}">{{ $fo->contract_hours }}h</td>
+                <td data-label="{{ __('fix_object.employees') }}">{{ $fo->assignments_count }}</td>
+                <td data-label="{{ __('fix_object.status') }}">
                     @if($fo->is_active)
                         <span class="badge badge-green">{{ __('fix_object.active') }}</span>
                     @else
                         <span class="badge badge-red">{{ __('fix_object.inactive') }}</span>
                     @endif
                 </td>
-                <td>
+                <td data-label="{{ __('fix_object.actions') }}">
                     <div class="actions">
                         <a href="{{ route('admin.fix-objects.show', $fo) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.view_action') }}</a>
                         <a href="{{ route('admin.fix-objects.edit', $fo) }}" class="btn btn-secondary btn-sm">{{ __('fix_object.edit_action') }}</a>
@@ -57,7 +57,7 @@
                 </td>
             </tr>
             @empty
-            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('fix_object.no_fix_objects') }}</td></tr>
+            <tr class="mobile-table-empty"><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('fix_object.no_fix_objects') }}</td></tr>
             @endforelse
         </tbody>
     </table>
