@@ -54,6 +54,16 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
+## Clearing application data
+
+The `ems:clear-data` Artisan command deletes data from every application table except `users` and the migration history. It keeps all accounts with the `administrator` role and refuses to run if none exist. Related admin data (including sessions and two-factor settings) is cleared, so administrators may need to sign in again and reconfigure two-factor authentication. Uploaded files are not deleted.
+
+This is irreversible. Back up the database first, then run only against the intended database:
+
+```sh
+php artisan ems:clear-data --confirm=WIPE-ALL-DATA-EXCEPT-ADMINS
+```
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
