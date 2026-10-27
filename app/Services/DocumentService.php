@@ -160,8 +160,7 @@ class DocumentService
     public static function uploadRules(string $prefix = 'document'): array
     {
         return [
-            $prefix => ['nullable', 'file', 'max:'.self::MAX_KILOBYTES],
-            $prefix.'.mimes' => ['required_with:'.$prefix, 'string', 'in:'.implode(',', self::ALLOWED_MIME)],
+            $prefix => ['nullable', 'file', 'max:'.self::MAX_KILOBYTES, 'mimetypes:'.implode(',', self::ALLOWED_MIME)],
             $prefix.'_title' => ['nullable', 'string', 'max:191'],
             $prefix.'_notes' => ['nullable', 'string', 'max:2000'],
         ];

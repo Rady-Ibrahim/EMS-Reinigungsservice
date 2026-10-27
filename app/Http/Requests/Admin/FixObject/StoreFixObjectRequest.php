@@ -44,8 +44,7 @@ class StoreFixObjectRequest extends FormRequest
             'company_payout'  => ['nullable', 'numeric', 'min:0'],
             'internal_notes'  => ['nullable', 'string'],
             // Contract / attachment upload (optional)
-            'document'            => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
-            'document.mimes'      => ['required_with:document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'document'            => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES, 'mimetypes:'.implode(',', DocumentService::ALLOWED_MIME)],
             'document_title'      => ['nullable', 'string', 'max:191'],
             'document_visibility' => ['nullable', 'in:'.implode(',', FileVisibilityEnum::values())],
             'document_category'   => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],

@@ -12,6 +12,10 @@ return [
     'in'        => 'القيمة المحددة لـ :attribute غير صالحة.',
     'unique'    => 'قيمة :attribute مستخدمة بالفعل.',
     'confirmed' => 'حقل تأكيد :attribute غير متطابق.',
+    'password'  => [
+        'mixed'   => 'يجب أن يحتوي حقل :attribute على حرف كبير واحد وحرف صغير واحد على الأقل.',
+        'numbers' => 'يجب أن يحتوي حقل :attribute على رقم واحد على الأقل.',
+    ],
 
     // Rules used by the mobile API. Without these the framework has no
     // translation and hands the raw key ("validation.date") back to the app.

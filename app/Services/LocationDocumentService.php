@@ -203,8 +203,7 @@ class LocationDocumentService
     public static function uploadRules(): array
     {
         return [
-            'file'       => ['required', 'file', 'max:'.self::MAX_KILOBYTES],
-            'file.mimes' => ['required', 'string', 'in:'.implode(',', self::ALLOWED_MIME)],
+            'file'       => ['required', 'file', 'max:'.self::MAX_KILOBYTES, 'mimetypes:'.implode(',', self::ALLOWED_MIME)],
             'title'      => ['nullable', 'string', 'max:191'],
             'visibility' => ['nullable', 'in:'.implode(',', FileVisibilityEnum::values())],
             'category'   => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],

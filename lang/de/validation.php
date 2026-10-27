@@ -12,6 +12,10 @@ return [
     'in'        => 'Der ausgewählte Wert für :attribute ist ungültig.',
     'unique'    => 'Das Feld :attribute ist bereits vergeben.',
     'confirmed' => 'Die Bestätigung des Feldes :attribute stimmt nicht überein.',
+    'password'  => [
+        'mixed'   => 'Das Feld :attribute muss mindestens einen Groß- und einen Kleinbuchstaben enthalten.',
+        'numbers' => 'Das Feld :attribute muss mindestens eine Zahl enthalten.',
+    ],
 
     // Rules used by the mobile API. Without these the framework has no
     // translation and hands the raw key ("validation.date") back to the app.

@@ -12,6 +12,10 @@ return [
     'in'        => 'The selected :attribute is invalid.',
     'unique'    => 'The :attribute has already been taken.',
     'confirmed' => 'The :attribute confirmation does not match.',
+    'password'  => [
+        'mixed'   => 'The :attribute must contain at least one uppercase and one lowercase letter.',
+        'numbers' => 'The :attribute must contain at least one number.',
+    ],
 
     // Rules used by the mobile API. Without these the framework has no
     // translation and hands the raw key ("validation.date") back to the app.

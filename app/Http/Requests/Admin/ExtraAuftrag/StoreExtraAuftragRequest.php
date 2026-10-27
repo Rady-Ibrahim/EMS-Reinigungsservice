@@ -43,14 +43,12 @@ class StoreExtraAuftragRequest extends FormRequest
             'internal_notes'       => ['nullable', 'string'],
             'attachment'           => ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,webp,heic,doc,docx'],
             // Intern (admin-only) document section
-            'intern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
-            'intern_document.mimes'    => ['required_with:intern_document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'intern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES, 'mimetypes:'.implode(',', DocumentService::ALLOWED_MIME)],
             'intern_document_title'    => ['nullable', 'string', 'max:191'],
             'intern_document_category' => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],
             'intern_document_notes'    => ['nullable', 'string', 'max:2000'],
             // Extern (team-visible) document section
-            'extern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES],
-            'extern_document.mimes'    => ['required_with:extern_document', 'string', 'in:'.implode(',', DocumentService::ALLOWED_MIME)],
+            'extern_document'          => ['nullable', 'file', 'max:'.DocumentService::MAX_KILOBYTES, 'mimetypes:'.implode(',', DocumentService::ALLOWED_MIME)],
             'extern_document_title'    => ['nullable', 'string', 'max:191'],
             'extern_document_category' => ['nullable', 'in:'.implode(',', FileCategoryEnum::values())],
             'extern_document_notes'    => ['nullable', 'string', 'max:2000'],
