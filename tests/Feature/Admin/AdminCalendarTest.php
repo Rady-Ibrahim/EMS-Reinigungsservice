@@ -334,6 +334,43 @@ class AdminCalendarTest extends TestCase
         ])->assertSessionHasErrors('frequency_days');
     }
 
+    public function test_admin_can_remove_fix_object_assignment_without_losing_its_history(): void
+    {
+        $fixObject = FixObject::factory()->create();
+        $employee = User::factory()->mitarbeiter()->create(['name' => 'Assigned Employee']);
+        $assignment = FixObjectAssignment::create([
+            'fix_object_id' => $fixObject->id,
+            'user_id' => $employee->id,
+            'assigned_from' => today()->subDays(5)->toDateString(),
+        ]);
+
+        $this->from(route('admin.fix-objects.show', $fixObject))
+            ->delete(route('admin.fix-objects.assignments.destroy', [$fixObject, $assignment]))
+            ->assertRedirect(route('admin.fix-objects.show', $fixObject));
+
+        $this->assertDatabaseHas('fix_object_assignments', [
+            'id' => $assignment->id,
+            'assigned_until' => today()->subDay()->toDateString(),
+        ]);
+        $this->get(route('admin.fix-objects.show', $fixObject))
+            ->assertOk()
+            ->assertDontSee('Assigned Employee');
+    }
+
+    public function test_fix_object_page_handles_assignments_for_soft_deleted_employees(): void
+    {
+        $fixObject = FixObject::factory()->create();
+        $employee = User::factory()->mitarbeiter()->create();
+        FixObjectAssignment::create([
+            'fix_object_id' => $fixObject->id,
+            'user_id' => $employee->id,
+            'assigned_from' => today()->subDay()->toDateString(),
+        ]);
+        $employee->delete();
+
+        $this->get(route('admin.fix-objects.show', $fixObject))->assertOk();
+    }
+
     public function test_effective_employee_ids_falls_back_when_loaded_fix_object_is_missing(): void
     {
         $employee = User::factory()->mitarbeiter()->create();

@@ -49,8 +49,8 @@
         @forelse($fixObject->assignments as $assignment)
         <div style="padding:.5rem 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
             <div>
-                <span class="color-dot" style="background:{{ $assignment->user->employeeProfile?->calendar_color ?? '#ccc' }}"></span>
-                <strong>{{ $assignment->user->name }}</strong>
+                <span class="color-dot" style="background:{{ $assignment->user?->employeeProfile?->calendar_color ?? '#ccc' }}"></span>
+                <strong>{{ $assignment->user?->name ?? '—' }}</strong>
                 <small style="color:#64748b;display:block;margin-left:20px">
                     {{ __('fix_object.from_prefix') }} {{ $assignment->assigned_from->format('d.m.Y') }}
                     {{ $assignment->assigned_until ? '– '.$assignment->assigned_until->format('d.m.Y') : '' }}

@@ -60,7 +60,16 @@ class FixObjectController extends Controller
 
     public function show(FixObject $fixObject): View
     {
-        $fixObject->load(['customer', 'location', 'company', 'assignments.user', 'documents.uploader']);
+        $fixObject->load([
+            'customer',
+            'location',
+            'company',
+            'assignments' => fn ($query) => $query
+                ->where(fn ($query) => $query->whereNull('assigned_until')
+                    ->orWhere('assigned_until', '>=', today()->toDateString()))
+                ->with('user.employeeProfile'),
+            'documents.uploader',
+        ]);
 
         $now = Carbon::now();
         $contractHours = $this->calculator->monthlyHours($fixObject, $now->year, $now->month);
@@ -124,7 +133,9 @@ class FixObjectController extends Controller
 
     public function destroyAssignment(FixObject $fixObject, FixObjectAssignment $assignment): RedirectResponse
     {
-        $this->service->removeAssignment($assignment);
+        $this->service->removeAssignment(
+            $fixObject->assignments()->findOrFail($assignment->getKey())
+        );
 
         return back()->with('success', __('messages.success'));
     }

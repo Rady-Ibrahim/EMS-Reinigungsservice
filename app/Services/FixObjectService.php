@@ -108,7 +108,11 @@ class FixObjectService
 
     public function removeAssignment(FixObjectAssignment $assignment): void
     {
-        $assignment->update(['assigned_until' => now()->toDateString()]);
+        if ($assignment->assigned_until && $assignment->assigned_until->lt(today())) {
+            return;
+        }
+
+        $assignment->update(['assigned_until' => today()->subDay()->toDateString()]);
     }
 
     // ── Execution workflow ─────────────────────────────────────────────────
