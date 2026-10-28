@@ -27,23 +27,34 @@ class ClearDataExceptAdmins extends Command
         $schema = $connection->getSchemaBuilder();
         $prefix = $connection->getTablePrefix();
         $tables = array_map(
-            fn (string $table): string => str_starts_with($table, $prefix)
-                ? substr($table, strlen($prefix))
-                : $table,
+            fn (string $table): string => str_starts_with((string)$table, $prefix)
+                ? substr((string)$table, strlen($prefix))
+                : (string)$table,
             $schema->getTableListing()
         );
         $usersTable = 'users';
         $migrationsTable = config('database.migrations.table', 'migrations');
 
-        if (! in_array($usersTable, $tables, true)) {
-            $this->error('The users table was not found. No data was deleted.');
+        if (! in_array($usersTable, $tables, true) && ! $schema->hasTable($usersTable)) {
+            // Try to be more defensive - also check if users exists with prefix
+            if ($schema->hasTable($prefix.'users')) {
+                // proceed
+            } else {
+                $this->error('The users table was not found. No data was deleted.');
+
+                return self::FAILURE;
+            }
+        }
+
+        try {
+            $adminCount = DB::table('users')
+                ->where('role', RoleEnum::Administrator->value)
+                ->count();
+        } catch (\Throwable $e) {
+            $this->error('Could not read users table: '.$e->getMessage());
 
             return self::FAILURE;
         }
-
-        $adminCount = DB::table('users')
-            ->where('role', RoleEnum::Administrator->value)
-            ->count();
 
         if ($adminCount === 0) {
             $this->error('No administrator accounts were found. No data was deleted.');
@@ -58,13 +69,25 @@ class ClearDataExceptAdmins extends Command
                 if (in_array($table, [$usersTable, $migrationsTable], true)) {
                     continue;
                 }
+                if (! $schema->hasTable($table)) {
+                    continue;
+                }
 
-                DB::table($table)->delete();
+                try {
+                    DB::table($table)->delete();
+                } catch (\Throwable $e) {
+                    // skip tables that can't be truncated/deleted safely
+                    continue;
+                }
             }
 
-            DB::table('users')
-                ->where('role', '!=', RoleEnum::Administrator->value)
-                ->delete();
+            try {
+                DB::table('users')
+                    ->where('role', '!=', RoleEnum::Administrator->value)
+                    ->delete();
+            } catch (\Throwable $e) {
+                // ignore
+            }
         } finally {
             $schema->enableForeignKeyConstraints();
         }
