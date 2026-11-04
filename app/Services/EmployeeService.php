@@ -12,7 +12,7 @@ class EmployeeService
 {
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
-        return User::with('employeeProfile')
+        return User::with(['employeeProfile', 'company:id,name'])
                    ->whereIn('role', ['vorarbeiter', 'mitarbeiter'])
                    ->orderBy('name')
                    ->paginate($perPage);

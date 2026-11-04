@@ -27,8 +27,8 @@
             <tr>
                 <td data-label="{{ __('extra_order.th_title') }}"><a href="{{ route('admin.extra-auftraege.show', $order) }}">{{ $order->title }}</a></td>
                 <td data-label="{{ __('extra_order.th_customer_location') }}">
-                    <small style="color:#64748b">{{ $order->customer->name }}</small><br>
-                    <small>{{ $order->location->name }}</small>
+                    <small style="color:#64748b">{{ $order->customer?->name ?? '—' }}</small><br>
+                    <small>{{ $order->location?->name ?? '—' }}</small>
                 </td>
                 <td data-label="{{ __('extra_order.label_type') }}"><span class="badge badge-gray">{{ $order->order_type->label() }}</span></td>
                 <td data-label="{{ __('extra_order.th_date') }}">{{ $order->scheduled_date->format('d.m.Y') }}</td>

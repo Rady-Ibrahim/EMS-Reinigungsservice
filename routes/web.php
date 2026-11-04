@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\Admin\CustomerController;
 use App\Http\Controllers\Web\Admin\CustomerLocationController;
 use App\Http\Controllers\Web\Admin\DashboardController;
 use App\Http\Controllers\Web\Admin\EmployeeController;
+use App\Http\Controllers\Web\Admin\EmployeeAvailabilityRequestController as AdminEmployeeAvailabilityRequestController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragController;
 use App\Http\Controllers\Web\Admin\ExtraAuftragDocumentController;
 use App\Http\Controllers\Web\Admin\CompanyController;
@@ -97,6 +98,12 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 
     // ── Employees ─────────────────────────────────────────────────────────
     Route::resource('employees', EmployeeController::class);
+    Route::get('availability-requests', [AdminEmployeeAvailabilityRequestController::class, 'index'])
+         ->name('availability-requests.index');
+    Route::post('availability-requests/{availabilityRequest}/approve', [AdminEmployeeAvailabilityRequestController::class, 'approve'])
+         ->name('availability-requests.approve');
+    Route::post('availability-requests/{availabilityRequest}/reject', [AdminEmployeeAvailabilityRequestController::class, 'reject'])
+         ->name('availability-requests.reject');
 
     // ── Fix Objects ────────────────────────────────────────────────────────
     Route::resource('fix-objects', FixObjectController::class);

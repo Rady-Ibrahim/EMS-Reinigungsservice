@@ -50,10 +50,10 @@
     <div class="card">
         <div class="card-title" style="margin-bottom:.75rem">{{ __('extra_order.order_data') }}</div>
         <table>
-            <tr><td style="color:#64748b;width:150px">{{ __('extra_order.label_customer_plain') }}</td><td>{{ $extraAuftrag->customer->name }}</td></tr>
-            <tr><td style="color:#64748b">{{ __('extra_order.label_location_plain') }}</td><td>{{ $extraAuftrag->location->name }}</td></tr>
-            <tr><td style="color:#64748b">{{ __('extra_order.label_type') }}</td><td>{{ $extraAuftrag->order_type->label() }}</td></tr>
-            <tr><td style="color:#64748b">{{ __('extra_order.th_date') }}</td><td>{{ $extraAuftrag->scheduled_date->format('d.m.Y') }}
+            <tr><td style="color:#64748b;width:150px">{{ __('extra_order.label_customer_plain') }}</td><td>{{ $extraAuftrag->customer?->name ?? '—' }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('extra_order.label_location_plain') }}</td><td>{{ $extraAuftrag->location?->name ?? '—' }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('extra_order.label_type') }}</td><td>{{ $extraAuftrag->order_type?->label() ?? '—' }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('extra_order.th_date') }}</td><td>{{ $extraAuftrag->scheduled_date?->format('d.m.Y') ?? '—' }}
                 @if($extraAuftrag->scheduled_time_start) {{ __('extra_order.time_at', ['time' => substr($extraAuftrag->scheduled_time_start,0,5)]) }} @endif
             </td></tr>
             <tr><td style="color:#64748b">{{ __('extra_order.th_est_short') }}</td><td>{{ $extraAuftrag->estimated_hours ?? '—' }}{{ __('extra_order.hours_abbr') }}</td></tr>
@@ -64,7 +64,7 @@
                     <span class="badge badge-gray">{{ __('extra_order.no') }}</span>
                 @endif
             </td></tr>
-            <tr><td style="color:#64748b">{{ __('extra_order.created_by') }}</td><td>{{ $extraAuftrag->creator->name }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('extra_order.created_by') }}</td><td>{{ $extraAuftrag->creator?->name ?? '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('company.company') }}</td><td>{{ $extraAuftrag->company?->name ?? '—' }}</td></tr>
         </table>
         @if($extraAuftrag->description)
@@ -92,8 +92,8 @@
         <div class="card-title" style="margin-bottom:.75rem">{{ __('extra_order.th_team') }} ({{ $extraAuftrag->assignees->count() }})</div>
         @forelse($extraAuftrag->assignees as $assignee)
         <div style="padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-            <span class="color-dot" style="background:{{ $assignee->user->employeeProfile?->calendar_color ?? '#ccc' }}"></span>
-            <strong>{{ $assignee->user->name }}</strong>
+            <span class="color-dot" style="background:{{ $assignee->user?->employeeProfile?->calendar_color ?? '#ccc' }}"></span>
+            <strong>{{ $assignee->user?->name ?? '—' }}</strong>
             @if($assignee->isLeader())
                 <span class="badge badge-blue" style="font-size:.7rem;margin-left:.35rem">{{ __('extra_order.leader') }}</span>
             @endif
@@ -101,7 +101,7 @@
             @php $exec = $extraAuftrag->executions->firstWhere('user_id', $assignee->user_id) @endphp
             @if($exec)
             <small style="color:#64748b;display:block;margin-left:20px">
-                {{ __('extra_order.th_status') }}: {{ $exec->status->label() }}
+                {{ __('extra_order.th_status') }}: {{ $exec->status?->label() ?? '—' }}
                 @if($exec->paid_minutes) | {{ __('extra_order.label_paid') }}: {{ round($exec->paid_minutes/60, 2) }}{{ __('extra_order.hours_abbr') }} @endif
             </small>
             @endif
@@ -135,8 +135,8 @@
         <tbody>
             @foreach($extraAuftrag->travelTracks as $track)
             <tr>
-                <td>{{ $track->employee->name }}</td>
-                <td>{{ $track->departure_at->format('H:i') }}</td>
+                <td>{{ $track->employee?->name ?? '—' }}</td>
+                <td>{{ $track->departure_at?->format('H:i') ?? '—' }}</td>
                 <td>{{ $track->arrival_at?->format('H:i') ?? '—' }}</td>
                 <td>{{ $track->travel_minutes ? $track->travel_minutes . ' ' . __('extra_order.minutes_abbr') : '—' }}</td>
                 <td>

@@ -16,6 +16,7 @@ return [
     'role_mitarbeiter'          => 'Employee',
     'locale'                    => 'Language',
     'no_company'                => 'No company',
+    'company'                   => 'Company',
     'calendar_color'            => 'Calendar Colour',
     'calendar_color_locked'     => 'The calendar colour is assigned when the employee is created and cannot be changed.',
     'account_data'              => 'Account Data',

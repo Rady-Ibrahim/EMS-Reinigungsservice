@@ -30,8 +30,8 @@
                     <label class="employee-pill" style="--employee-color:{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}">
                         <input type="checkbox" class="employee-toggle" value="{{ $employee->id }}" checked>
                         <span class="color-dot" style="background:{{ $employee->employeeProfile?->calendar_color ?? '#6b7280' }}"></span>
-                        {{ $employee->role->value === 'vorarbeiter' ? '⭐ ' : '' }}{{ $employee->name }}
-                        <small>{{ $employee->role->value === 'vorarbeiter' ? __('employee.role_vorarbeiter') : __('employee.role_mitarbeiter') }}</small>
+                        {{ $employee->role?->value === 'vorarbeiter' ? '⭐ ' : '' }}{{ $employee->name }}
+                        <small>{{ $employee->role?->value === 'vorarbeiter' ? __('employee.role_vorarbeiter') : __('employee.role_mitarbeiter') }}</small>
                     </label>
                 @endforeach
             </div>

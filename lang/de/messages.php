@@ -60,6 +60,7 @@ return [
         'masters'          => 'Stammdaten',
         'customers'        => 'Kunden',
         'employees'        => 'Mitarbeiter',
+        'availability_requests' => 'Arbeitszeitanfragen',
         'fix_objects'      => 'Fixobjekte',
         'extra_orders'     => 'Extra-Aufträge',
         'operations'       => 'Einsätze & Zeit',

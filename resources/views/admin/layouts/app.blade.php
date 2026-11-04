@@ -524,6 +524,7 @@
     $unreadCount = \App\Models\AdminNotification::unread()->count()
                  + \App\Models\UserNotification::forUser((int) Auth::id())->unread()->count();
     $pendingAdjustments = \App\Models\TimeAdjustmentRequest::pending()->count();
+    $pendingAvailabilityRequests = \App\Models\EmployeeAvailabilityRequest::pending()->count();
     $openComplaints     = \App\Models\Complaint::open()->count();
 
     // ── Live employee status panel ────────────────────────────────
@@ -685,6 +686,10 @@
                 <a href="{{ route('admin.extra-auftraege.index') }}" class="nav-link {{ request()->routeIs('admin.extra-auftraege*') ? 'active' : '' }}">
                     <span class="nav-ico">📋</span> {{ __('messages.nav.extra_orders') }}
                 </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">{{ __('company.nav_section') }}</div>
                 <a href="{{ route('admin.companies.index') }}" class="nav-link {{ request()->routeIs('admin.companies*') ? 'active' : '' }}">
                     <span class="nav-ico">🏭</span> {{ __('company.company') }}
                 </a>
@@ -692,6 +697,10 @@
 
             <div class="nav-section">
                 <div class="nav-section-title">{{ __('messages.nav.operations') }}</div>
+                <a href="{{ route('admin.availability-requests.index') }}" class="nav-link {{ request()->routeIs('admin.availability-requests*') ? 'active' : '' }}">
+                    <span class="nav-ico">📝</span> {{ __('messages.nav.availability_requests') }}
+                    @if($pendingAvailabilityRequests > 0)<span class="nav-badge">{{ $pendingAvailabilityRequests }}</span>@endif
+                </a>
                 <a href="{{ route('admin.calendar.shifts.index') }}" class="nav-link {{ request()->routeIs('admin.calendar.shifts*') ? 'active' : '' }}">
                     <span class="nav-ico">⏱️</span> {{ __('messages.nav.shifts') }}
                 </a>

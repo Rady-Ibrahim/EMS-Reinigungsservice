@@ -3,6 +3,7 @@
 return [
     'title'          => 'Companies',
     'company'        => 'Company',
+    'nav_section'    => 'Contracting companies',
     'none'           => 'No company',
     'name'           => 'Name',
     'contact_person' => 'Contact person',

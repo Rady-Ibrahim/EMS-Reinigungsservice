@@ -11,7 +11,10 @@ class CompanyController extends Controller
 {
     public function index()
     {
-        $companies = Company::withCount('users')->orderBy('name')->paginate(15);
+        $companies = Company::withCount('employees')
+            ->with(['employees:id,name,company_id'])
+            ->orderBy('name')
+            ->paginate(15);
 
         return view('admin.companies.index', compact('companies'));
     }
@@ -38,7 +41,7 @@ class CompanyController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['users' => fn ($q) => $q->orderBy('name')]);
+        $company->load(['employees' => fn ($q) => $q->orderBy('name')]);
 
         return view('admin.companies.show', compact('company'));
     }

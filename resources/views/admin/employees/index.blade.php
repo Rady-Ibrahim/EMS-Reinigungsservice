@@ -15,6 +15,7 @@
                 <th>{{ __('employee.name') }}</th>
                 <th>{{ __('employee.email') }}</th>
                 <th>{{ __('employee.role') }}</th>
+                <th>{{ __('employee.company') }}</th>
                 <th>{{ __('employee.contract') }}</th>
                 <th>{{ __('employee.status') }}</th>
                 <th>{{ __('employee.actions') }}</th>
@@ -33,6 +34,7 @@
                 </td>
                 <td data-label="{{ __('employee.email') }}">{{ $employee->email }}</td>
                 <td data-label="{{ __('employee.role') }}"><span class="badge badge-gray">{{ $employee->role->label() }}</span></td>
+                <td data-label="{{ __('employee.company') }}">{{ $employee->company?->name ?? __('employee.no_company') }}</td>
                 <td data-label="{{ __('employee.contract') }}">{{ $employee->employeeProfile?->contract_type?->label() ?? '—' }}</td>
                 <td data-label="{{ __('employee.status') }}">
                     @if($employee->is_active)
@@ -53,7 +55,7 @@
                 </td>
             </tr>
             @empty
-            <tr class="mobile-table-empty"><td colspan="7" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('employee.no_employees') }}</td></tr>
+            <tr class="mobile-table-empty"><td colspan="8" style="text-align:center;color:#94a3b8;padding:2rem">{{ __('employee.no_employees') }}</td></tr>
             @endforelse
         </tbody>
     </table>

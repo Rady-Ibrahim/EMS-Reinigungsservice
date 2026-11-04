@@ -538,6 +538,67 @@
                     }
                 },
                 {
+                    "name": "Submit Work Availability Request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"start_at\": \"2026-11-05T08:00:00+01:00\",\n  \"end_at\": \"2026-11-05T12:00:00+01:00\",\n  \"address\": \"Hauptstraße 12, Offenburg\",\n  \"notes\": \"Ich bin an diesem Tag verfügbar.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/availability-requests",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "availability-requests"
+                            ]
+                        },
+                        "description": "Submit a one-time future work period for admin approval. The approved period is added to the employee's shifts and calendar. Required: start_at, end_at, address. Optional: notes."
+                    }
+                },
+                {
+                    "name": "List My Work Availability Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/availability-requests",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "availability-requests"
+                            ]
+                        },
+                        "description": "List only the authenticated employee's own availability requests, including pending, approved, and rejected status."
+                    }
+                },
+                {
                     "name": "Create Personal Appointment",
                     "request": {
                         "method": "POST",

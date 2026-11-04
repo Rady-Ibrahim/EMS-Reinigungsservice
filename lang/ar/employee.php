@@ -16,6 +16,7 @@ return [
     'role_mitarbeiter'          => 'موظف',
     'locale'                    => 'اللغة',
     'no_company'                => 'بدون شركة',
+    'company'                   => 'الشركة',
     'calendar_color'            => 'لون التقويم',
     'calendar_color_locked'     => 'يتم تحديد لون التقويم عند إنشاء الموظف ولا يمكن تغييره.',
     'account_data'              => 'بيانات الحساب',

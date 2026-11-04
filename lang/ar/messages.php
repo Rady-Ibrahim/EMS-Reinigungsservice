@@ -60,6 +60,7 @@ return [
         'masters'          => 'البيانات الأساسية',
         'customers'        => 'العملاء',
         'employees'        => 'الموظفون',
+        'availability_requests' => 'طلبات ساعات العمل',
         'fix_objects'      => 'المواقع الثابتة',
         'extra_orders'     => 'الطلبات الإضافية',
         'operations'       => 'المهام والوقت',

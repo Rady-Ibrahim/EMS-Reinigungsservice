@@ -3,6 +3,7 @@
 return [
     'title'          => 'Unternehmen',
     'company'        => 'Unternehmen',
+    'nav_section'    => 'Auftraggeber',
     'none'           => 'Kein Unternehmen',
     'name'           => 'Name',
     'contact_person' => 'Kontaktperson',

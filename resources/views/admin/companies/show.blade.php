@@ -20,7 +20,7 @@
 
 <div class="card">
     <div class="card-header">
-        <span class="card-title">{{ __('company.employees') }} ({{ $company->users->count() }})</span>
+        <span class="card-title">{{ __('company.employees') }} ({{ $company->employees->count() }})</span>
     </div>
     <table>
         <thead>
@@ -31,7 +31,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($company->users as $employee)
+            @forelse($company->employees as $employee)
             <tr>
                 <td>{{ $employee->id }}</td>
                 <td><a href="{{ route('admin.employees.show', $employee) }}">{{ $employee->name }}</a></td>

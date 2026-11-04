@@ -31,7 +31,7 @@
         <tbody>
             @foreach($pending as $req)
             <tr>
-                <td><strong>{{ $req->employee->name }}</strong></td>
+                <td><strong>{{ $req->employee?->name ?? '—' }}</strong></td>
                 <td>
                     <span class="badge badge-gray" style="font-size:.75rem">
                         {{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : ($req->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra_assignment')) }}
@@ -95,7 +95,7 @@
         <tbody>
             @forelse($all as $req)
             <tr>
-                <td>{{ $req->employee->name }}</td>
+                <td>{{ $req->employee?->name ?? '—' }}</td>
                 <td><span class="badge badge-gray" style="font-size:.75rem">{{ $req->job_type === 'fix_object' ? __('time_page.fix_object') : ($req->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra')) }}</span></td>
                 <td>
                     @php $s = $req->status->value @endphp

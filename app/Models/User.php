@@ -6,6 +6,7 @@ use App\Enums\RoleEnum;
 use App\Traits\HasAuditLog;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -55,6 +56,11 @@ class User extends Authenticatable
     public function employeeProfile(): HasOne
     {
         return $this->hasOne(EmployeeProfile::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function twoFactorAuth(): HasOne
@@ -137,11 +143,6 @@ class User extends Authenticatable
      *
      * @return array<int, string>
      */
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
-    }
-
     public function routeNotificationForOneSignal(): array
     {
         return $this->deviceTokens()

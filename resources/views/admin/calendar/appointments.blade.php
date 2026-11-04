@@ -21,7 +21,7 @@
             <tbody>
                 @forelse($appointments as $appointment)
                     <tr>
-                        <td>{{ $appointment->user?->name }}</td>
+                        <td>{{ $appointment->user?->name ?? '—' }}</td>
                         <td>
                             <span class="color-dot" style="background:{{ $appointment->color ?? '#8b5cf6' }}"></span>
                             {{ $appointment->title }}

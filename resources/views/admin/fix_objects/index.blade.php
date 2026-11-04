@@ -31,10 +31,10 @@
                     <a href="{{ route('admin.fix-objects.show', $fo) }}"><strong>{{ $fo->title }}</strong></a>
                 </td>
                 <td data-label="{{ __('fix_object.customer_location') }}">
-                    <small style="color:#64748b">{{ $fo->customer->name ?? '—' }}</small><br>
-                    <small>{{ $fo->location->name ?? '—' }}</small>
+                    <small style="color:#64748b">{{ $fo->customer?->name ?? '—' }}</small><br>
+                    <small>{{ $fo->location?->name ?? '—' }}</small>
                 </td>
-                <td data-label="{{ __('fix_object.frequency') }}"><span class="badge badge-gray">{{ $fo->frequency->label() }}</span></td>
+                <td data-label="{{ __('fix_object.frequency') }}"><span class="badge badge-gray">{{ $fo->frequency?->label() ?? '—' }}</span></td>
                 <td data-label="{{ __('fix_object.contract_hours_short') }}">{{ $fo->contract_hours }}h</td>
                 <td data-label="{{ __('fix_object.employees') }}">{{ $fo->assignments_count }}</td>
                 <td data-label="{{ __('fix_object.status') }}">

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\RoleEnum;
+use App\Models\Company;
 use App\Models\EmployeeProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,6 +92,19 @@ class EmployeeManagementTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('users', ['id' => $employee->id, 'name' => 'Updated Name', 'locale' => 'ar']);
+    }
+
+    public function test_employee_index_displays_the_assigned_company_or_no_company_label(): void
+    {
+        $company = Company::factory()->create(['name' => 'Partner Company']);
+        User::factory()->mitarbeiter()->create(['company_id' => $company->id]);
+        User::factory()->vorarbeiter()->create(['company_id' => null]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.employees.index'))
+            ->assertOk()
+            ->assertSee('Partner Company')
+            ->assertSee(__('employee.no_company'));
     }
 
     public function test_admin_can_soft_delete_employee(): void

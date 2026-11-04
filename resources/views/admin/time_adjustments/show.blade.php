@@ -11,7 +11,7 @@
     <div class="card">
         <div class="card-title" style="margin-bottom:.75rem">{{ __('time_page.request_data') }}</div>
         <table>
-            <tr><td style="color:#64748b;width:160px">{{ __('time_page.employee') }}</td><td><strong>{{ $timeAdjustment->employee->name }}</strong></td></tr>
+            <tr><td style="color:#64748b;width:160px">{{ __('time_page.employee') }}</td><td><strong>{{ $timeAdjustment->employee?->name ?? '—' }}</strong></td></tr>
             <tr><td style="color:#64748b">{{ __('time_page.job_type') }}</td>
                 <td><span class="badge badge-gray">{{ $timeAdjustment->job_type === 'fix_object' ? __('time_page.fix_object') : ($timeAdjustment->job_type === 'employee_shift' ? __('time_page.shift_overtime') : __('time_page.extra_assignment')) }}</span></td>
             </tr>

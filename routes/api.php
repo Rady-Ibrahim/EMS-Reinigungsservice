@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\CalendarController as ApiCalendarController;
 use App\Http\Controllers\Api\V1\ComplaintController;
 use App\Http\Controllers\Api\V1\DocumentController as ApiDocumentController;
+use App\Http\Controllers\Api\V1\EmployeeAvailabilityRequestController as ApiEmployeeAvailabilityRequestController;
 use App\Http\Controllers\Api\V1\ExtraAuftragController as ApiExtraAuftragController;
 use App\Http\Controllers\Api\V1\FixObjectController as ApiFixObjectController;
 use App\Http\Controllers\Api\V1\GpsTrackingController;
@@ -130,6 +131,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::delete('/appointments/{appointment}', [ApiAppointmentController::class, 'destroy'])->name('appointments.destroy');
 
         // ── Shifts ─────────────────────────────────────────────────────────
+        Route::get('/availability-requests', [ApiEmployeeAvailabilityRequestController::class, 'index'])->name('availability-requests.index');
+        Route::post('/availability-requests', [ApiEmployeeAvailabilityRequestController::class, 'store'])->name('availability-requests.store');
         Route::get('/shifts', [ApiShiftController::class, 'index'])->name('shifts.index');
         Route::post('/shifts', [ApiShiftController::class, 'store'])->name('shifts.store');
         Route::post('/shifts/{shift}/complete', [ApiShiftController::class, 'complete'])->name('shifts.complete');

@@ -16,6 +16,7 @@ return [
     'role_mitarbeiter'          => 'Mitarbeiter',
     'locale'                    => 'Sprache',
     'no_company'                => 'Kein Unternehmen',
+    'company'                   => 'Unternehmen',
     'calendar_color'            => 'Kalenderfarbe',
     'calendar_color_locked'     => 'Die Kalenderfarbe wird bei der Erstellung festgelegt und kann nicht geändert werden.',
     'account_data'              => 'Account-Daten',

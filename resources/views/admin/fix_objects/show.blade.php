@@ -19,7 +19,7 @@
             <tr><td style="color:#64748b;width:140px">{{ __('fix_object.customer_short') }}</td><td>{{ $fixObject->customer?->name ?? '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.location_short') }}</td><td>{{ $fixObject->location?->name ?? '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('company.company') }}</td><td>{{ $fixObject->company?->name ?? '—' }}</td></tr>
-            <tr><td style="color:#64748b">{{ __('fix_object.frequency') }}</td><td>{{ $fixObject->frequency->label() }}</td></tr>
+            <tr><td style="color:#64748b">{{ __('fix_object.frequency') }}</td><td>{{ $fixObject->frequency?->label() ?? '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.weekdays') }}</td><td>{{ implode(', ', $fixObject->frequency_days ?? []) ?: '—' }}</td></tr>
             <tr><td style="color:#64748b">{{ __('fix_object.times') }}</td>
                 <td>{{ $fixObject->time_start ? substr($fixObject->time_start, 0, 5) : '—' }} – {{ $fixObject->time_end ? substr($fixObject->time_end, 0, 5) : '—' }}</td>

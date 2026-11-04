@@ -39,6 +39,21 @@ class CompanyManagementTest extends TestCase
             ->assertSee('Blitz Blank GmbH');
     }
 
+    public function test_companies_index_lists_the_names_of_assigned_employees(): void
+    {
+        $company = Company::factory()->create(['name' => 'Blitz Blank GmbH']);
+        User::factory()->mitarbeiter()->create([
+            'name' => 'Mona Beispiel',
+            'company_id' => $company->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.companies.index'))
+            ->assertOk()
+            ->assertSee('Mona Beispiel')
+            ->assertSee('Blitz Blank GmbH');
+    }
+
     public function test_admin_can_create_company(): void
     {
         $this->actingAs($this->admin)

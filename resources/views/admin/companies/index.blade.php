@@ -30,7 +30,14 @@
                 </td>
                 <td>{{ $company->contact_person ?? '—' }}</td>
                 <td>{{ $company->phone ?? '—' }}</td>
-                <td>{{ $company->users_count }}</td>
+                <td>
+                    <strong>{{ $company->employees_count }}</strong>
+                    @if($company->employees->isNotEmpty())
+                        <div style="font-size:.85rem;color:#64748b;margin-top:.25rem">
+                            {{ $company->employees->pluck('name')->join(', ') }}
+                        </div>
+                    @endif
+                </td>
                 <td>
                     <div class="actions">
                         <a href="{{ route('admin.companies.edit', $company) }}" class="btn btn-secondary btn-sm">{{ __('company.edit') }}</a>

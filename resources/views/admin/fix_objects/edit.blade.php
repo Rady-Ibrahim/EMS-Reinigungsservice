@@ -58,7 +58,7 @@
                 <label>{{ __('fix_object.frequency_label') }}</label>
                 <select name="frequency" required>
                     @foreach(\App\Enums\FixFrequencyEnum::cases() as $freq)
-                    <option value="{{ $freq->value }}" {{ old('frequency', $fixObject->frequency->value) === $freq->value ? 'selected' : '' }}>
+                    <option value="{{ $freq->value }}" {{ old('frequency', $fixObject->frequency?->value) === $freq->value ? 'selected' : '' }}>
                         {{ $freq->label() }}
                     </option>
                     @endforeach

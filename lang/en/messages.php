@@ -60,6 +60,7 @@ return [
         'masters'          => 'Master Data',
         'customers'        => 'Customers',
         'employees'        => 'Employees',
+        'availability_requests' => 'Work time requests',
         'fix_objects'      => 'Fix Objects',
         'extra_orders'     => 'Extra Orders',
         'operations'       => 'Operations & Time',
